@@ -18,7 +18,7 @@ function ax = setXLim(fh, new_lim, axis_id)
 %   |_____] |    \_ |______   \/   |     |
 %                                           v0.9999.1
 %--------------------------------------------------------------------------
-%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      ...
 %

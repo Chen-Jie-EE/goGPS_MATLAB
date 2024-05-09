@@ -1,6 +1,6 @@
 classdef Residuals < Exportable
     
-    %--- * --. --- --. .--. ... * ---------------------------------------------
+    %--------------------------------------------------------------------------
     %               ___ ___ ___
     %     __ _ ___ / __| _ | __|
     %    / _` / _ \ (_ |  _|__ \
@@ -8,7 +8,7 @@ classdef Residuals < Exportable
     %    |___/                    v 1.0
     %
     %--------------------------------------------------------------------------
-    %  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
+    %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
     %  Written by:        Andrea Gatti
     %  Contributors:      Andrea Gatti, ...
     %  A list of all the historical goGPS contributors is in CREDITS.nfo

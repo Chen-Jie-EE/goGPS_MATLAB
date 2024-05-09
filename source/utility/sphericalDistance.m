@@ -15,7 +15,7 @@ function dist = sphericalDistance(latd_a, lond_a, latd_b, lond_b)
 %   Compute spherical distance among points (a or b can be an array)
 %
 
-    %--- * --. --- --. .--. ... * ---------------------------------------------
+    %--------------------------------------------------------------------------
     %               ___ ___ ___
     %     __ _ ___ / __| _ | __|
     %    / _` / _ \ (_ |  _|__ \
@@ -23,7 +23,7 @@ function dist = sphericalDistance(latd_a, lond_a, latd_b, lond_b)
     %    |___/                    v 1.0
     %
     %--------------------------------------------------------------------------
-    %  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
+    %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
     %  Written by: Andrea Gatti
     %  Contributors:     ...
     %  A list of all the historical goGPS contributors is in CREDITS.nfo

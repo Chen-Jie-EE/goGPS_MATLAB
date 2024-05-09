@@ -22,7 +22,7 @@ classdef Radiosonde < handle
     %    |___/                    v 1.0
     %
     %--------------------------------------------------------------------------
-    %  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
+    %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
     %  Written by:        Andrea Gatti, Alice Bonfiglio, Stefano Barindelli
     %  Contributors:      Andrea Gatti, Alice Bonfiglio, Stefano Barindelli, Alessandra Mascitelli
     %  A list of all the historical goGPS contributors is in CREDITS.nfo

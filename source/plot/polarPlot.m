@@ -11,15 +11,9 @@ function h = polarPlot(az, decl, varargin)
 % OUTPUT
 %   h       handle to the scattered points
 
-%--------------------------------------------------------------------------
-%               ___ ___ ___
-%     __ _ ___ / __| _ | __|
-%    / _` / _ \ (_ |  _|__ \
-%    \__, \___/\___|_| |___/
-%    |___/                    v 1.0
-%
-%--------------------------------------------------------------------------
-%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
+%  Software version 1.0.1
+%-------------------------------------------------------------------------------
+%  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
 %  Written by:       Mirko Reguzzoni
 %  Contributors:     Giulio Tagliaferro, Andrea Gatti ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo

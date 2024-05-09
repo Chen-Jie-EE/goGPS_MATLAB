@@ -16,14 +16,8 @@ function [Az, El, D] = topocent(XR, XS)
 %   Computation of satellite distance, azimuth and elevation with respect to
 %   the receiver.
 
-%--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___
-%     __ _ ___ / __| _ | __|
-%    / _` / _ \ (_ |  _|__ \
-%    \__, \___/\___|_| |___/
-%    |___/                    v 1.0
-%
-%--------------------------------------------------------------------------
+%  Software version 1.0.1
+%-------------------------------------------------------------------------------
 %  Copyright (C) Kai Borre
 %  Written by:       Kai Borre
 %  Contributors:     Kai Borre 09-26-97
@@ -31,8 +25,6 @@ function [Az, El, D] = topocent(XR, XS)
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
-%--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
 %conversion from geocentric cartesian to geodetic coordinates
