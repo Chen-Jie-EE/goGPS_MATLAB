@@ -21,13 +21,13 @@ classdef Remote_Resource_Manager < Ini_Manager
         DEFAULT_RESOURCE_FILE = 'remote_resource.ini';
         DEFAULT_RESOURCE_TXT = 'to be filled';
     end
-    
+
     properties (Access = private)
         local_storage = '';
-        credentials; 
+        credentials;
         version = 0;
     end
-    
+
     % =========================================================================
     %  INIT
     % =========================================================================
@@ -38,16 +38,19 @@ classdef Remote_Resource_Manager < Ini_Manager
         function this = Remote_Resource_Manager(file_name)
             if (nargin == 0)
                 file_name = Core.getFilePath('resources');
+                Core.getLogger.addMarkedMessage(sprintf('Trying to read "%s"', file_name))
                 if exist(file_name, 'file') ~= 2
                     file_name = Remote_Resource_Manager.DEFAULT_RESOURCE_FILE;
+                    Core.getLogger.addMarkedMessage(sprintf('Trying to read "%s"', file_name))
                     if exist(file_name, 'file') ~= 2
+                        Core.getLogger.addError('Resource file is missing');
                         %Remote_Resource_Manager.writeDefault(); %deafult file not
                         %stable enough
                     end
                 end
             end
             this = this@Ini_Manager(file_name);
-            
+
             if ispc()
                 home = [getenv('HOMEDRIVE') getenv('HOMEPATH')];
                 this.local_storage = [home '\AppData\Local\goGPS'];
@@ -60,28 +63,30 @@ classdef Remote_Resource_Manager < Ini_Manager
                 end
             end
             if ~(exist(this.local_storage, 'dir'))
-                mkdir(this.local_storage)
-            end            
-            
+                Core.getLogger.addMessage(sprintf('Create "%s"', this.local_storage))
+                mkdir(this.local_storage);
+            end
             this.readFile();
             this.version = this.getData('RESOURCE_FILE', 'version');
             if ~any(this.version)
                 this.version = 0.1;
             end
+            Core.getLogger.addMessage(sprintf('Read credentials file'));
 
             credentials_path = Core.getFilePath('credentials');
             if exist(credentials_path, 'file') == 0
                 Core.getLogger.addError('The "credentials.txt" file is missing.\nIt will be created as empty from "credentials.example.txt" in Breva folder');
                 try
-                    credentials_default_path = [Core.getInstallDir filesep 'credentials.example.txt'];
-                    copyfile(credentials_default_path, credentials_path);
+                    file_path = fullfile(Core.getInstallDir(true), 'credentials.example.txt');
+                    copyfile(file_path, credentials_path);
                     this.credentials = Ini_Manager(credentials_path);
                     this.credentials.readFile();
-                catch
+                catch ex
+                    Core_Utils.printeEx(ex);
                     this.credentials = Ini_Manager();
                 end
             else
-                this.credentials = Ini_Manager(credentials_path);            
+                this.credentials = Ini_Manager(credentials_path);
                 this.credentials.readFile();
             end
         end
@@ -101,7 +106,7 @@ classdef Remote_Resource_Manager < Ini_Manager
                 file_name = this.getFileName;
                 force_read = 1;
             end
-            reloaded = update@Ini_Manager(this, file_name, force_read);            
+            reloaded = update@Ini_Manager(this, file_name, force_read);
             this.version = this.getData('RESOURCE_FILE', 'version');
             if ~any(this.version)
                 this.version = 0.1;
@@ -164,8 +169,12 @@ classdef Remote_Resource_Manager < Ini_Manager
             end
         end
     end
-    
-    methods        
+
+    methods
+        function version = getVersion(this)
+            version = this.version;
+        end
+
         function [ip, port, user, passwd] = getServerIp(this, name)
             % Return the ip of a server given the server name
             %
@@ -190,17 +199,17 @@ classdef Remote_Resource_Manager < Ini_Manager
                 end
             end
         end
-        
+
         function api = getGoogleMapsAPI(this)
             this.credentials.readFile(); % read every time for updated credentials
             api = this.credentials.getData('googlemaps','api');
         end
-        
+
         function api = getMapQuestAPI(this)
             this.credentials.readFile(); % read every time for updated credentials
             api = this.credentials.getData('mapquest','api');
         end
-        
+
         function f_struct = getFileLoc(this, file_name)
             % Return the remote path of the file
             %
@@ -227,14 +236,14 @@ classdef Remote_Resource_Manager < Ini_Manager
                 end
             end
         end
-               
+
         function [file_structure, latency] = getFileStr(this, center_name, resource_name)
             % Get the logical file structure for the desidered center and
             % resource the latecncy of the resource
             %
             % SYNTAX
             %   [file_structure, latency] = this.getFileStr(center_name, resource_name)
-            % 
+            %
             % OUTPUT:
             % file_strcuture
             %           the structure is a tree and can cointains fields
@@ -242,7 +251,7 @@ classdef Remote_Resource_Manager < Ini_Manager
             %           the same level of the structure) , 'and' and 'or'.
             %           Or means that all sub field of the structure has to
             %           be found or means at least one.
-            %           Leaves of the tree are cell containing the file code to 
+            %           Leaves of the tree are cell containing the file code to
             %           be found in the remote resource ini file and a boolean to
             %           tell if the file has been found or not
             %
@@ -250,20 +259,20 @@ classdef Remote_Resource_Manager < Ini_Manager
             %                          .f2.or.f1
             %                                .f2
             %                          .f3
-            %                     
+            %
             %                    f1 = {'cnes_erp' , 0}
             % latency
             %           [h1 h2] h1 -> hours before which we now the
             %                         resource is not there
             %                   h2 -> hours after which we are sure we will
             %                         found the resource
-            %          
-            
-            % Check if the requested resource is iono   
+            %
+
+            % Check if the requested resource is iono
             if iscell(center_name)
                 center_name = center_name{1};
             end
-            
+
             if numel(resource_name) > 5 && strcmp(resource_name(1:5), 'iono_')
                 str = this.getData(['ic_' center_name], resource_name);
             elseif strcmp(resource_name, 'bias')
@@ -293,15 +302,15 @@ classdef Remote_Resource_Manager < Ini_Manager
             end
         end
     end
-    
+
     % Specific file query methods
-    methods 
+    methods
         function [center, center_ss] = getCenterList(this, type)
             % Get the list of available centers and the supported constellations
             %
             % INPUT
             %   type    0: ORBIT (default)
-            %           1: IONO 
+            %           1: IONO
             %
             % SYNTAX
             %   [center, center_ss] = this.getCenterList(type)
@@ -324,15 +333,15 @@ classdef Remote_Resource_Manager < Ini_Manager
                     center{c} = tmp{c};
                 end
                 center_ss{c} = regexp(tmp{c}, '.*(?=@)', 'match', 'once');
-            end            
+            end
         end
-        
+
         function [center, center_ss] = getCenterListExtended(this, type)
             % Get the list of available centers with their description and the supported constellations
             %
             % INPUT
             %   type    0: ORBIT (default)
-            %           1: IONO 
+            %           1: IONO
             %
             % SYNTAX
             %   [center, center_ss] = this.getCenterList(type)
@@ -359,25 +368,27 @@ classdef Remote_Resource_Manager < Ini_Manager
                     center{c} = tmp{c};
                 else
                     if type == 1
-                        center{c} = [upper(center{c}) ' - ' this.getData(['ic_' center{c}], 'description')];
+                        % center{c} = [upper(center{c}) ' - ' this.getData(['ic_' center{c}], 'description')];
+                        center{c} = [this.getData(['ic_' center{c}], 'description')];
                     elseif type == 2
-                        center{c} = [upper(center{c}) ' - ' this.getData(['bc_' center{c}], 'description')];
+                        % center{c} = [upper(center{c}) ' - ' this.getData(['bc_' center{c}], 'description')];
+                        center{c} = [this.getData(['bc_' center{c}], 'description')];
                     else
                         % center{c} = [upper(center{c}) ' - ' this.getData(['oc_' center{c}], 'description')];
                         center{c} = [this.getData(['oc_' center{c}], 'description')];
                     end
                 end
                 center_ss{c} = regexp(tmp{c}, '.*(?=@)', 'match', 'once');
-            end            
-        end        
-               
+            end
+        end
+
         function [descr] = centerToString(this, center)
             % Get the center description
             %
             % SYNTAX
             %   descr = this.centerToString(center)
             descr = sprintf('Current active center: "%s" - %s\n\nAvailable resources:\n', center, this.getData(['oc_' center], 'description'));
-            
+
             % get resource_list
             key = this.getKeys(['oc_' center]);
             for k = 1 : numel(key)
@@ -397,11 +408,11 @@ classdef Remote_Resource_Manager < Ini_Manager
                     end
                 end
             end
-            
+
             if not(strcmp(center, 'default'))
                 center = 'default';
                 descr = sprintf('%s\n\n\nResources fallback: "%s" - %s\n\nAvailable resources:\n', descr, center, this.getData(['oc_' center], 'description'));
-                
+
                 % get resource_list
                 key = this.getKeys(['oc_' center]);
                 for k = 1 : numel(key)
@@ -423,12 +434,12 @@ classdef Remote_Resource_Manager < Ini_Manager
                 end
             end
         end
-        
+
         function [flag_frub] = getOrbitType(this, center)
             % Get the orbit type availability
             %
             % SYNTAX
-            %   [flag_frub] = this.getOrbitType(center) 
+            %   [flag_frub] = this.getOrbitType(center)
             if iscell(center)
                 center = center{1};
             end
@@ -438,13 +449,13 @@ classdef Remote_Resource_Manager < Ini_Manager
             flag_frub(4) = ~isempty(this.getData(['oc_' center], 'broadcast'));
             flag_frub(5) = ~isempty(this.getData(['oc_' center], 'real-time'));
         end
-        
+
         function [flag_fp1p2b] = getIonoType(this, iono_center)
             % Get the iono type availability
             %
             % SYNTAX
 
-            %   [flag_frub] = this.getIonoType(center)  
+            %   [flag_frub] = this.getIonoType(center)
             state = Core.getCurrentSettings();
             if nargin == 1
                 iono_center = state.getRemoteIonoCenter();
@@ -452,15 +463,15 @@ classdef Remote_Resource_Manager < Ini_Manager
             if isempty(iono_center)
                 iono_center = 'default';
             end
-            
+
             flag_fp1p2b = false(5, 1);
-            
+
             flag_fp1p2b(1) = ~isempty(this.getData(['ic_' iono_center], 'iono_final')) && ~strcmp(this.getData(['ic_' iono_center], 'iono_final'), 'empty');
             flag_fp1p2b(2) = ~isempty(this.getData(['ic_' iono_center], 'iono_rapid')) && ~strcmp(this.getData(['ic_' iono_center], 'iono_rapid'), 'empty');
             flag_fp1p2b(3) = ~isempty(this.getData(['ic_' iono_center], 'iono_predicted1')) && ~strcmp(this.getData(['ic_' iono_center], 'iono_predicted1'), 'empty');
             flag_fp1p2b(4) = ~isempty(this.getData(['ic_' iono_center], 'iono_predicted2')) && ~strcmp(this.getData(['ic_' iono_center], 'iono_predicted2'), 'empty');
             flag_fp1p2b(5) = ~isempty(this.getData(['ic_' iono_center], 'iono_broadcast')) && ~strcmp(this.getData(['ic_' iono_center], 'iono_broadcast'), 'empty');
-            
+
             if ~any(flag_fp1p2b) && ~strcmp(iono_center, 'none')
                 % Switch to default center
                 flag_fp1p2b(1) = ~isempty(this.getData(['ic_default'], 'iono_final'));
@@ -470,15 +481,15 @@ classdef Remote_Resource_Manager < Ini_Manager
                 flag_fp1p2b(5) = ~isempty(this.getData(['ic_default'], 'iono_broadcast'));
             end
         end
-        
+
         function [flag_frub] = getVMFResType(this)
             % Get the vmf res type availability
             %
             % SYNTAX
             %   [flag_frub] = this.getVMFResType(center)
-            
+
             state = Core.getCurrentSettings();
-            
+
             if state.mapping_function == 1
                 flag_frub = [false false false];
             elseif state.mapping_function == 2
@@ -489,14 +500,14 @@ classdef Remote_Resource_Manager < Ini_Manager
                 flag_frub = [true false true];
             end
         end
-        
+
         function [flag_frub] = getVMFSourceType(this)
             % Get the vmf availability type availability
             %
             % SYNTAX
             %   [flag_frub] = this.getVMFSourceType(center)
             state = Core.getCurrentSettings();
-            
+
             if state.mapping_function == 1
                 flag_frub = [false false false];
             elseif state.mapping_function == 2
@@ -508,10 +519,10 @@ classdef Remote_Resource_Manager < Ini_Manager
             elseif state.mapping_function == 5
                 flag_frub = [true true true];
             else
-                flag_frub = [false false false];            
+                flag_frub = [false false false];
             end
         end
-        
+
         function [tree_str] = resourceTreeToString(this, center, resource_type)
             % Parse a resource tree
             %
@@ -529,32 +540,47 @@ classdef Remote_Resource_Manager < Ini_Manager
                 tree_str = sprintf('%s%s', tree_str, this.treeToString(tree, 4));
             end
         end
-        
+
         function remote_path = resourceToString(this, resource)
-            if strcmp(resource, 'null')
+            if isempty(resource) || strcmp(resource, 'null') || strcmp(resource, 'none')
                 remote_path = 'none';
+                return
             else
                 try
-                    file_name = this.getData(['f_', resource], 'filename');
-                    location = this.getData(['f_', resource], 'location');
-                    if iscell(location)
-                        location = location{1};
-                    end
-                    if isempty(location)
-                        location = '';
-                        server = cell(2,1);
+                    if this.getVersion < 1
+                        file_name = this.getData(['f_', resource], 'filename');
+                        location = this.getData(['f_', resource], 'location');
+                        if iscell(location)
+                            location = location{1};
+                        end
+                        if isempty(location)
+                            location = '';
+                            server = cell(2,1);
+                        else
+                            location = this.getData('LOCATION', location);
+                            % remove the server
+                            server = regexp(location, '(?<=\?\{)[a-z\_A-Z]*(?=\})', 'match');
+                            if isempty(server)
+                                server = cell(2,1);
+                            else
+                                location = regexp(location, '(?<=(\?\{[a-z_A-Z]*\})).*', 'match');
+                            end
+                            server = this.getData('SERVER', server{1});
+                        end
                     else
-                        location = this.getData('LOCATION', location);
+                        file_path = this.getData(['f_', resource], 'file_path');
                         % remove the server
-                        server = regexp(location, '(?<=\?\{)[a-z\_A-Z]*(?=\})', 'match');
+                        server = regexp(file_path, '(?<=\?\{)[a-z\_A-Z]*(?=\})', 'match');
                         if isempty(server)
                             server = cell(2,1);
                         else
-                            location = regexp(location, '(?<=(\?\{[a-z_A-Z]*\})).*', 'match');
+                            file_path = regexp(file_path, '(?<=(\?\{[a-z_A-Z]*\})).*', 'match', 'once');
                         end
                         server = this.getData('SERVER', server{1});
+                        location{1} = '';
+                        file_name = file_path;
                     end
-                    % The protocol could be improved woth more values
+                    % The protocol could be improved with more values
                     if iscell(server) && numel(server) == 2 && ~isempty(server{2})
                         switch server{2}
                             case '21'
@@ -566,12 +592,12 @@ classdef Remote_Resource_Manager < Ini_Manager
                         protocol = '';
                     end
                     remote_path = [protocol server{1} ':' server{2} location{1} file_name];
-                catch
+                catch ex
                     remote_path = sprintf('corrupted resource "%s" -> check resource file', resource);
                 end
             end
         end
-        
+
         function tree_str = treeToString(this, tree, indentation_lev)
             % Parse a resource tree
             %
@@ -593,7 +619,7 @@ classdef Remote_Resource_Manager < Ini_Manager
                         % tree_str = sprintf('%s%s|- %s\n', tree_str, str_padding, tree.(tree_names{b}){1});
                         tree_str = sprintf('%s%s|- %s\n', tree_str, str_padding, this.resourceToString(tree.(tree_names{b}){1}));
                     elseif isstruct(tree.(tree_names{b}))
-                        tree_str = sprintf('%s%s', tree_str, this.treeToString(tree.(tree_names{b}), indentation_lev));                        
+                        tree_str = sprintf('%s%s', tree_str, this.treeToString(tree.(tree_names{b}), indentation_lev));
                     else
                         % NON VALID
                     end
@@ -601,7 +627,7 @@ classdef Remote_Resource_Manager < Ini_Manager
             end
         end
     end
-    
+
     methods ( Access = public)
         function file_structure = parseLogicTree(this, str)
             % Description parse the logic structure found in
@@ -625,9 +651,9 @@ classdef Remote_Resource_Manager < Ini_Manager
                     file_structure.(cond).(['f' num2str(i)]) = this.parseLogicTree(list{i});
                 end
             end
-            
+
         end
-        
+
         function [status, list] = findElements(this, str)
             % Return the element of the string separated by | and &
             %
@@ -684,10 +710,10 @@ classdef Remote_Resource_Manager < Ini_Manager
                     end
                 end
                 list{end + 1} = this.removeTrailingPar(str(index(end)+1 : end));
-                
+
             end
         end
-        
+
         function str = removeTrailingPar(this, str)
             % Remove trailing parenthesis
             %
@@ -711,10 +737,10 @@ classdef Remote_Resource_Manager < Ini_Manager
             end
         end
     end
-    
+
     methods (Static)
         function writeDefault(this)
-            % Write the deafut remote resource ini file if it is not found 
+            % Write the deafut remote resource ini file if it is not found
             %
             % SYNTAX:
             %       Remote_Resource_Manager.writeDefault()
@@ -722,7 +748,7 @@ classdef Remote_Resource_Manager < Ini_Manager
             fprintf(fid, Remote_Resource_Manager.DEFAULT_RESOURCE_TXT);
             fclose(fid);
         end
-        
+
         function is_node = isNode(tree_el)
             % Local usage return if a node of node_tree is an "and" or an "or"
             if numel(tree_el) == 1 && iscell(tree_el) && ~isempty(regexp(tree_el{1}, '(and)*|(or)*'))
@@ -731,6 +757,6 @@ classdef Remote_Resource_Manager < Ini_Manager
                 is_node = false;
             end
         end
-        
+
     end
 end

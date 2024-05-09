@@ -22,9 +22,9 @@ function perc_val = perc(data, p)
 %-------------------------------------------------------------------------------
 
     data(isnan(data)) = [];
-if size(data,1) == 1 || size(data,2) == 1
-    data = sort(data(:));
-else
+    if size(data,1) == 1 || size(data,2) == 1
+        data = sort(data(:));
+    else
         for c = 1:size(data,2)
             data(:,c) = sort(data(:,c));
         end
@@ -33,7 +33,7 @@ else
         for c = 1:size(data,2)
             for v = 1:numel(p)
                 perc_val(c,v) = data(min(max(round(size(data,1) * p(v)),1), size(data,1)),c);
-end
+            end
         end
     else
         perc_val = 0;

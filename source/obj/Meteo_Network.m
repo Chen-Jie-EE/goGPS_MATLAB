@@ -16,22 +16,10 @@
 %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti, Giulio Tagliaferro ...
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro ...
-%  A list of all the historical goGPS contributors is in CREDITS.nfo
-%--------------------------------------------------------------------------
 %
-%    This program is free software: you can redistribute it and/or modify
-%    it under the terms of the GNU General Public License as published by
-%    the Free Software Foundation, either version 3 of the License, or
-%    (at your option) any later version.
-%
-%    This program is distributed in the hope that it will be useful,
-%    but WITHOUT ANY WARRANTY; without even the implied warranty of
-%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%    GNU General Public License for more details.
-%
-%    You should have received a copy of the GNU General Public License
-%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-%----------------------------------------------------------------------------------------------
+%  The licence of this file can be found in source/licence.md
+%-------------------------------------------------------------------------------
+
 classdef Meteo_Network < handle
     properties
         mds % list of meteo data
@@ -47,29 +35,29 @@ classdef Meteo_Network < handle
             this.mds(1) = [];
         end
     end
-    
+
     %% METHODS UI
     % ==================================================================================================================================================
-    methods (Static, Access = public)    
+    methods (Static, Access = public)
         function ok_go = openGUI()
             ok_go = gui_goGPS;
         end
     end
-    
+
     methods (Access = public)
         function initSession(this, date_start, date_stop)
             % Load all the metereological data
             %
             % SYNTAX
             % this.initSession(data_start, data_stop)
- 
+
             this.mds = [];
             % load all meteo file present in current settings
             state = Core.getCurrentSettings();
             fnames = state.getMetFileName(date_start, date_stop);
             this.initFromFileList(fnames)
         end
-        
+
         function initFromFileList(this, file_name_list)
             % Load metereological data directly from file list
             %
@@ -78,7 +66,7 @@ classdef Meteo_Network < handle
             %
             % SYNTAX
             %   this.initFromFileList(file_name_list)
-            
+
             n_files = numel(file_name_list);
             this.mds = Meteo_Data;
             this.mds(1) = [];
@@ -118,7 +106,7 @@ classdef Meteo_Network < handle
                 end
             end
         end
-        
+
         function md = getVMS(this, name, xyz, time)
             % Get Virtual Meteo Station
             %
@@ -127,10 +115,10 @@ classdef Meteo_Network < handle
             %   xyz     coordinates of the new meteo station
             %   time    time of interpolation
             %
-            %   
+            %
             % OUTPUT
             %   md      virtual Meteo_Data station generated at xyz coordinates
-            %   
+            %
             % SYNTAX
             %   md = this.getVMS(name, xyz, time)
             %
@@ -140,5 +128,5 @@ classdef Meteo_Network < handle
             md = Meteo_Data.getVMS( name, xyz, time, this.mds);
         end
     end
-    
+
 end

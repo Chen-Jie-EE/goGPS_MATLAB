@@ -26,7 +26,7 @@
 %         - GoogleSatellite: Google's satellite imagery.
 %         - GoogleTerrain: Google's terrain map with physical features.
 %         - GoogleHybrid: Combination of Google's satellite and road map.
-%         
+%
 % OUTPUT:
 % - 'im_h': Handle to the background map image.
 % - 'img_bg': map_image
@@ -50,7 +50,7 @@
 %   - GoogleSatellite: https://cloud.google.com/maps-platform/terms
 %   - GoogleTerrain: https://cloud.google.com/maps-platform/terms
 %   - GoogleHybrid: https://cloud.google.com/maps-platform/terms
-    
+
 %  Software version 1.0.1
 %-------------------------------------------------------------------------------
 %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
@@ -60,7 +60,7 @@
 %  The licence of this file can be found in source/licence.md
 %-------------------------------------------------------------------------------
 
-function [im_h, longitudes, latitudes, img_bg] = addMap(varargin)    
+function [im_h, longitudes, latitudes, img_bg] = addMap(varargin)
 
     % Check for 'demo' call
     if nargin == 1 && strcmpi(varargin{1}, 'demo')
@@ -70,7 +70,6 @@ function [im_h, longitudes, latitudes, img_bg] = addMap(varargin)
 
     % Default values
     ax = [];
-    im_h = [];
     provider = 'ArcGIS';
     zoom_lev = [];
     img_only = false;
@@ -102,13 +101,13 @@ function [im_h, longitudes, latitudes, img_bg] = addMap(varargin)
             otherwise
                 warning('Unknown parameter: %s', varargin{k});
         end
-        k = k + 2;        
+        k = k + 2;
     end
 
     % Detect if m_map is in use
     if img_only
         using_m_map = false;
-    else 
+    else
         if isempty(ax)
             ax = gca;
         end
@@ -117,7 +116,7 @@ function [im_h, longitudes, latitudes, img_bg] = addMap(varargin)
                 ax.Tag = 'm_map';
             end
         end
-        using_m_map = isUsingMMap(ax);        
+        using_m_map = isUsingMMap(ax);
         if isempty(lat_lim) || isempty(lon_lim)
             lat_lim = ylim(ax);
             if isempty(ax)
@@ -150,15 +149,15 @@ function [im_h, longitudes, latitudes, img_bg] = addMap(varargin)
                 'lon_lim', lon_lim);
         end
     end
-    
+
     buffer = 0.1 * max(lon_diff, lat_diff); % Buffer value in degrees
-        
+
     % Calculate the appropriate zoom level if not provided
     if nargin < 5 || isempty(zoom_lev)
         zoom_lon = -log2(lon_diff/360);
         zoom_lat = -log2(lat_diff/180);
         zoom_lev = ceil(min(min(zoom_lon+2, zoom_lat+2), max(zoom_lon, zoom_lat)));
-    end    
+    end
 
     lat_lim = sort(lat_lim);
     lon_lim = sort(lon_lim);
@@ -166,7 +165,7 @@ function [im_h, longitudes, latitudes, img_bg] = addMap(varargin)
     % Extend the lat/lon limits with the buffer
     lat_lim_buffered = [lat_lim(1) - buffer, lat_lim(2) + buffer];
     lon_lim_buffered = [lon_lim(1) - buffer, lon_lim(2) + buffer];
-    
+
     % Ensure the buffered limits are within the valid range
     lat_lim_buffered(1) = max(lat_lim_buffered(1), -85);
     lat_lim_buffered(2) = min(lat_lim_buffered(2), 85);
@@ -180,7 +179,7 @@ function [im_h, longitudes, latitudes, img_bg] = addMap(varargin)
         Core.getLogger.addError('No map downloaded, check internet connection!');
         return
     end
-    
+
     if ~img_only
         if isempty(ax)
             ax = gca;
@@ -225,7 +224,7 @@ function [im_h, longitudes, latitudes, img_bg] = addMap(varargin)
                     set(im_h, 'AlphaData', alpha, 'UserData', struct('bgmap', true));
                 else
                     im_h = m_image(longitudes, latitudes, img_bg, 'UserData', struct('bgmap', true));
-                end                
+                end
                 hold on; im_hpan = image([-pi pi], [-pi pi], ones(2,2), 'AlphaData', 0); % add fake layer to allow pannig
             else
                 if ~isempty(alpha)
@@ -248,12 +247,16 @@ function [im_h, longitudes, latitudes, img_bg] = addMap(varargin)
             set(ax, 'xlim', lon_lim, 'ylim', lat_lim, 'YDir', 'normal');
         end
 
-        h_zoom = zoom(ax.Parent); % Get the zoom object of the figure
-        h_pan = pan(ax.Parent);   % Get the pan object of the figure
+        try
+            h_zoom = zoom(ax.Parent); % Get the zoom object of the figure
+            h_pan = pan(ax.Parent);   % Get the pan object of the figure
 
-        % Set the callbacks for zoom and pan actions
-        set(h_zoom, 'ActionPostCallback', @(src, event) handleAxisChanges(ax));
-        set(h_pan, 'ActionPostCallback', @(src, event) handleAxisChanges(ax));
+            % Set the callbacks for zoom and pan actions
+            set(h_zoom, 'ActionPostCallback', @(src, event) handleAxisChanges(ax));
+            set(h_pan, 'ActionPostCallback', @(src, event) handleAxisChanges(ax));
+        catch
+        end
+
     end
     if img_only
         im_h = img_bg;
@@ -282,7 +285,7 @@ function handleAxisChanges(ax)
 
     lat_lim = get(ax, 'YLim');
     lon_lim = get(ax, 'XLim');
-    
+
     % Calculate the current zoom level
     lon_diff = lon_lim(2) - lon_lim(1);
     lat_diff = lat_lim(2) - lat_lim(1);
@@ -306,7 +309,7 @@ function handleAxisChanges(ax)
             buffer_x = 0.01 * lon_diff;
             buffer_y = 0.01 * lat_diff;
             d_lon = prev_lon_lim - lon_lim;
-            d_lat = prev_lat_lim - lat_lim;            
+            d_lat = prev_lat_lim - lat_lim;
         end
 
         if current_zoom_level == prev_zoom_level && max(abs(d_lon)) < buffer_x && max(abs(d_lat)) < buffer_y
@@ -326,19 +329,19 @@ function handleAxisChanges(ax)
         prev_lon_lim = lon_lim;
         prev_lat_lim = lat_lim;
     end
-    
+
     % Fetch the provider from the UserData field of the axis
-    
+
     % Reload the tiles
     try
-        using_m_map = isUsingMMap(ax);    
+        using_m_map = isUsingMMap(ax);
         if using_m_map
             % Since we are here let's fix auto
             [lon_lim, lat_lim] = resetMMapProj(ax);
         end
         addMap('ax', ax, 'provider', provider, 'lat_lim', lat_lim, 'lon_lim', lon_lim);
     catch ex
-        Core_Utils.printEx(ex);  
+        Core_Utils.printEx(ex);
     end
 end
 
@@ -372,7 +375,7 @@ end
 function [img, latitudes, longitudes] = downloadMapTiles(lat_lim, lon_lim, buffer, zoom_lev, provider)
     % Limit zoom level
     zoom_lev = min(zoom_lev, 19);
-    
+
     % Limit latitude and longitude
     lat_lim(1) = max(lat_lim(1), -85);
     lat_lim(2) = min(lat_lim(2), 85);
@@ -430,7 +433,7 @@ function [img, latitudes, longitudes] = downloadMapTiles(lat_lim, lon_lim, buffe
             catch
                 map = [];
                 try
-                    [tile_img] = webread(url, options);                
+                    [tile_img] = webread(url, options);
                 catch
                     tile_img  = zeros(1,1,3);
                 end
@@ -441,7 +444,7 @@ function [img, latitudes, longitudes] = downloadMapTiles(lat_lim, lon_lim, buffe
                 tile_img = uint8(ind2rgb(tile_img, map) * 255);
             end
 
-            
+
             % merge the tile
             x_offset = (tx - tile_x_min) * size(single_tile, 2);
             y_offset = (ty - tile_y_min) * size(single_tile, 1);
@@ -457,7 +460,7 @@ function [img, latitudes, longitudes] = downloadMapTiles(lat_lim, lon_lim, buffe
         y_offset = (ty - tile_y_min) * size(single_tile, 1);
         mercator_latitudes(y_offset+1:y_offset+size(tile_img, 1)) = getMercatoreTileLatitudes(ty, zoom_lev, size(tile_img, 1));
     end
-            
+
     % Generate new equally spaced latitudes for stretching
     latitudes = flipud(linspace(min(mercator_latitudes), max(mercator_latitudes), 2*size(img, 1))');
     % Initialize the output image
@@ -469,7 +472,7 @@ function [img, latitudes, longitudes] = downloadMapTiles(lat_lim, lon_lim, buffe
         end
     end
     img = img_stretched;
-    
+
     longitudes = tile2lon([tile_x_min tile_x_max+1], zoom_lev);
     longitudes = linspace(longitudes(1), longitudes(end), size(img_stretched,2));
 end
@@ -504,7 +507,7 @@ function latitudes = getTileLatitudes(top_lat, bottom_lat, numRows)
 end
 
 function [img, latitudes, longitudes] = getGoogleMapImage(lat_lim, lon_lim, buffer, map_type, options)
-    
+
     zoom_lon = -log2((diff(lon_lim)-2*buffer)/360);
     zoom_lat = -log2((diff(lat_lim)-2*buffer)/180);
     zoom_lev = ceil(min(zoom_lon, zoom_lat));
@@ -546,7 +549,7 @@ function [img, latitudes, longitudes] = getGoogleMapImage(lat_lim, lon_lim, buff
         img = nan(2, 2, 3);  % return a blank image on error
     end
 
-     
+
     % Calculate a meshgrid of pixel coordinates in EPSG:900913
     width = size(img,2);
     height = size(img,1);
@@ -556,7 +559,7 @@ function [img, latitudes, longitudes] = getGoogleMapImage(lat_lim, lon_lim, buff
     cur_resolution = initial_resolution / 2^zoom_lev / scale; % meters/pixel (EPSG:900913)
     x_vec = center_x + ((1:width)-center_pixel_x) * cur_resolution; % x vector
     y_vec = center_y + ((height:-1:1)-center_pixel_y) * cur_resolution; % y vector
-    
+
     % convert meshgrid to WGS1984
     [lon_vec,lat_vec] = metersToLatLon(x_vec,y_vec);
 
@@ -593,7 +596,7 @@ function [lon,lat] = metersToLatLon(x,y)
 end
 
 function using_m_map = isUsingMMap(ax)
-    % Search for m_map handles to understand if m_map is in use 
+    % Search for m_map handles to understand if m_map is in use
     try
         using_m_map = strfind(ax.Tag, 'm_') == 1;
         if isempty(using_m_map)
@@ -630,13 +633,13 @@ function demoMapTiles()
     % UI controls for latitude and longitude limits
     uicontrol('Style', 'text', 'String', 'Lat Min:', 'Position', [10, 570, 60, 20]);
     lat_min_edit = uicontrol('Style', 'edit', 'String', num2str(lat_lim(1)), 'Position', [70, 570, 60, 20]);
-    
+
     uicontrol('Style', 'text', 'String', 'Lat Max:', 'Position', [10, 540, 60, 20]);
     lat_max_edit = uicontrol('Style', 'edit', 'String', num2str(lat_lim(2)), 'Position', [70, 540, 60, 20]);
 
     uicontrol('Style', 'text', 'String', 'Lon Min:', 'Position', [10, 510, 60, 20]);
     lon_min_edit = uicontrol('Style', 'edit', 'String', num2str(lon_lim(1)), 'Position', [70, 510, 60, 20]);
-    
+
     uicontrol('Style', 'text', 'String', 'Lon Max:', 'Position', [10, 480, 60, 20]);
     lon_max_edit = uicontrol('Style', 'edit', 'String', num2str(lon_lim(2)), 'Position', [70, 480, 60, 20]);
 
@@ -645,12 +648,12 @@ function demoMapTiles()
                  'OpenStreetMap', 'ArcGIS', 'OpenTopoMap', 'CartoDB', 'CartoDBDark', ...
                  'ESRITopo', 'ESRIShadedRelief', 'OSMDE', ...
                  'USGSTopo', 'USGSImagery', 'USGSImageryTopo', 'USGSShadedReliefOnly', 'USGSHydro', 'USGSHistoricalTopo'};
-    
+
     % Dropdown menu for map providers
     uicontrol('Style', 'text', 'String', 'Map Provider:', 'Position', [10, 400, 80, 20]);
     mapProviderMenu = uicontrol('Style', 'popupmenu', 'String', providers, 'Position', [100, 400, 150, 25], ...
                                 'Callback', @(src, event) updateTiles(flag_m_map));
-    
+
     % Refresh button to update the tiles
     uicontrol('Style', 'pushbutton', 'String', 'Refresh', 'Position', [10, 360, 120, 30], 'Callback', @(src, event) updateTiles(flag_m_map));
 
@@ -667,7 +670,7 @@ function demoMapTiles()
     function updateTiles(flag_m_map)
         lon_lim = [str2double(get(lon_min_edit, 'String')), str2double(get(lon_max_edit, 'String'))];
         lat_lim = [str2double(get(lat_min_edit, 'String')), str2double(get(lat_max_edit, 'String'))];
-        
+
         if flag_m_map
             [lon_lim, lat_lim] = resetMMapProj(ax, lon_lim, lat_lim);
         end

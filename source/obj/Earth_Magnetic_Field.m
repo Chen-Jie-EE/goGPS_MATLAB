@@ -3,7 +3,7 @@
 
 %  Software version 1.0.1
 %-------------------------------------------------------------------------------
-%  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2024 Geomatics Research & Development srl (GReD),  Andrea Gatti, Eugenio Realini
 %  Written by:        Giulio Tagliaferro
 %  Contributors:      Giulio Tagliaferro, Andrea Gatti
 %
@@ -16,7 +16,7 @@ classdef Earth_Magnetic_Field < handle
         G; % gauss coefficients
         years;
     end
-    
+
     properties (Access = private)
         cache = false;
         state;
@@ -28,7 +28,7 @@ classdef Earth_Magnetic_Field < handle
         dP;
         P_d_length = 0.001;
     end
-    
+
     methods
         function this = Earth_Magnetic_Field()
             this.state = Core.getCurrentSettings();
@@ -37,11 +37,11 @@ classdef Earth_Magnetic_Field < handle
             this.P = P;
             this.dP = dP;
         end
-        
+
         function importIGRFModel(this, fname)
             % IMPORTANT TODO - tranform secular varaitions in coefficients
             fid = fopen(fname);
-            
+
             tline = fgetl(fid);
             while ischar(tline)
                 if tline(1) == '#'
@@ -54,7 +54,7 @@ classdef Earth_Magnetic_Field < handle
                     year_type = strcmp(year_type,'SV');
                     n_year = sum(year_type == 0);
                     n_sv = sum(year_type == 1);
-                    
+
                 elseif  strcmp(tline(1:3),'g/h')
                     tline(1:8) = [];
                     tline =strsplit(tline,' ');
@@ -74,7 +74,7 @@ classdef Earth_Magnetic_Field < handle
                         vals(1) = [];
                     end
                     vals = str2double(vals);
-                    
+
                     l_idx = sub2ind(size(H),[1:n_ep]',repmat(n+1,n_ep,1),repmat(m+1,n_ep,1));
                     if tline(1) == 'g'
                         G(l_idx) = vals;
@@ -87,7 +87,7 @@ classdef Earth_Magnetic_Field < handle
             y_idx = 1:n_ep;
             y_idx = y_idx ~= sv_idx;
             years_n = zeros(size(y_idx));
-            
+
             years_n(y_idx) = sscanf(reshape(years,6,length(years)/6),'%6f');
             years_n(sv_idx) = sv(2);
             n_y = sv(2) -sv(1);
@@ -98,9 +98,9 @@ classdef Earth_Magnetic_Field < handle
             this.H = permute(H,[3 2 1]);
             this.G = permute(G,[3 2 1]);
             this.years = years_n;
-            
+
         end
-        
+
         function V = getV(this, gps_time, r, phi, theta)
             % interpolate H at G at presetn epoch
             [y, doy] = gps_time.getDOY;
@@ -122,7 +122,7 @@ classdef Earth_Magnetic_Field < handle
             arn = repmat((re/r).^(1:n),n,1);
             V =  re * sum(sum(arn .* (G .* cosm + H .* sinm) .* P));
         end
-        
+
         function B = getBnum(this, gps_time, r, phi, theta)
             % X
             dtheta = 0.1/180*pi;
@@ -141,7 +141,7 @@ classdef Earth_Magnetic_Field < handle
             Z = (V2 - V1)/dr;
             B = [X;Y;Z];
         end
-        
+
         function B = getB(this, gps_time, r, lon, lat)
             % interpolate H at G at presetn epoch
             y = floor(gps_time/(86400*365.25));
@@ -175,24 +175,24 @@ classdef Earth_Magnetic_Field < handle
             cosm = cos(mphi); %some unnecesaary calculations
             sinm = sin(mphi); %some unnecesaary calculations
             arn = repmat((re/r).^(1:n),n,1);
-            
-            
-            
-            
+
+
+
+
             N = repmat((0:n-1),n,1);
             M = N';
-            
+
             % E dV/dphi
             marn = repmat((0:n-1)',1,n) .* arn;
             Ea =  -re / (r * sin(colat)) * sum(sum(marn .* (-G .* sinm + H.* cosm) .* P));
-            
+
             % N dV/dtheta
             dP = this.interpolatedP(cos(colat));
             No =   re / r * sum(sum(arn .* (G .* cosm + H .* sinm) .* dP));
             % U dV/dr
             darn = repmat((1:n),n,1) .* arn;
             Up = - re/r * sum(sum(darn .* (G .* cosm + H .* sinm) .* P));
-            
+
             B = [Ea;No;Up]/ 1e9; %nT to T
             B = local2globalVel2(B, lon,lat);
             %%% rotate B into cartesian
@@ -201,14 +201,14 @@ classdef Earth_Magnetic_Field < handle
             %                 +cos(lat)*cos(lon) +cos(lat)*sin(lon) sin(lat)];
             %             [B] = R'*B;
         end
-        
+
         function P = interpolateP(this, x)
             n1 = floor((x +1) / this.P_d_length) + 1;
             n2 = min(n1+1, 2/this.P_d_length + 1);
             d = ((x +1) - (n1-1) * this.P_d_length) / this.P_d_length;
             P = this.P(:,:,n1) * (1 - d) + this.P(:,:,n2) * d;
         end
-        
+
         function dP = interpolatedP(this, x)
             n1 = max(0,floor((x + 1 - this.P_d_length) / this.P_d_length)) + 1;
             n2 = min(n1+1, 2/this.P_d_length - 1);
@@ -216,5 +216,5 @@ classdef Earth_Magnetic_Field < handle
             dP = this.dP(:,:,n1) * (1 - d) + this.dP(:,:,n2) * d;
         end
     end
-    
+
 end

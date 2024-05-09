@@ -17,7 +17,6 @@ function [lid_ko, clean_data] = getOutliers(data, sigma, win_size, n_sigma_win, 
 %   [id_ko, clean_data] = getOutliers(data, sigma, win_size, n_sigma_win, n_sigma_jmp, range)
 %
 
-
 %  Software version 1.0.1
 %-------------------------------------------------------------------------------
 %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
@@ -46,26 +45,26 @@ function [lid_ko, clean_data] = getOutliers(data, sigma, win_size, n_sigma_win, 
         n_sigma_jmp = 4;
     end
     mu_win = 3 * win_size;
-        
+
     % Keep jumps bigger than 1 meters
     big_jumps = diff(movmedian(data(:,1), 31, 'omitnan'));
     big_jumps(abs(big_jumps) < 1e3) = 0;
     big_jumps = [0; cumsum(big_jumps)];
-    clean_data = data(:,1) - big_jumps;    
+    clean_data = data(:,1) - big_jumps;
     big_jumps = big_jumps + median(clean_data, 'omitnan');
     clean_data = clean_data - median(clean_data, 'omitnan');
-    %clean_data = data(:,1);    
-     
+    %clean_data = data(:,1);
+
     % Initialization
-    
+
     % Determine maximum acceptable value range
     if nargin < 6 || isempty(range)
         mov_range = perc(noNaN(diff(clean_data)), [0.2 0.5 0.8]);
         mov_range = mov_range([1 3]) + [-40 40]' .* diff(mov_range);
-        
+
         tmp = nan2zero(movmedian(clean_data, round(win_size), 'omitnan'));
         lid_ko = clean_data < (tmp + mov_range(1)) | (clean_data > (tmp + mov_range(2)));
-        
+
         range = perc(clean_data, [0.2 0.5 0.8]);
         range = range([1 3]) + [-6 6]' .* diff(range);
     else
@@ -83,7 +82,7 @@ function [lid_ko, clean_data] = getOutliers(data, sigma, win_size, n_sigma_win, 
         lid_ko(data(:,2) > 6 * sigma) = true;
         clean_data(lid_ko) = nan;
     end
-    
+
     % Outlier parameters
     jmp_ok = n_sigma_jmp * sigma;     % A jump smaller than this threshold is ok
     sigma_ok = n_sigma_win * sigma;   % A sigma under this level in a moving window of min_win size is acceptable
@@ -107,7 +106,7 @@ function [lid_ko, clean_data] = getOutliers(data, sigma, win_size, n_sigma_win, 
                     while (std(win, 'omitnan') > sigma_ok) || any(abs(diff(win)) > sigma_ok) % if future obs are unstable shrink the window
                         win(end) = [];
                     end
-                    
+
                     % If the window have been shortened there is probably on outlier in the window
                     if sum(not(isnan(win))) < 5
                         % check the current epoch with a window in the past

@@ -20,18 +20,18 @@
 %-------------------------------------------------------------------------------
 
 classdef Core_Antenna < handle
-    
+
     %% PROPERTIES CONSTANTS
     % ==================================================================================================================================================
     properties (Constant)
     end
-    
+
     %% PROPERTIES MISC
     % ==================================================================================================================================================
     properties (GetAccess = private, SetAccess = private) % Public Access
         creation_time = GPS_Time(now);
     end
-    
+
     %% PROPERTIES ANTENNA
     % ==================================================================================================================================================
     properties
@@ -40,10 +40,10 @@ classdef Core_Antenna < handle
         serial      % List of Antennas serial number (for look-up)
         start       % Validity interval (MATLAB TIME)
         stop        % Validity interval (MATLAB TIME)
-        
+
         mnt_tbl     % monument table (Used only for GeoNet)
     end
-    
+
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods (Static, Access = public)
@@ -52,7 +52,7 @@ classdef Core_Antenna < handle
             % Core object creator
         end
     end
-    
+
     %% METHODS INIT & STATIC GETTERS & SETTERS
     % ==================================================================================================================================================
     methods (Static, Access = public)
@@ -62,7 +62,7 @@ classdef Core_Antenna < handle
             this.importAntex(file_name);
         end
     end
-    
+
     %% METHODS INIT
     % ==================================================================================================================================================
     methods
@@ -94,20 +94,42 @@ classdef Core_Antenna < handle
                     this.importAntex(file_name{f});
                 end
 
-                log.addMessage(sprintf('Loading antenna file "%s"', atx_file_name));
+                log.addMessage(sprintf('Loading antenna file "%s"', atx_file_name));go5G
                 % Load UI defined file
+
+                if ~exist(atx_file_name, 'file')
+                    Core.getLogger.addWarning(sprintf('"%s" not found!', atx_file_name));
+                    fw = File_Wizard;
+                    atx_num = regexp(atx_file_name, '(?<=igs)\d+(?=.atx$)', 'match', 'once');
+                    if ~isempty(atx_num)
+                        [~, file_name, file_ext] = fileparts(atx_file_name);
+                        Core.getLogger.addMarkedMessage(sprintf('Trying to download "%s"', [file_name, file_ext]));
+                        fw.conjureIGSATXFile(atx_num);
+                    else
+                        % Let's see if they are called in Bernese way
+                        atx_num = regexp(atx_file_name, '(?<=I)\d+(?=.ATX$)', 'match', 'once');
+                        if ~isempty(atx_num)
+                            [file_dir, file_name, file_ext] = fileparts(atx_file_name);
+                            state = Core.getState;
+                            state.atx_name = ['igs' atx_num '.atx'];
+                            atx_file_name = fullfile(file_dir, state.atx_name);
+                            Core.getLogger.addMarkedMessage(sprintf('Trying to download "%s"', state.atx_name));
+                            fw.conjureIGSATXFile(atx_num);
+                        end
+                    end
+                end
                 this.importAntex(atx_file_name);
             end
             this.importMonumentTable()
             this.importGeoNetAntex()
         end
-        
+
         function importAntex(this, file_name)
             if nargin == 0
                 file_name = Core.getState.getAtxFile();
             end
             log = Core.getLogger();
-            
+
             % open RINEX observation file
             fid = fopen(file_name,'rt');
             if fid > 0
@@ -122,7 +144,7 @@ classdef Core_Antenna < handle
                 end
                 % txt = txt(txt ~= 13);  % remove carriage return - I hate you Bill!
                 fclose(fid);
-                
+
                 % get new line separators
                 nl = regexp(txt, '\n')';
                 if nl(end) <  (numel(txt) - double(has_cr))
@@ -132,7 +154,7 @@ classdef Core_Antenna < handle
                 lim = [lim (lim(:,2) - lim(:,1) + 1)];
                 lim(lim(:,3) < 64, :) = []; % Do not consider any line shorter than 65 characters
                 lim((txt((lim(:,1) + 60)) == 'C'), :) = []; % detect COMMENT and ignore them
-                
+
                 id_start = find((txt((lim(:,1) + 60)) == 'S') & (txt((lim(:,1) + 69)) == 'A'));  % detect START OF ANTENNA
                 id_stop = find((txt((lim(:,1) + 60)) == 'E') & (txt((lim(:,1) + 69)) == 'T'));   % detect END OF ANTENNA
                 id_ant = find((txt((lim(:,1) + 60)) == 'T'));
@@ -147,7 +169,7 @@ classdef Core_Antenna < handle
                         ant_list(a) = Antenna.fromText(txt(lim(id_start(a) + 1, 1) : lim(id_stop(a) - 1, 2)), lim((id_start(a) + 1) : (id_stop(a) - 1), :), has_cr);
                     end
                 end
-                
+
                 % Append imported antennas
                 if isempty(this.type)
                     this.type = ant_type;
@@ -168,7 +190,7 @@ classdef Core_Antenna < handle
                 end
             end
         end
-        
+
         function importGeoNetAntex(this, file_name)
             if nargin == 1
                 file_list = dir(fullfile(Core.getState.getHomeDir, 'station', 'ATX', 'custom', 'GEONET*'));
@@ -182,7 +204,7 @@ classdef Core_Antenna < handle
                 end
             end
             log = Core.getLogger();
-            
+
             for f = 1 : numel(file_name)
                 % open RINEX observation file
                 fid = fopen(file_name{f},'rt');
@@ -198,7 +220,7 @@ classdef Core_Antenna < handle
                     end
                     % txt = txt(txt ~= 13);  % remove carriage return - I hate you Bill!
                     fclose(fid);
-                    
+
                     % get new line separators
                     nl = regexp(txt, '\n')';
                     if nl(end) <  (numel(txt) - double(has_cr))
@@ -207,19 +229,19 @@ classdef Core_Antenna < handle
                     lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
                     lim = [lim (lim(:,2) - lim(:,1) + 1)];
                     lim(lim(:,3) < 21, :) = []; % Do not consider any line shorter than 65 characters
-                    
+
                     % in character 39 of the line PCO lines contains the frequuency number
                     pco_id = find(txt(lim(:,1) + 38)' > '0' & txt(lim(:,1) + 38)' < '9'); % lines containing PCO
                     type_id = find(txt(lim(:,1) + 38)' == '1'); % lines antenna names
                     ant_type = txt(repmat(lim(type_id,1), 1, 20) + repmat(0:19, size(type_id, 1), 1));
                     pco_size_per_type = diff([type_id; (pco_id(end) +1)]);
-                    % Before an antenna there is always a line of "*"                        
+                    % Before an antenna there is always a line of "*"
                     % get antenna PCV start line
                     ant_start = (find(txt(lim(:,1)) == '*') + 1); ant_start = ant_start(2:end)';
-                    
+
                     if size(ant_type, 1) ~= size(ant_start, 1) && ... % number of PCV == PCO
                         sum(pco_size_per_type == 2) == size(ant_type, 1) % I should have 2 frequencies per antenna
-                        % the file seems to be corrupted 
+                        % the file seems to be corrupted
                         log.addWarning('The GeoNet antenna file seems to be corrupted, skipping it');
                     else
                         n_ant = size(ant_start, 1);
@@ -227,9 +249,9 @@ classdef Core_Antenna < handle
                         serial_pco = reshape(sscanf(serialize(txt(repmat(lim(pco_id, 1), 1, 24) + repmat(41:64, size(pco_id, 1), 1))')', '%f'), 3, 2 * n_ant)'  * 1e3;
                         for a = 1 : n_ant
                             % PCO in the geonet config file is in meters => convert it in mm (*1e3)
-                            pco{a} = [{serial_pco(2*a -1,:)} {serial_pco(2*a,:)}]; %#ok<AGROW> 
-                        end      
-                        
+                            pco{a} = [{serial_pco(2*a -1,:)} {serial_pco(2*a,:)}]; %#ok<AGROW>
+                        end
+
                         % import antenna calibration date (when available)
                         cal_date = txt(repmat(lim(ant_start, 1), 1, 9) + repmat(111:119, n_ant, 1)); cal_date((lim(ant_start, 3) < 120), :) = ' ';
                         cal_flag = find(sum(cal_date, 2) ~= ' ' * size(cal_date, 2))';
@@ -237,7 +259,7 @@ classdef Core_Antenna < handle
                             cal_date(a, :) = '06-JAN-80';
                         end
                         cal_date = datenum(cal_date, 'dd-mmm-yy');
-                        
+
                         % read dazi
                         dazi = str2num(txt(repmat(lim(ant_start, 1), 1, 3) + repmat(69:71, n_ant, 1)));
                         dazi(dazi == 360) = 0;
@@ -245,28 +267,28 @@ classdef Core_Antenna < handle
                         for a = find(dazi > 0)'
                             az_grid{a} = (0 : dazi(a) : 360)';
                         end
-                        
+
                         % read zen2 dzen
                         zen1 = zeros(n_ant, 1);
                         zen2 = str2num(txt(repmat(lim(ant_start, 1), 1, 2) + repmat(75:76, n_ant, 1)));
                         dzen = str2num(txt(repmat(lim(ant_start, 1), 1, 2) + repmat(65:66, n_ant, 1)));
-                        
+
                         % n_freq
                         n_freq = pco_size_per_type;
-                        
+
                         % f_code
                         f_code = ['G01';'G02']; % at the moment I know and I checked that all the antenna have just two frequencies of calibration                        end
-                        
+
                         % Start-Stop
                         start = cal_date;
                         stop = cal_date + 365*100; % One hundred years of validity is more than enough
-                        
+
                         % Sinex_code
                         sinex_code = cell(n_ant, 1);
                         for a = cal_flag
                             sinex_code{a} = txt(repmat(lim(ant_start(a), 1), 1, 10) + repmat(79:88, 1, 1));
-                        end                        
-                        
+                        end
+
                         % Read PCV
                         pcv_noaz = cell(n_ant, 1);
                         pcv = cell(n_ant, 1);
@@ -286,7 +308,7 @@ classdef Core_Antenna < handle
                                 pcv_noaz{a} = [{data(1,:)} {data(2,:)}];
                             end
                         end
-                        
+
                         ant_serial = 'CUSTOM              ';
                         ant_list(n_ant) = Antenna; %#ok<AGROW>
                         for a = 1 : n_ant
@@ -304,10 +326,10 @@ classdef Core_Antenna < handle
                                 GPS_Time(stop(a)), ...
                                 sinex_code{a}, ...
                                 pco{a}, ...
-                                pcv_noaz{a}, ... 
+                                pcv_noaz{a}, ...
                                 pcv{a});
                         end
-                        
+
                         % Append imported antennas
                         if isempty(this.type)
                             this.type = ant_type;
@@ -327,18 +349,18 @@ classdef Core_Antenna < handle
                 end
             end
         end
-        
+
         function importMonumentTable(this, file_name)
             % Import monument table for GEONET Japan receivers
             %
             % SYNTAX
-            %   this.importMonumentTable(file_name)            
-            
+            %   this.importMonumentTable(file_name)
+
             if nargin < 2
                 file_name = fullfile(Core.getState.getHomeDir, 'station', 'ATX', 'custom', 'MONUMENT.TBL');
             end
             %log = Core.getLogger();
-            
+
             % open RINEX observation file
             fid = fopen(file_name,'rt');
             if fid > 0
@@ -353,7 +375,7 @@ classdef Core_Antenna < handle
                 end
                 % txt = txt(txt ~= 13);  % remove carriage return - I hate you Bill!
                 fclose(fid);
-                
+
                 % get new line separators
                 nl = regexp(txt, '\n')';
                 if nl(end) <  (numel(txt) - double(has_cr))
@@ -361,12 +383,12 @@ classdef Core_Antenna < handle
                 end
                 lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
                 lim = [lim (lim(:,2) - lim(:,1) + 1)];
-                
+
                 % Start to parse monument.tbl
                 sep = regexp(txt, ';')';
                 txt(lim(2:end,1) - 1) = ';';
                 tmp = textscan(txt(lim(2,1) : end), '%s %s %s %s %d %d %f %f %f %s', 'Delimiter', ';');
-                                
+
                 n_entry = size(tmp{1}, 1);
                 % Supposing station marker starting from character 2 to 5
                 %sta_name = txt(repmat(lim(2 : end, 1), 1, 4) + repmat((2:5), size(lim,1) - 1, 1));
@@ -377,8 +399,8 @@ classdef Core_Antenna < handle
                 end
                 monument = txt(repmat(sep(12:9:end), 1, 4) + repmat((1:4), size(lim,1) - 1, 1));
                 monument(monument(:,1) == '?', :) = ' ';
-                time = GPS_Time.fromDoySod(double(tmp{5}), double(tmp{6}), double(0*tmp{5}));                
-                
+                time = GPS_Time.fromDoySod(double(tmp{5}), double(tmp{6}), double(0*tmp{5}));
+
                 % compose antenna name
                 antenna_type = char(32 * ones(n_entry, 20, 'uint8'));
                 for a = 1 : n_entry
@@ -389,7 +411,7 @@ classdef Core_Antenna < handle
             end
         end
     end
-    
+
     %% METHODS UTILITIES
     % ==================================================================================================================================================
     methods
@@ -407,7 +429,7 @@ classdef Core_Antenna < handle
             end
             time = time.getMatlabTime;
             if isempty(this.serial)
-                Core.getLogger.addError('goGPS requires a satellite antenna file to work properly!'); 
+                Core.getLogger.addError('The app requires a satellite antenna file to work properly!');
                 error('No antennas no fun :-(')
             else
                 ss = Core_Utils.code3Char2Num(this.serial(:, 1:3)); % stored serials expressed as a number
@@ -420,7 +442,7 @@ classdef Core_Antenna < handle
                 end
             end
         end
-        
+
         function ant = getAntenna(this, type, serial, time, log_lev)
             % get the satellite type given a 3ch antenna (e.g. G01, E12, ...)
             %
@@ -436,13 +458,13 @@ classdef Core_Antenna < handle
             if ~isempty(serial) && ~iscell(serial)
                 serial = {serial};
             end
-            
+
             log = Core.getLogger;
-            
+
             time = time.getMatlabTime;
             % time check
             t_check = find(this.start <= time & this.stop >= time);
-            
+
             n_ant = max(size(serial(:), 1), size(type(:), 1));
             none_code = Core_Utils.code4Char2Num('NONE');
             ant(n_ant + 1) = Antenna(); ant(end) = []; % init output, define empty array of Antennas
@@ -480,7 +502,7 @@ classdef Core_Antenna < handle
                         end
                         id_ant = ((strfind(serialize(cmp_str')', ant_name) - 1) / size(cmp_str, 2) + 1);
                         id_ant(rem(id_ant,1) > 0) = []; % remove wrong matches
-                        
+
                         id_ant = intersect(id_ant, t_check);
                         if ~isempty(id_ant)
                             if (nargin > 4)
@@ -529,7 +551,7 @@ classdef Core_Antenna < handle
                 end
             end
         end
-        
+
         function [type, found] = getTypeFromMarker(this, marker_name, time, log_lev)
             % Get antenna type from Monument File given the marker name of the station and the epoch
             %
@@ -557,7 +579,7 @@ classdef Core_Antenna < handle
                         log.addWarning(sprintf('Monument not found for receiver "%s"', marker_name));
                     end
                 end
-            end            
+            end
         end
     end
 end

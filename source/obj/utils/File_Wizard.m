@@ -11,7 +11,7 @@
 % FOR A LIST OF CONSTANTs and METHODS use doc File_Wizard
 %
 % REQUIRES:
-%   goGPS settings;
+%   App settings;
 %
 % COMMENTS
 %   Server structure:
@@ -26,24 +26,24 @@
 %-------------------------------------------------------------------------------
 
 classdef File_Wizard < handle
-    
+
     properties (SetAccess = protected, GetAccess = public)
         date_start; % first epoch of common observations (among all the obs files)
         date_stop;  % last epoch of common observations (among all the obs files)
         rm;         % resource manager
         sys_c;      % system collector
-        current_resource; % current resource being processed 
+        current_resource; % current resource being processed
         vmf_res; %vfm resolution
         vmf_source; % vmf source
-        
+
         nrt = false;%near real time flag % continue even if all the files have not been found
     end
-    
+
     properties (SetAccess = private, GetAccess = private)
         fnp = File_Name_Processor();
         ftp_downloaders;
     end
-    
+
     methods
         function this = File_Wizard()
             % Constructor
@@ -52,14 +52,14 @@ classdef File_Wizard < handle
             % Modify state to update eph_name and clk_name
             state = Core.getState;
             this.rm = Remote_Resource_Manager(state.getRemoteSourceFile());
-            this.sys_c = state.getConstellationCollector.getActiveSysChar;            
+            this.sys_c = state.getConstellationCollector.getActiveSysChar;
         end
-        
+
         function [status] = conjureResource(this, resource_name, date_start, date_stop, center_name, flag_check)
             % Conjure the desired resource giveng the desired center
             % and the times bounds
             %
-            % SYNTAX: 
+            % SYNTAX:
             %   [status] = this.conjureResource(resource_name, date_start, date_stop, center_name)
             %
             % INPUT:
@@ -70,7 +70,7 @@ classdef File_Wizard < handle
             %
             % OUPUT:
             %     status = 1 everything has been found 0 no
-            
+
             log = Core.getLogger();
             if nargin < 3
                 date_start = this.date_start;
@@ -128,8 +128,13 @@ classdef File_Wizard < handle
                 end
 
                 if status || this.nrt
-                    log.addMessage(log.indent('Downloading Resources ...'));
-                    [status, ~] = this.navigateTree(file_tree, 'download');
+                    log.addMessage(log.indent('Downloading resources ...'));
+                    try
+                        [status, ~] = this.navigateTree(file_tree, 'download');
+                    catch ex
+                        Core_Utils.printEx(ex);
+                    end
+                    log.addMessage(log.indent('done'));
                     if not(status)
                         log.addWarning('Not all file have been found or uncompressed');
                     end
@@ -137,7 +142,7 @@ classdef File_Wizard < handle
             end
             this.sys_c = state.getConstellationCollector.getActiveSysChar; % set sys_c again from constellation collector
         end
-        
+
         function idx = getServerIdx(this, address , port, user, passwd)
             % Get idx of server int the FTP_downlader if not present open
             % the connection and append a FTP_downloder object
@@ -159,7 +164,7 @@ classdef File_Wizard < handle
                 idx = length(this.ftp_downloaders);
             end
         end
-        
+
         function [status, file_tree, ext] = navigateTree(this, file_tree, mode)
             % Navigate into the logical file tree (see Remote_resource_manager.getFileStr) and perform operations
             %
@@ -173,7 +178,7 @@ classdef File_Wizard < handle
             status = false;
             ext = '';
             vmf_res = this.vmf_res;
-            vmf_source = upper(this.vmf_source); 
+            vmf_source = upper(this.vmf_source);
             state = Core.getState;
             if iscell(file_tree) % if is a leaf
                 if strcmp(file_tree{1}, 'null') || file_tree{2}
@@ -192,17 +197,17 @@ classdef File_Wizard < handle
                         end
                         [file_name_lst, date_list] = this.fnp.dateKeyRepBatch(f_path, dsa, dso,'0','0','0',vmf_res,vmf_source);
                         file_name_lst = flipud(file_name_lst);
-                        
+
                         f_status_lst = file_tree{4};
                         f_ext_lst = file_tree{5};
-                        
+
                         if ~isempty(file_name_lst) && (any(strfind(file_name_lst{1}, 'garner')) || any(strfind(file_name_lst{1}, 'cddis'))) || ~isempty(strfind(file_name_lst{1}, 'DCB'))
                             % It seems like aria does not work with graner FTP, it does not download all the file requested, some fails
                             aria_err_code = true; % switch to matlab FTP download
                         else
                             [f_status_lst, aria_err_code] = Core_Utils.aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst, date_list);
                         end
-                        
+
                         for i = 1 : length(file_name_lst)
                             if isempty(f_status_lst) || ~f_status_lst(i) || aria_err_code % do this only if aria fails
                                 file_name = file_name_lst{i};
@@ -301,7 +306,7 @@ classdef File_Wizard < handle
                                             f_status = true;
                                         end
                                     end
-                                    
+
                                     %if numel(file_name_lst) - (3 + numel(file_name_lst_ur)) < 0
                                     f_status_lst(i) = f_status;
                                     status = status && f_status;
@@ -320,7 +325,7 @@ classdef File_Wizard < handle
                             end
                             file_tree{4} = f_status_lst;
                         elseif strcmp(mode, 'remote_check')
-                            
+
                             old_server = struct('name', '', 's_ip', '', 'port', '');
                             for i = 1 : f_struct.loc_number
                                 f_path = [f_struct.(['loc' sprintf('%03d',i)]) f_name];
@@ -360,7 +365,7 @@ classdef File_Wizard < handle
                                         else
                                             server = server{1};
                                             file_name = strrep(file_name,['?{' server '}'],'');
-                                            
+
                                             if strcmp(server, old_server.name)
                                                 s_ip = old_server.s_ip;
                                                 port = old_server.port;
@@ -368,7 +373,7 @@ classdef File_Wizard < handle
                                                 [s_ip, port, user, passwd] = this.rm.getServerIp(server);
                                                 old_server = struct('name', server, 's_ip', s_ip, 'port', port);
                                             end
-                                            
+
                                             if instr(port,'21')
                                                 idx = this.getServerIdx(s_ip, port, user, passwd);
                                                 [stat, ext] = this.ftp_downloaders{idx}.check(file_name);
@@ -404,11 +409,11 @@ classdef File_Wizard < handle
                                                 end
                                             end
                                         end
-                                        
+
                                     end
                                 end
                                 status = any(file_tree{4} == 0);
-                                file_tree{5} = f_ext_lst;                                
+                                file_tree{5} = f_ext_lst;
                                 if status
                                     file_tree{3} = i;
                                 end
@@ -443,10 +448,10 @@ classdef File_Wizard < handle
                     end
                     file_tree.(b_name).(branch{i}) = file_tree_b;
                 end
-                
+
             end
         end
-        
+
         function conjureFiles(this, date_start, date_stop, center_name)
             % Get all the files needed for processing
             %
@@ -464,7 +469,7 @@ classdef File_Wizard < handle
             % check if selected center os compatible with selected
             % constellation
             this.rm.readFile; % Reload remote resource file
-            
+
             centers = this.rm.getData('ORBIT_CENTER','available');
             is_ok = false;
             for i = 1 : length(centers)
@@ -482,7 +487,7 @@ classdef File_Wizard < handle
                     end
                 end
             end
-            
+
             if ~strcmp(center_name, 'none')
                 state.setNoResources(false);
             end
@@ -490,29 +495,34 @@ classdef File_Wizard < handle
             if ~is_ok
                 if strcmp(center_name, 'none')
                     state.setNoResources(true);
-                    Core.getLogger.addWarning('Resource center have not been selected, orbits will not be computed!!!');                    
+                    Core.getLogger.addWarning('Resource center have not been selected, orbits will not be computed!!!');
                 else
                     Core.getLogger.addError(['Selected center: ' center_name ' not compatible with selected constellations: ' this.sys_c]);
                     error('Ending execution: missing valid orbits')
                 end
             end
-                
+
             % Prepare all the files needed for processing
-            
+
             if ~state.isNoResources()
+                Core.getLogger.addMessage(Core.getLogger.indent(' - Get navigational files'));
                 state.updateNavFileName();
                 this.conjureNavFiles(dsa, dso);
                 if state.isAutomaticDownload()
+                    Core.getLogger.addMessage(Core.getLogger.indent(' - Get bias files'));
                     this.conjureBiasFiles(dsa, dso);
+                    Core.getLogger.addMessage(Core.getLogger.indent(' - Get crx files'));
                     this.conjureCRXFiles(dsa, dso);
                 end
                 if state.needIonoMap() || state.isIonoKlobuchar()
+                    Core.getLogger.addMessage(Core.getLogger.indent(' - Get ionospheric delay map files'));
                     this.conjureIonoFiles(dsa, dso, state.isIonoKlobuchar());
                     if false
                         this.conjureResource('hoic', dsa, dso);
                     end
                 end
                 if state.isAtmLoading()
+                    Core.getLogger.addMessage(Core.getLogger.indent(' - Get athmosperic loading files'));
                     this.conjureAtmLoadFiles(dsa, dso);
                 end
                 if state.isVMF()
@@ -520,7 +530,7 @@ classdef File_Wizard < handle
                 end
             end
         end
-        
+
         function err_code = conjureAtmLoadFiles(this, date_start, date_stop)
             Core.getLogger.addMarkedMessage('Checking Athmospheric loading files');
             status = this.conjureResource('atm_load',date_start, date_stop);
@@ -532,26 +542,25 @@ classdef File_Wizard < handle
                 Core.getLogger.addWarning('Not all atmospheric files founds, Atmospheric loading will not be applyied');
                 err_code = 1;
             end
-            
         end
-        
+
         function setPreferredVMF(this, version, resolution, source)
             % Set the current VMF to download
-            % 
+            %
             % Available options (validity is not checked):
             %   VERSION  RESOLUTION  SOURCE
-            %    '1'       '2.5x2'    'op'  (operational)     
+            %    '1'       '2.5x2'    'op'  (operational)
             %    '1'       '2.5x2'    'fc'  (forecast)
-            %    '3'         '5x5'    'op'  (operational)     
+            %    '3'         '5x5'    'op'  (operational)
             %    '3'         '5x5'    'ei'  (ERA-Interim)
             %    '3'         '5x5'    'fc'  (forecast)
-            %    '3'         '1x1'    'op'  (operational)     
+            %    '3'         '1x1'    'op'  (operational)
             %    '3'         '1x1'    'ei'  (ERA-Interim)
             %    '3'         '1x1'    'fc'  (forecast)
             %
             % SYNTAX
             %   this.setPreferredVMF(version, resolution, source)
-            
+
             state = Core.getState;
             if version == '1'
                 % resolution = '2.5x2';
@@ -565,8 +574,8 @@ classdef File_Wizard < handle
                     state.setPreferredVMFRes(1);
                     state.setMappingFunction(state.MF_VMF3_1);
                 end
-            end      
-            
+            end
+
             switch source(1)
                 case 'o'
                     state.setPreferredVMFSource(1);
@@ -576,7 +585,7 @@ classdef File_Wizard < handle
                     state.setPreferredVMFSource(3);
             end
         end
-        
+
         function err_code = conjureVmfFiles(this, date_start, date_stop)
             log = Core.getLogger;
             log.addMarkedMessage('Checking VMF files');
@@ -620,7 +629,7 @@ classdef File_Wizard < handle
                         break
                     end
                 end
-                
+
                 if status
                     err_code = 0;
                     log.addStatusOk('Vienna Mapping Function files are present ^_^');
@@ -631,11 +640,11 @@ classdef File_Wizard < handle
                 % VMF are not requested
                 err_code = 0;
             end
-            
-            
-            
+
+
+
         end
-        
+
         function err_code = conjureBiasFiles(this, date_start, date_stop)
             % Download of BIAS files
             %
@@ -656,7 +665,7 @@ classdef File_Wizard < handle
                 err_code = ~status;
             end
         end
-        
+
         function err_code = conjureNavFiles(this, date_start, date_stop)
             % Wrapper of conjureResources for navigational files
             %
@@ -675,7 +684,7 @@ classdef File_Wizard < handle
             state.erp_name = '';
             for i = 1 : length(list_preferred)
                 status = this.conjureResource(list_preferred{i}, date_start, date_stop);
-                err_code(i) = ~status; 
+                err_code(i) = ~status;
                 if status || (this.nrt && (strcmp(list_preferred{i},'ultra') || strcmp(list_preferred{i},'broadcast')))
                     break
                 end
@@ -701,8 +710,8 @@ classdef File_Wizard < handle
                     log.addError('Not all ephemerides files have been found');
                 end
             end
-        end               
-        
+        end
+
         function err_code = conjureIonoFiles(this, date_start, date_stop, flag_brdc)
             % Wrapper of conjureResources for iono files
             %
@@ -763,7 +772,7 @@ classdef File_Wizard < handle
                 end
             end
         end
-        
+
         function err_code = conjureCRXFiles(this, date_start, date_stop)
             % SYNTAX:
             %   this.conjureCRXFiles(gps_week, gps_time);
@@ -776,7 +785,7 @@ classdef File_Wizard < handle
             %
             % DESCRIPTION:
             %   Download of .CRX files from the AIUB FTP server.
-            
+
             err_code = 0;
             log = Core.getLogger;
             log.addMarkedMessage('Checking CRX (Satellite problems file)');
@@ -784,36 +793,36 @@ classdef File_Wizard < handle
             date_stop = date_stop.getCopy();
             gps_week = double([date_start.getGpsWeek; date_stop.getGpsWeek ]);
             %gps_time = [date_start.getGpsTime; date_stop.getGpsTime ];
-            
+
             % Pointer to the global settings:
             state = Core.getCurrentSettings();
-            
+
             %AIUB FTP server IP address
             % aiub_ip = '130.92.9.78'; % ftp.aiub.unibe.ch
             aiub_ip = 'ftp.aiub.unibe.ch';
-            
+
             %download directory
             down_dir = state.crx_dir;
-            
+
             %convert GPS time to time-of-week
             [~, start_sow] = date_start.getGpsWeek;
             [~, stop_sow] = date_stop.getGpsWeek;
             gps_tow = [start_sow; stop_sow];
-            
+
             % starting time
             date_f = gps2date(gps_week(1), gps_tow(1));
-            
+
             % ending time
             date_l = gps2date(gps_week(end), gps_tow(end));
-            
+
             % Check / create output folder
             if not(exist(down_dir, 'dir'))
                 mkdir(down_dir);
             end
-                        
+
             year  = date_f(1) : 1 : date_l(1);
             file_crx = cell(length(year),1);
-            
+
             %connect to the CRX server
             try
                 ftp_server = Core_Utils.ftpTimeout(aiub_ip,3);
@@ -826,22 +835,22 @@ classdef File_Wizard < handle
                 log.addError('Connection failed.');
                 return
             end
-                        
+
             for y = 1 : length(year)
-                
+
                 %target directory
                 s = '/BSWUSER52/GEN';
-                
+
                 cd(ftp_server, '/');
                 cd(ftp_server, s);
-                
+
                 %target file
                 s2 = ['SAT_' num2str(year(y),'%04d') '.CRX'];
-                
+
                 % read the last modification of the CRX
                 d = dir([down_dir, '/', s2]);
                 t = GPS_Time(d.datenum);
-                
+
                 % If there's no CRX or the CRX is older than the day of the processing and it has not been downloaded in the last day
                 % do not do
                 if isempty(d) || ((t < date_stop.addSeconds(10*86400)) && (GPS_Time.now - t > 43200))
@@ -890,18 +899,18 @@ classdef File_Wizard < handle
                     end
                     log.addMessage(log.indent(sprintf(['Downloaded CRX file: ' s2 '\n'])));
                 end
-                
+
                 % cell array with the paths to the downloaded files
-                file_crx{y} = [down_dir, '/', s2];                                
+                file_crx{y} = [down_dir, '/', s2];
             end
-            
+
             try
                 close(ftp_server);
             catch
             end
             log.addStatusOk('CRX files are present ^_^')
         end
-        
+
         function err_code = conjureIGSATXFile(this, year)
             % SYNTAX:
             %   this.conjureIGSATXFile();
@@ -915,27 +924,27 @@ classdef File_Wizard < handle
             if nargin < 2 || isempty(year)
                 year = '20';
             end
-            
+
             err_code = 0;
             log = Core.getLogger;
             log.addMarkedMessage('Update ATX (IGS antex file)');
-                        
+
             % Pointer to the global settings:
             state = Core.getCurrentSettings();
-            
+
             % IGS http address
             igs_ip = 'files.igs.org';
-            
+
             %download directory
             down_dir = state.atx_dir;
-            
+
             % Check / create output folder
             if not(exist(down_dir, 'dir'))
                 mkdir(down_dir);
             end
             % target directory
             rem_path = '/pub/station/general';
-                        
+
             % target file
             rem_file = ['igs' year '.atx'];
             local_file = state.getAtxFile;
@@ -984,7 +993,7 @@ classdef File_Wizard < handle
             log.addStatusOk('ATX files are present ^_^')
         end
     end
-    
+
     methods
         function center_list = getAvailableCenters(this)
             % Get all the centers available
@@ -995,7 +1004,7 @@ classdef File_Wizard < handle
             [extended, ss] = this.rm.getCenterListExtended();
             center_list = [center_list extended ss];
         end
-        
+
         function center_list = getAvailableIonoCenters(this)
             % Get all the centers available
             %
@@ -1005,7 +1014,7 @@ classdef File_Wizard < handle
             extended = this.rm.getCenterListExtended(1);
             center_list = [center_list extended];
         end
-        
+
         function [cur_center, id_center] = getCurCenter(this)
             % Get the current orbit center
             %
@@ -1015,12 +1024,12 @@ classdef File_Wizard < handle
             center_list = this.rm.getCenterList();
             id_center = find(ismember(center_list, cur_center));
         end
-        
+
         function setCurCenter(this, cur_center, preferred_type)
             % Set the current orbit center
             %
             % INPUT
-            %   cur_center is the name (char or cell) of the center           
+            %   cur_center is the name (char or cell) of the center
             %
             % SYNTAX
             %   this.setCurCenter(cur_center, preferred_type);
@@ -1048,7 +1057,7 @@ classdef File_Wizard < handle
                 this.setPreferredOrbit(true(5,1));
             end
         end
-        
+
         function [cur_center, id_center] = getCurIonoCenter(this)
             % Get the current orbit center
             %
@@ -1058,12 +1067,12 @@ classdef File_Wizard < handle
             center_list = this.rm.getCenterList();
             id_center = find(ismember(center_list, cur_center));
         end
-        
+
         function setCurIonoCenter(this, cur_center, preferred_type)
             % Set the current orbit center
             %
             % INPUT
-            %   cur_center is the name (char or cell) of the center           
+            %   cur_center is the name (char or cell) of the center
             %
             % SYNTAX
             %   this.setCurCenter(cur_center);
@@ -1091,7 +1100,7 @@ classdef File_Wizard < handle
                 this.setPreferredIono(true(5,1));
             end
         end
-        
+
         function [flag, flag_name] = getPreferredOrbit(this)
             % Get the preferred orbit sequence:
             %   1 final
@@ -1112,7 +1121,7 @@ classdef File_Wizard < handle
                 flag_name = flag_name(flag);
             end
         end
-        
+
         function setPreferredOrbit(this, flag)
             % Set the preferred orbit sequence:
             %   1 final
@@ -1127,10 +1136,10 @@ classdef File_Wizard < handle
             %
             % SYNTAX
             %   this.setPreferredOrbit(flag)
-            
+
             Core.getState.setPreferredOrbit(flag);
         end
-        
+
         function [flag, flag_name] = getPreferredIono(this)
             % Get the preferred orbit sequence:
             %   1 final
@@ -1150,7 +1159,7 @@ classdef File_Wizard < handle
                 flag_name = flag_name(flag);
             end
         end
-        
+
         function setPreferredIono(this, flag)
             % Set the preferred orbit sequence:
             %   1 final
@@ -1164,10 +1173,10 @@ classdef File_Wizard < handle
             %
             % SYNTAX
             %   this.setPreferredOrbit(flag)
-            
+
             Core.getState.setPreferredIono(flag);
         end
-        
+
         function err_code = downloadResource(this, type, date_start, date_stop)
             % Get resourcess:
             %   eph             download ephemeris and clocks
@@ -1197,7 +1206,7 @@ classdef File_Wizard < handle
             end
             Core.getState.setAutomaticDownload(old_val);
         end
-        
+
         function err_code = getResource(this, type, date_start, date_stop)
             % Download resourcess:
             %   eph             download ephemeris and clocks
@@ -1215,7 +1224,7 @@ classdef File_Wizard < handle
             %
             % SYNTAX
             %   this.downloadResource(type, date_start, date_stop)
-            
+
             if nargin < 3
                 date_start = this.date_start;
                 date_stop = this.date_stop;
@@ -1224,7 +1233,7 @@ classdef File_Wizard < handle
                     date_start = GPS_Time(date_start);
                     date_stop = GPS_Time(date_stop);
                 end
-                    
+
                 this.date_start = date_start.getCopy;
                 if nargin < 4
                     this.date_stop = date_start.getCopy;
@@ -1240,11 +1249,11 @@ classdef File_Wizard < handle
             if ~iscell(type)
                 type = {type};
             end
-            
+
             if numel(type) == 1 && strcmp(type{1}, 'all')
                 type = {'eph', 'bias', 'crx', 'atm', 'iono', 'iono_brdc', 'vmf', 'igsatx'};
             end
-            
+
             err_code = {};
             for t = 1 : numel(type)
                 cur_type = type{t};
@@ -1274,8 +1283,8 @@ classdef File_Wizard < handle
             end
             if numel(err_code) == 1
                 err_code = err_code{1};
-            end                
+            end
         end
     end
-    
+
 end

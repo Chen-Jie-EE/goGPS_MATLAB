@@ -28,8 +28,8 @@
 %  Software version 1.0.1
 %-------------------------------------------------------------------------------
 %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
-%  Written by:       Andrea Gatti
-%  Contributors:     Andrea Gatti, ...
+%  Written by:        Andrea Gatti
+%  Contributors:      Andrea Gatti
 %
 %  The licence of this file can be found in source/licence.md
 %-------------------------------------------------------------------------------
@@ -37,19 +37,19 @@
 function [smoothed_data, id_ko, smoothed_spline, data_filtered] = tsFilter(time, data, big_win, thr_big, small_win, thr_small, varargin)
 
     % Convert time if in GPS_Time format
-    if isa(time,'GPS_Time')        
+    if isa(time,'GPS_Time')
         time = time.getMatlabTime;
     end
-    
+
     % Initialize
     data_filtered = data(:,1);
-    
+
     % Large outliers detection and filtering
     smoothed_data = robFilt(time, [data_filtered data(:,2)], big_win);
     residuals = data_filtered - smoothed_data;
     id_ko = (abs(residuals) / robStd(residuals)) > thr_big;
     %data_filtered(id_ko) = nan;
-    
+
     flag_2step = nargin > 5 && ~isempty(small_win) && ~isempty(thr_small);
     flag_plot = (nargin == 7  && strcmp(varargin{1}, '-plot')) || (nargin == 5  && strcmp(small_win, '-plot'));
 
@@ -60,7 +60,7 @@ function [smoothed_data, id_ko, smoothed_spline, data_filtered] = tsFilter(time,
         residuals = data(:,1) - smoothed_data;
         id_ko = (abs(residuals) / robStd(data_filtered - smoothed_data)) > thr_small;
     end
-           
+
     % Compute smoothed_spline with smoothed data based weights (if output requested)
     if nargout > 2 || flag_plot
         residuals(id_ko) = (2*residuals(id_ko)).^2; % weight more residuals above the threshold
@@ -70,7 +70,7 @@ function [smoothed_data, id_ko, smoothed_spline, data_filtered] = tsFilter(time,
             smoothed_spline = splinerMat(time, [smoothed_data residuals.^2], big_win / 2, 1e-5);
         end
     end
-    
+
     % Prepare data_filtered for output (if output requested)
     if nargout > 3 || flag_plot
         data_filtered = data(:,1);

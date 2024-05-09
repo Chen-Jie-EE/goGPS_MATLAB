@@ -5,10 +5,10 @@
 %   Collection of methods to produce a sinex file
 %
 % EXAMPLE
-%   
+%
 %
 % SEE ALSO
-%  
+%
 % FOR A LIST OF CONSTANTs and METHODS use doc SINEX_Writer
 
 %  Software version 1.0.1
@@ -23,15 +23,15 @@
 classdef SINEX_Writer < handle
     properties (Constant)
         TROPO_VERSION_HEADER = '%=TRO 1.00 GRD ${DATEPRODUCED} GRD ${STARTOFDATA} ${ENDOFDATA} P ${MARKERNAME}'
-        
-        
+
+
         DESCRIPTION = 'GReD Geomatic Research and Development, Lomazzo Italy';
         OUTPUT_TROPO = 'Total Troposphere Zenith Path Delay Product';
         CONTACT = 'support@gogps-project.org';
         SOFTWARE = 'goGPS Software';
         INPUT = 'IGS final GPS orbit and clock solutions, site RINEX files.';
         ACKNOWLEDGMENTS = 'International GNSS Service (IGS)';
-        
+
         TROPO_HEADER = '*SITE EPOCH_______ TROTOT STDEV  TGNTOT  STDEV  TGETOT  STDEV';
         SINEX_MAPPING_FLAGS = {'WET GMF','WET GRID VMF1 2.5x2.5',' WET NIELL','WET GRID VMF3 1x1','WET GRID VMF3 5x5'};
         SUPPORTED_PARAMETERS = {'TROTOT','TGNTOT','TGETOT','TROWET','PWV','PRESS','TEMDRY','HUMREL'};
@@ -93,7 +93,7 @@ classdef SINEX_Writer < handle
             fid = this.fid;
             fprintf(fid,'+TROP/STA_COORDINATES\n');
             fprintf(fid,'*SITE PT SOLN T __STA_X_____ __STA_Y_____ __STA_Z_____ SYSTEM REMRK\n');
-            
+
             for i = size(x,1)
                 fprintf(fid,' %-4s%-3s%-5s P %-13.3f%-13.3f%-13.3f%-7s%-4s \n',mrk_name(i,:),'A','1',x(i),y(i),z(i),ref_sys(i,:),rmrk(i,:));
             end
@@ -121,7 +121,7 @@ classdef SINEX_Writer < handle
                 if std_fields(i)
                     sol_field_string = [sol_field_string ' STDDEV'];
                 end
-                
+
             end
             fprintf(fid,' %-32s%s\n','SOLUTION_FIELDS_1',sol_field_string);
             fprintf(fid,'-TROP/DESCRIPTION\n\n');
@@ -154,7 +154,7 @@ classdef SINEX_Writer < handle
                     if this.std_fields(i)
                         vals_mat = [ vals_mat reshape(sprintf('%5.1f',stds(:,i)),5,n_ep)'];
                     end
-                elseif strfind(vals_flag{i},'TG')                    
+                elseif strfind(vals_flag{i},'TG')
                     vals_mat = [ vals_mat reshape(sprintf('%8.3f', max(-999,min(999,vals(:,i)))),8,n_ep)'];
                     if this.std_fields(i)
                         vals_mat = [ vals_mat reshape(sprintf('%5.3f',stds(:,i)),5,n_ep)'];
@@ -168,7 +168,7 @@ classdef SINEX_Writer < handle
             end
             vals_mat = [ mrk_name yy_doy_sod vals_mat repmat('\n',n_ep,1)];
             fprintf(fid,vals_mat');
-            
+
         end
         function writeTropoSolutionEnd(this)
             fid = this.fid;
@@ -178,6 +178,6 @@ classdef SINEX_Writer < handle
             fid = this.fid;
             fprintf(fid,'%%=ENDTRO');
         end
-        
+
     end
 end

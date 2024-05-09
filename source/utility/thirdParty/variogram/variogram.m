@@ -7,13 +7,13 @@ function S = variogram(x,y,varargin)
 %   d = variogram(x,y,'propertyname','propertyvalue',...)
 %
 % Description:
-%   variogram calculates the experimental variogram in various 
-%   dimensions. 
+%   variogram calculates the experimental variogram in various
+%   dimensions.
 %
 % Input:
-%   x - array with coordinates. Each row is a location in a 
+%   x - array with coordinates. Each row is a location in a
 %       size(x,2)-dimensional space (e.g. [x y elevation])
-%   y - column vector with values of the locations in x. 
+%   y - column vector with values of the locations in x.
 %
 % Propertyname/-value pairs:
 %   nrbins - number bins the distance should be grouped into
@@ -29,16 +29,16 @@ function S = variogram(x,y,varargin)
 %               scalar (positive integer, e.g. 3000)
 %               inf (default) = no subsampling
 %   anisotropy - false (default), true (works only in two dimensions)
-%   thetastep - if anisotropy is set to true, specifying thetastep 
-%            allows you the angle width (default 30°)
-%   
-%   
+%   thetastep - if anisotropy is set to true, specifying thetastep
+%            allows you the angle width (default 30ï¿½)
+%
+%
 % Output:
 %   d - structure array with distance and gamma - vector
-%   
+%
 % Example: Generate a random field with periodic variation in x direction
-% 
-%     x = rand(1000,1)*4-2;  
+%
+%     x = rand(1000,1)*4-2;
 %     y = rand(1000,1)*4-2;
 %     z = 3*sin(x*15)+ randn(size(x));
 %
@@ -58,7 +58,7 @@ function S = variogram(x,y,varargin)
 %     title('Anisotropic variogram')
 %
 % Requirements:
-%   The function uses parseargs (objectId=10670) 
+%   The function uses parseargs (objectId=10670)
 %   by Malcolm wood as subfunction.
 %
 % See also: KRIGING, VARIOGRAMFIT
@@ -95,12 +95,12 @@ params = parseargs(params,varargin{:});
 
 if params.maxdist > maxd;
     warning('Matlab:Variogram',...
-            ['Maximum distance exceeds maximum distance \n' ... 
-             'in the dataset. maxdist was decreased to ' num2str(maxd) ]);
+            ['Maximum distance exceeds maximum distance \n' ...
+                'in the dataset. maxdist was decreased to ' num2str(maxd) ]);
     params.maxdist  = maxd;
 end
 
-if params.anisotropy && nrdims ~= 2 
+if params.anisotropy && nrdims ~= 2
     params.anisotropy = false;
     warning('Matlab:Variogram',...
             'Anistropy is only supported for 2D data');
@@ -123,29 +123,29 @@ iid = distmat(x,params.maxdist);
 lam      = (y(iid(:,1))-y(iid(:,2))).^2;
 
 % anisotropy
-if params.anisotropy 
+if params.anisotropy
     nrthetaedges = floor(180/params.thetastep);
-  
+
     % calculate with radians, not degrees
     params.thetastep = params.thetastep/180*pi;
 
     % calculate angles, note that angle is calculated clockwise from top
     theta    = atan2(x(iid(:,2),1)-x(iid(:,1),1),...
-                     x(iid(:,2),2)-x(iid(:,1),2));
-    
+                        x(iid(:,2),2)-x(iid(:,1),2));
+
     % only the semicircle is necessary for the directions
     I        = theta < 0;
     theta(I) = theta(I)+pi;
     I        = theta >= pi-params.thetastep/2;
     theta(I) = 0;
-        
+
     % create a vector with edges for binning of theta
     % directions go from 0 to 180 degrees;
     thetaedges = linspace(-params.thetastep/2,pi-params.thetastep/2,nrthetaedges);
-    
+
     % bin theta
     [ntheta,ixtheta] = histc(theta,thetaedges);
-    
+
     % bin centers
     thetacents = thetaedges(1:end)+params.thetastep/2;
     thetacents(end) = pi; %[];
@@ -156,23 +156,23 @@ switch params.type
     case {'default','gamma'}
         % variogram anonymous function
         fvar     = @(x) 1./(2*numel(x)) * sum(x);
-        
+
         % distance bins
         edges      = linspace(0,params.maxdist,params.nrbins+1);
         edges(end) = inf;
 
         [nedge,ixedge] = histc(iid(:,3),edges);
-        
+
         if params.anisotropy
             S.val      = accumarray([ixedge ixtheta],lam,...
-                                 [numel(edges) numel(thetaedges)],fvar,nan);
-            S.val(:,end)=S.val(:,1); 
+                                    [numel(edges) numel(thetaedges)],fvar,nan);
+            S.val(:,end)=S.val(:,1);
             S.theta    = thetacents;
             S.num      = accumarray([ixedge ixtheta],ones(size(lam)),...
-                                 [numel(edges) numel(thetaedges)],@sum,nan);
-            S.num(:,end)=S.num(:,1);                 
+                                    [numel(edges) numel(thetaedges)],@sum,nan);
+            S.num(:,end)=S.num(:,1);
         else
-            S.val      = accumarray(ixedge,lam,[numel(edges) 1],fvar,nan);     
+            S.val      = accumarray(ixedge,lam,[numel(edges) 1],fvar,nan);
             S.num      = accumarray(ixedge,ones(size(lam)),[numel(edges) 1],@sum,nan);
         end
         S.distance = (edges(1:end-1)+tol/2)';
@@ -182,19 +182,19 @@ switch params.type
     case 'cloud1'
         edges      = linspace(0,params.maxdist,params.nrbins+1);
         edges(end) = inf;
-        
+
         [nedge,ixedge] = histc(iid(:,3),edges);
-        
+
         S.distance = edges(ixedge) + tol/2;
         S.distance = S.distance(:);
-        S.val      = lam;  
-        if params.anisotropy            
+        S.val      = lam;
+        if params.anisotropy
             S.theta   = thetacents(ixtheta);
         end
     case 'cloud2'
         S.distance = iid(:,3);
         S.val      = lam;
-        if params.anisotropy            
+        if params.anisotropy
             S.theta   = thetacents(ixtheta);
         end
 end
@@ -208,7 +208,7 @@ if params.plotit
         otherwise
             marker = '.';
     end
-    
+
     if ~params.anisotropy
         plot(S.distance,S.val,marker);
         axis([0 params.maxdist 0 max(S.val)*1.1]);
@@ -225,7 +225,7 @@ if params.plotit
 %         set(gca,'DataAspectRatio',[1 1 1/30])
     end
 end
-        
+
 end
 
 
@@ -236,7 +236,7 @@ function iid = distmat(X,dmax)
 % constrained distance function
 %
 % iid -> [rows, columns, distance]
- 
+
 
 n     = size(X,1);
 nrdim = size(X,2);
@@ -262,7 +262,7 @@ else
     else
         iid = arrayfun(@distmatsub,(1:n)','UniformOutput',false);
     end
-    nn  = cellfun(@(x) size(x,1),iid,'UniformOutput',true);  
+    nn  = cellfun(@(x) size(x,1),iid,'UniformOutput',true);
     I   = nn>0;
     ix  = ix(I);
     nn  = nn(I);
@@ -271,25 +271,25 @@ else
     c([1;nncum(1:end-1)+1]) = 1;
     i = ix(cumsum(c));
     iid = [i cell2mat(iid)];
-    
+
 end
 
-function iid = distmatsub1d(i) 
-    j  = (i+1:n)'; 
+function iid = distmatsub1d(i)
+    j  = (i+1:n)';
     d  = abs(X(i)-X(j));
     I  = d<=dmax;
     iid = [j(I) d(I)];
 end
 
 function iid = distmatsub2d(i)  %#ok<DEFNU>
-    j  = (i+1:n)'; 
+    j  = (i+1:n)';
     d = hypot(X(i,1) - X(j,1),X(i,2) - X(j,2));
     I  = d<=dmax;
     iid = [j(I) d(I)];
 end
-    
+
 function iid = distmatsub(i)
-    j  = (i+1:n)'; 
+    j  = (i+1:n)';
     d = sqrt(sum(bsxfun(@minus,X(i,:),X(j,:)).^2,2));
     I  = d<=dmax;
     iid = [j(I) d(I)];
@@ -312,7 +312,7 @@ function X = parseargs(X,varargin)
 % 2) Where the field is not empty, its data type cannot be changed
 % 3) Where the field contains a scalar, its size cannot be changed.
 %
-% X = parseargs(X,name1,value1,name2,value2,...) 
+% X = parseargs(X,name1,value1,name2,value2,...)
 %
 % Intended for use as an argument parser for functions which multiple options.
 % Example usage:
@@ -329,7 +329,7 @@ function X = parseargs(X,varargin)
 % my_function('OutputFile','out2.txt','SolverType','variablestep');
 
 % The various #ok comments below are to stop MLint complaining about
-% inefficient usage.  In all cases, the inefficient usage (of error, getfield, 
+% inefficient usage.  In all cases, the inefficient usage (of error, getfield,
 % setfield and find) is used to ensure compatibility with earlier versions
 % of MATLAB.
 
@@ -395,4 +395,3 @@ for i=1:length(notmodified)
     end
 end
 end
-

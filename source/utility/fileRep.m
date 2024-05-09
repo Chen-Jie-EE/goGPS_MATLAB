@@ -19,7 +19,7 @@ if nargin < 4 || isempty(filter)
     filter = '*.m';
 end
 
-% find all the m files in goGPS directory
+% find all the m files in App directory
 if isempty(base_dir)
     base_dir = '.';
 end
@@ -38,7 +38,7 @@ else
     end
 end
 tic
-for i = 1 : length(list)    
+for i = 1 : length(list)
     file_name = list{i};
     fid = fopen(file_name, 'r');
     try
@@ -48,7 +48,7 @@ for i = 1 : length(list)
         %clean_txt = regexprep(txt, expression, replace);
         occurencies = strfind(txt, expression);
         clean_txt = strrep(txt, expression, replace);
-        
+
         if not(isempty(clean_txt)) && ~isempty(occurencies)
             fprintf('Opening file %3d/%3d: %s', i, length(list), file_name);
             fid = fopen(file_name, 'w');

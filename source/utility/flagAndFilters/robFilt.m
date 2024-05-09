@@ -7,7 +7,7 @@
 % OUTPUT:
 %   filtered: An n x 1 array representing the filtered time series.
 %
-% SYNTAX: 
+% SYNTAX:
 %    filtered = robfilt(ts, filter_size)
 %    filtered = robfilt(time, ts, filter_size)
 %
@@ -54,8 +54,8 @@
 %  Software version 1.0.1
 %-------------------------------------------------------------------------------
 %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
-%  Written by:       Andrea Gatti
-%  Contributors:     Andrea Gatti, ...
+%  Written by:        Andrea Gatti
+%  Contributors:      Andrea Gatti
 %
 %  The licence of this file can be found in source/licence.md
 %-------------------------------------------------------------------------------
@@ -81,6 +81,16 @@ function filtered = robFilt(varargin)
         scale_factor = (robAdj(abs(ts(:,1)-robAdj(ts(:,1)'))')) / robAdj(sqrt(ts(:,2))');
         ts(:,2) = (sqrt(ts(:,2))*scale_factor).^2;
     end
+    if (numel(ts) > 1) && (isnan(ts(1)) || isnan(ts(end)))
+        filtered = nan(size(ts));
+        id_ok = find(~isnan(ts), 1, 'first'):find(~isnan(ts), 1, 'last');
+        if flag_time
+            filtered(id_ok) = robFilt(time(id_ok), ts(id_ok), filter_size);
+        else
+            filtered(id_ok) = robFilt(ts(id_ok), filter_size);
+        end
+            return
+    end
     try
         filtered = robFilt_cpp(time, ts, filter_size);
         return;
@@ -88,17 +98,16 @@ function filtered = robFilt(varargin)
         % fast implementation is not available
     end
 
-    if size(ts,2) == 2 %time series contains sigma values
+    if size(ts,2) == 2 % time series contains sigma values
         initial_vars = ts(:,2);
         ts = ts(:,1);
     else
         initial_vars = [];
     end
-    
-    
+
     % Get the size of the time series
     n = length(ts);
-    
+
     pad_size = min(filter_size/robAdj(diff(time)'), 2*n);
 
     % Determine the padding size and initial values for padding
@@ -121,23 +130,23 @@ function filtered = robFilt(varargin)
 
     % Set the maximum number of iterations for the robust adjustment
     max_iter = 50;
-    
+
     for i = 1:n
         if flag_time  % If time is provided
             % Determine the indices of the time points within the desired time window
             window_indices = find(abs(time - time(i+pad_size)) <= filter_size/2);
-            window = ts(window_indices);            
+            window = ts(window_indices);
         else
             % Original behavior when time is not provided
             border = floor(filter_size/2);
             window_indices = max(1, i + pad_size - border):min(size(ts,1), i + pad_size + border);
             window = ts(window_indices);
-        end       
+        end
 
         % Ignore NaNs
         window_indices(isnan(window)) = [];
         window = window(~isnan(window));
-        
+
         % If window is empty, continue to the next iteration
         if isempty(window)
             continue;
@@ -145,12 +154,12 @@ function filtered = robFilt(varargin)
 
         % Set the threshold for the robust adjustment
         thrs = max(1e-9*window(1), 1.4826 * mad(window));
-        
+
         if ~isempty(initial_vars)
             s02 = max(initial_vars(window_indices), thrs^2*1e-6);
         else
             s02 = ones(size(window))*thrs^2*1e-1;
-        end        
+        end
 
         % Perform the robust adjustment
         j = 0;
@@ -167,7 +176,7 @@ function filtered = robFilt(varargin)
             data = sum(window .* w) / sum(w);
             j = j + 1;
         end
-        
+
         % Save the result
         filtered(i) = data;
         %figure(100); clf; plot(zero2nan(filtered));
@@ -177,6 +186,10 @@ end
 function initial_value = initPad(data, pad_size)
     % Ignore NaNs
     data = data(~isnan(data));
+    if pad_size == 1
+        initial_value = data(1);
+        return
+    end
     pad_size = min(size(data,1)-1, pad_size);
 
     % If data is empty, return NaN
@@ -190,10 +203,6 @@ function initial_value = initPad(data, pad_size)
     dt_prev = data(1);
     dt = robAdj(data(1:num_points)');
     num_points = num_points + 1;
-    if num_points == 1
-        initial_value = data;
-        return;
-    end
     norm_factor = std(data);
     thr = min(pad_size,32);
     while abs(dt - dt_prev)/norm_factor < 1 && num_points < thr
@@ -202,7 +211,7 @@ function initial_value = initPad(data, pad_size)
         num_points = num_points + 1;
     end
     num_points = max(1,num_points - 1);
-    dt = robAdj(data(1:num_points)');    
+    dt = robAdj(data(1:num_points)');
     initial_value = dt;
 end
 

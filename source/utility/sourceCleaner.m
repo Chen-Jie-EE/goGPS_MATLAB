@@ -16,7 +16,7 @@ function sourceCleaner(base_dir, rem_spaces)
 %  The licence of this file can be found in source/licence.md
 %-------------------------------------------------------------------------------
 
-% find all the m files in goGPS directory
+% find all the m files in App directory
 if (nargin < 1)
     base_dir = '.';
 end
@@ -46,7 +46,7 @@ for i = 1 : length(list)
     if rem_spaces
         clean_txt = regexprep(clean_txt,'(?<=\n)([ |\t|\r]*(?=[A-Za-z]|\%))','');
     end
-    
+
     if not(isempty(clean_txt))
         fid = fopen(file_name, 'w');
         fwrite(fid, clean_txt);

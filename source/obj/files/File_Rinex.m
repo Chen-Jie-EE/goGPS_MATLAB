@@ -32,7 +32,7 @@ classdef File_Rinex < Exportable
         is_valid_list = false(1, 2);                 % for each element of file_name_list check the validity of the file
 
         is_composed = false;                         % when this flag is set, it means that the file_name depends on variables such as DOY DOW YYYY SSSS MM ecc...
-        
+
         trk_availability_pr                          % boolean to get tracking availabilty the tracking are in Core_sky.GROUP_DELAYS_FLAGS
         trk_availability_ph                          % boolean to get tracking availabilty the tracking are in Core_sky.CARRIER_PHASES_FLAGS
 
@@ -53,13 +53,13 @@ classdef File_Rinex < Exportable
 
     methods
         function this = File_Rinex(file_name, verbosity_lev, flag_header_only)
-            % Creator of file_rinex simple parser            
+            % Creator of file_rinex simple parser
             %
-            % INPUT 
+            % INPUT
             %   file_name        file path (can be a cell array)
             %   verbosity_lev    verbosity level for logging purposes
             %                    (default = 100)
-            %   flag_header_only if true and first/last epochs are not found 
+            %   flag_header_only if true and first/last epochs are not found
             %                    in header do not search them in the file
             %                    (default = false)
             %                    this option may leave the obj corrupted (use with care)
@@ -70,7 +70,7 @@ classdef File_Rinex < Exportable
             if nargin < 3 || isempty(flag_header_only)
                 flag_header_only = false;
             end
-            
+
             if nargin == 0
                 % Empty File_Rinex;
             else
@@ -84,7 +84,7 @@ classdef File_Rinex < Exportable
                 if nargin == 1 || isempty(verbosity_lev)
                     verbosity_lev = 100;
                 end
-                
+
                 if verbosity_lev < 50 && numel(file_name) > 20
                     w_bar = Go_Wait_Bar.getInstance(numel(file_name), 'Checking rinex files');
                     w_bar.createNewBar
@@ -98,22 +98,22 @@ classdef File_Rinex < Exportable
                         [this.base_dir{f}, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(file_name{f}));
                     end
                 end
-                
+
                 if nargin >= 2
                     this.verbosity_lev = verbosity_lev;
                 end
-                
+
                 this.checkValidity(flag_header_only);
             end
         end
-        
+
         function copy = getCopy(this)
             for r = numel(this):-1:1
                 copy(r) = File_Rinex();
                 copy(r).copyFrom(this(r));
             end
         end
-        
+
         function copyFrom(this, file_rinex, id)
             % Copy from an object of the same type
             %
@@ -137,13 +137,13 @@ classdef File_Rinex < Exportable
             this.trk_availability_pr = file_rinex.trk_availability_pr;
             this.trk_availability_ph = file_rinex.trk_availability_ph;
             this.marker_name    = file_rinex.marker_name;
-            this.antenna        = file_rinex.antenna;            
+            this.antenna        = file_rinex.antenna;
             this.is_composed    = file_rinex.is_composed;
             this.first_epoch    = file_rinex.first_epoch.getEpoch(valid_id);
             this.last_epoch     = file_rinex.last_epoch.getEpoch(valid_id);
             this.verbosity_lev  = file_rinex.verbosity_lev;
             this.eoh            = file_rinex.eoh(id);
-            this.coo            = file_rinex.coo.getCopy();            
+            this.coo            = file_rinex.coo.getCopy();
         end
     end
 
@@ -190,36 +190,36 @@ classdef File_Rinex < Exportable
                             l = 1;
                             % read by buffer 10k char at a time
                             % fseek(fid, 0, 'bof'); buf = fread(fid, 1e4, '*char')';
-                            
+
                             % detect windows carriage return
                             if ~isempty(find(buf(1:min(1000,numel(buf))) == 13, 1, 'first'))
                                 has_cr = true;  % The file has carriage return - I hate you Bill!
                             else
                                 has_cr = false;  % The file is UNIX standard
                             end
-                            
+
                             % get new line separators
                             nl = regexp(buf, '\n')';
                             if nl(end) <  (numel(buf) - double(has_cr))
                                 nl = [nl; numel(buf)];
                             end
-                            
+
                             lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
                             lim = [lim lim(:,2) - lim(:,1)];
                             while lim(end,3) < 3
                                 lim(end,:) = [];
                             end
-                            
+
                             % Check for meteo rinex
                             flag_met = buf(21) == 'M';
-                            
+
                             line = buf(lim(l,1) : lim(l,2));
                             date_start = '';
                             trk_name_pr = Core_Sky.GROUP_DELAYS_FLAGS;
                             trk_availability_pr = false(size(trk_name_pr,1),1);
                             trk_name_ph = Core_Sky.CARRIER_PHASES_FLAGS;
                             trk_availability_ph = false(size(trk_name_ph,1),1);
-                            
+
                             cur_trk_sys = '';
                             date_stop = '';
                             coo = '';
@@ -232,7 +232,7 @@ classdef File_Rinex < Exportable
                                     % out of buffer
                                     % read block:
                                     buf = [buf char(fread(fid, 1e4))'];
-                                    
+
                                     % get new line separators
                                     nl = regexp(buf, '\n')';
                                     if nl(end) <  (numel(buf) - double(has_cr))
@@ -346,7 +346,7 @@ classdef File_Rinex < Exportable
                                     end
                                 end
                             end
-                            
+
                             eoh = l; %end of header
                             if ~isempty(trk_availability_pr)
                                 this.trk_availability_pr = trk_availability_pr;
@@ -354,7 +354,7 @@ classdef File_Rinex < Exportable
                             if ~isempty(trk_availability_ph)
                                 this.trk_availability_ph = trk_availability_ph;
                             end
-                            
+
                             % If I did not found date of start and date of end in the file header
                             % Try to read them
                             if ~isempty(date_start)
@@ -365,7 +365,7 @@ classdef File_Rinex < Exportable
                                     % out of buffer
                                     % read block:
                                     buf = [buf char(fread(fid, 1e4))'];
-                                    
+
                                     % get new line separators
                                     nl = regexp(buf, '\n')';
                                     if nl(end) <  (numel(buf) - double(has_cr))
@@ -384,12 +384,12 @@ classdef File_Rinex < Exportable
                                     this.id_date = id_start(1) : id_stop(6); % save first and last char limits of the date in the line -> suppose it composed by 6 fields
                                     this.first_epoch.addEpoch(epoch_line(this.id_date), [], true);
                                 else
-                                    error('"%s" seems corrupted', full_path);                                    
+                                    error('"%s" seems corrupted', full_path);
                                 end
                             end
                             log.addStatusOk(['"' this.file_name_list{f} this.ext{f} '" appears to be a valid RINEX'], this.verbosity_lev);
                             log.addMessage(sprintf('        first epoch found at: %s', this.first_epoch.last.toString()), this.verbosity_lev);
-                            
+
                             if ~isempty(date_stop)
                                 this.last_epoch.addEpoch(date_stop, [], true);
                                 log.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
@@ -406,7 +406,7 @@ classdef File_Rinex < Exportable
                                     f_size = ftell(fid);
                                     fseek(fid, - min(1e4, f_size - 1), 'eof');
                                     buf = fread(fid, min(1e4, f_size - 1),'*char')';
-                                    
+
                                     % Start searching for a valid epoch
                                     time = [];
                                     loop_n = 1;
@@ -417,19 +417,19 @@ classdef File_Rinex < Exportable
                                         else
                                             has_cr = false;  % The file is UNIX standard
                                         end
-                                        
+
                                         % get new line separators
                                         nl = regexp(buf, '\n')';
                                         if isempty(nl)
                                             file_ko = true;
-                                        else                                            
+                                        else
                                             if nl(end) <  (numel(buf) - double(has_cr))
                                                 nl = [nl; numel(buf)];
                                             end
                                             lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
                                             lim = [lim lim(:,2) - lim(:,1)];
                                             lim(lim(:,3) < this.id_date(end), :) = [];
-                                            
+
                                             l = size(lim, 1);
                                             while (l >= 1) && isempty(time)
                                                 line = buf(lim(l,1) : lim(l,2));
@@ -452,7 +452,7 @@ classdef File_Rinex < Exportable
                                     if file_ko
                                         log.addError(sprintf('Check the following file, it seems to be corrupted\nPath: "%s"', full_path));
                                         this.first_epoch = this.first_epoch.getEpoch(1 : this.last_epoch.length);
-                                        this.is_valid_list(f) = false;                                        
+                                        this.is_valid_list(f) = false;
                                     elseif isempty(time)
                                         log.addError(sprintf('Check the following file, it seems to be empty\nPath: "%s"', full_path));
                                         this.first_epoch = this.first_epoch.getEpoch(1 : this.last_epoch.length);
@@ -463,7 +463,7 @@ classdef File_Rinex < Exportable
                                     end
                                 end
                             end
-                            
+
                             if this.is_valid_list(f)
                                 if ~isempty(coo)
                                     this.coo.append(Coordinates.fromStringXYZ(coo, this.first_epoch.last));
@@ -472,7 +472,7 @@ classdef File_Rinex < Exportable
                                 end
                                 this.eoh(f) = eoh;
                             end
-                            
+
                             fclose(fid);
                         end
                     end
@@ -518,7 +518,7 @@ classdef File_Rinex < Exportable
             for f = 1 : numel(this.file_name_list)
                 marker_name = '';
                 antenna = '';
-                
+
                 % try to find the first and the last epoch stored in the file
                 try
                     %%
@@ -565,14 +565,14 @@ classdef File_Rinex < Exportable
                                 end
                             end
                         end
-                        
+
                         if ~isempty(coo)
                             this.coo.append(Coordinates.fromStringXYZ(coo));
                         else
                             this.coo.append(Coordinates.fromXYZ([0 0 0]));
                         end
                         this.eoh(f) = l;
-                        
+
                         % If I did not found date of start and date of end in the file header
                         % Try to read them
                         if ~isempty(date_start)
@@ -585,12 +585,12 @@ classdef File_Rinex < Exportable
                             % try to guess the time format
                             [id_start, id_stop] = regexp(epoch_line, '[.0-9]*');
                             this.id_date = id_start(1) : id_stop(6); % save first and last char limits of the date in the line -> suppose it composed by 6 fields
-                            
+
                             this.first_epoch.addEpoch(epoch_line(this.id_date), [], true);
                         end
                         this.log.addStatusOk(['"' this.file_name_list{f} this.ext{f} '" appears to be a valid RINEX'], this.verbosity_lev);
                         this.log.addMessage(sprintf('        first epoch found at: %s', this.first_epoch.last.toString()), this.verbosity_lev);
-                        
+
                         if ~isempty(date_stop)
                             this.last_epoch.addEpoch(date_stop, [], true);
                             this.log.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
@@ -602,7 +602,7 @@ classdef File_Rinex < Exportable
                                 % to be sure to find at least one line containing a valid epoch, go to the end of the file minus 5000 characters
                                 fseek(fid, -10000, 'eof');
                                 txt = fread(fid, 10000,'*char')';
-                                
+
                                 % Start searching for a valid epoch
                                 time = [];
                                 loop_n = 1;
@@ -612,7 +612,7 @@ classdef File_Rinex < Exportable
                                     else
                                         has_cr = false;  % The file is UNIX standard
                                     end
-                                    
+
                                     % get new line separators
                                     nl = regexp(txt, '\n')';
                                     if nl(end) <  (numel(txt) - double(has_cr))
@@ -621,7 +621,7 @@ classdef File_Rinex < Exportable
                                     lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
                                     lim = [lim lim(:,2) - lim(:,1)];
                                     lim(lim(:,3) < 20, :) = [];
-                                    
+
                                     l = size(lim, 1);
                                     while (l >= 1) && isempty(time)
                                         line = txt(lim(l,1) : lim(l,2));
@@ -649,7 +649,7 @@ classdef File_Rinex < Exportable
                     this.log.addWarning(['"' this.file_name_list{f} this.ext{f} '" appears to be a corrupted RINEX file'], this.verbosity_lev);
                     this.is_valid_list(f) = false;
                 end
-                
+
                 % store marker_name
                 if isempty(marker_name)
                     this.marker_name{f} = upper(this.file_name_list{f}(1:min(4, numel(this.file_name_list{f}))));
@@ -668,7 +668,7 @@ classdef File_Rinex < Exportable
                 this.log.addWarning('Some or all the RINEX files are corrupted or missing!!!', this.verbosity_lev);
             end
         end
-        
+
         function checkCoordinates(rin_list, force_delete)
             flag_show = false;
             dist_lim = 1; % [m]
@@ -682,13 +682,13 @@ classdef File_Rinex < Exportable
                     if any(dist > dist_lim)
                         % This set of file RINEX are from a receiver that have been moved
                         % for more than 100 meters
-                        
+
                         marker_name = rin_list(r).marker_name{find(rin_list(r).is_valid_list, 1, 'first')};
                         if flag_show
                             rin_list(r).coo.showPositionENU
                             title(marker_name);
                         end
-                        
+
                         log = Core.getLogger;
                         log.addWarning(sprintf('The RINEX of the station %s are anomalous. The antenna could have been moved or the files are from different omonimous receivers\n > MAX detected distance: %.3g [km]\n\nThe following files will be ignored:', marker_name, max(dist)));
                         id_coo = find(not(id_ko));
@@ -747,7 +747,7 @@ classdef File_Rinex < Exportable
             end
         end
 
-        
+
         function first_epoch = getFirstEpoch(this, session)
             % Get the first epoch of a session
             %
@@ -797,7 +797,7 @@ classdef File_Rinex < Exportable
                 end
             end
         end
-        
+
         function line_num = getEOH(this, file_number)
             % Get the end of header line of a RINEX file (if the object contains a list of files, the id can be specified)
             % SYNTAX: line_num = this.getEOH(<file_number = 1>)
@@ -812,7 +812,7 @@ classdef File_Rinex < Exportable
             % SYNTAX: validity = isValid(<file_number>)
             validity = false;
             for r = 1 : numel(this)
-                
+
                 if (nargin == 1)
                     validity = validity || any([this(r).is_valid_list]);
                 else
@@ -835,7 +835,7 @@ classdef File_Rinex < Exportable
                 this(r).keep(to_keep);
             end
         end
-        
+
         function has_obs = hasObsInSession(this, date_start, date_stop)
             % has observation in the two dates
             %
@@ -849,7 +849,7 @@ classdef File_Rinex < Exportable
                 end
             end
         end
-        
+
         function keep(rin_list, id)
             % keep only element specified by id
             %
@@ -879,7 +879,7 @@ classdef File_Rinex < Exportable
                 id_ok = this.is_valid_list == 1;
                 if ~isempty(id_ok)
                     %if all(~id_ok)
-                    %    % Keep at least one missing file 
+                    %    % Keep at least one missing file
                     %    % (it rin_list contains also the marke name to be assigned to GNSS_Station,
                     %    %  I don't want to loose it)
                     %    id_ok(1) = true;
@@ -888,7 +888,7 @@ classdef File_Rinex < Exportable
                 end
             end
         end
-       
+
         function listAntennas(rin_list)
             % List all the markers / antenna
             %
@@ -916,7 +916,7 @@ classdef File_Rinex < Exportable
                 fprintf('--------------------------------------------------------------------------------------\n')
             end
         end
-               
+
         function printMissingFiles(rin_list, flag_download)
             % Show all the files that seems to be missing for the
             % processing
@@ -937,16 +937,16 @@ classdef File_Rinex < Exportable
                         year = 2000 + str2double(file_name(end-2:end-1));
                         doy = str2double(file_name(5:7));
                         if flag_download
-                            str_cmd = sprintf('%s year %04d doy %03d in %s --no-wait', rin_list(r).marker_name{i}, year, doy, [rin_list(r).base_dir{i} filesep]);
+                            str_cmd = sprintf('%s year %04d doy %03d in %s', rin_list(r).marker_name{i}, year, doy, [rin_list(r).base_dir{i} filesep]);
                             fprintf('%s\n', str_cmd);
                         end
                     end
                 end
-                
-                
+
+
             end
-            
+
         end
-        
+
     end
 end

@@ -2,7 +2,7 @@
 % =========================================================================
 %
 % DESCRIPTION
-%   Slave controller for parallel goGPS computation
+%   Slave controller for parallel app computation
 %
 % EXAMPLE
 %   gos = Go_Slave
@@ -27,22 +27,22 @@ classdef Go_Slave < Com_Interface
         SLAVE_SESSION_PREFIX = 'S_'
         SLAVE_TARGET_PREFIX = 'T_'
         SLAVE_READY_PREFIX = 'WORKER_'
-                
+
         MSG_BORN = 'HELO_'
         MSG_DIE = 'ADIOS_'
         MSG_ACK = 'ACK_'
         MSG_JOBREADY = 'DONE_'
-        
+
         EXIT = -1;
         RESTART = 0;
     end
-    
+
     properties (SetAccess = private, GetAccess = private)
         uuid = '';     % personal serial number of the slave
         slave_type = 1; % 0 for session worker
                         % 1 for target worker
     end
-    
+
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods (Static, Access = private)
@@ -55,10 +55,10 @@ classdef Go_Slave < Com_Interface
             this.log.addMarkedMessage('Creating goGPS Slave');
         end
     end
-    
+
     %% METHOD DESTRUCTOR
     % ==================================================================================================================================================
-    methods (Access = private)        
+    methods (Access = private)
         function delete(this)
             % If log file is open try to close it
             try
@@ -67,7 +67,7 @@ classdef Go_Slave < Com_Interface
             end
         end
     end
-    
+
     %% METHOD INTERFACE
     % ==================================================================================================================================================
     methods (Static, Access = public)
@@ -97,18 +97,18 @@ classdef Go_Slave < Com_Interface
                     end
                 end
             end
-        end        
+        end
     end
-    
+
     methods (Access = public)
         function is_trg_worker = isTargetWorker(this)
             is_trg_worker = this.slave_type == 1;
         end
-        
+
         function is_sss_worker = isSessionWorker(this)
             is_sss_worker = this.slave_type == 0;
         end
-        
+
         function revive(this)
             % Kill the go Slave but reborn with new id
             %
@@ -116,14 +116,14 @@ classdef Go_Slave < Com_Interface
             %   this.revive();
             this.die(true);
         end
-        
+
         function die(this, reborn)
             % Kill the go Slave
             %
             % SYNTAX:
             %   this.die();
-            
-            if not(isempty(this.id)) && this.id(1) ~= 'u' 
+
+            if not(isempty(this.id)) && this.id(1) ~= 'u'
                 this.log.addMarkedMessage('Closing goGPS Slave');
                 this.deleteMsg();
                 this.sendMsg(this.MSG_DIE, sprintf('I was "%s", goodbye cruel world!', this.id));
@@ -195,16 +195,16 @@ classdef Go_Slave < Com_Interface
             end
             this.pause(0, -1);
         end
-        
+
         function live(this)
             % Start the life of the slave
             %
             % SYNTAX:
-            %   this.live();        
-            
+            %   this.live();
+
             % No color mode for slaves
             this.log.setColorMode(0);
-            
+
             % Handshake
             stay_alive = true;
             while stay_alive
@@ -236,7 +236,7 @@ classdef Go_Slave < Com_Interface
                         core.state.setCurSession(tmp.cur_session); % load the current session number
                         core.rin_list = tmp.rin_list; % load the rinex list of files
                         core.met_list = tmp.met_list; % load the meteorological list of files
-                        
+
                         % No colormode for slaves (faster execution)
                         core.log = this.log; % Use slave logger
                         core.log.setColorMode(0);
@@ -246,9 +246,9 @@ classdef Go_Slave < Com_Interface
                         core.log.enableFileOut();
                         this.log = core.log;
                         this.log.addMarkedMessage('Logging to file');
-                        
+
                         this.id = regexp(msg, [Go_Slave.SLAVE_READY_PREFIX iif(this.slave_type == 1, this.SLAVE_TARGET_PREFIX, this.SLAVE_SESSION_PREFIX) '[0-9,a-z]*'], 'match', 'once');
-                        
+
                         this.log.addMarkedMessage('State updated');
                         core.setCurrentCore(core);
                         core.logCurrentSettings();
@@ -264,15 +264,15 @@ classdef Go_Slave < Com_Interface
                         else
                             core.atmo = Atmosphere();
                         end
-                        
+
                         % Check for receiver to load
                         core.setUICK(true);
                         this.sendMsg(this.MSG_ACK, sprintf('Everything loaded'));
                         this.sendMsg(this.MSG_BORN, sprintf('Helo! My new name is "%s", gimme work', this.id));
-                        
+
                         % Waiting work
                         this.checkMsg([Parallel_Manager.BRD_CMD Parallel_Manager.ID], false, true); % WAIT ACK MESSAGE
-                        
+
                         active_ps = true;
                         while active_ps
                             try
@@ -283,7 +283,7 @@ classdef Go_Slave < Com_Interface
                                     cmd_file = load(fullfile(this.getComDir, 'cmd_list.mat'));
                                     % get request id
                                     req_id = str2double(regexp(msg, '[0-9,a-z]*(?=_MASTER)', 'match', 'once'));
-                                    
+
                                     % prepare receivers
                                     state = core.getState();
                                     clear rec
@@ -292,7 +292,7 @@ classdef Go_Slave < Com_Interface
                                         rec(r) = GNSS_Station(state.getDynMode() == 0 ); %#ok<AGROW>
                                     end
                                     core.rec = rec;
-                                    
+
                                     % Import pass receivers
                                     msg = this.checkMsg([Parallel_Manager.BRD_REC Parallel_Manager.ID], false, true, false); % CHECK REC PASSING MESSAGE
                                     rec_pass = [];
@@ -308,7 +308,7 @@ classdef Go_Slave < Com_Interface
                                                 core.rec(r).(filed_names{f}) = rec_pass.rec_info(r).(filed_names{f});
                                             end
                                         end
-                                        
+
                                         for r = 1 : numel(rec_pass.id_work)
                                             core.rec(rec_pass.id_work(r)).work = rec_pass.rec_work(r);
                                             core.rec(rec_pass.id_work(r)).work.parent = core.rec(rec_pass.id_work(r));
@@ -331,7 +331,7 @@ classdef Go_Slave < Com_Interface
                                         core.rec(req_id).work.parent = core.rec(req_id);
                                         core.rec(req_id).work.initHandles();
                                     end
-                                    
+
                                     file_name = fullfile(this.getComDir, sprintf('rec_out_%04d.mat', req_id));
                                     if exist(file_name, 'file') == 2
                                         this.log.addMarkedMessage(sprintf('Reading target receiver output %d', req_id));
@@ -341,7 +341,7 @@ classdef Go_Slave < Com_Interface
                                         core.rec(req_id).out.parent = core.rec(req_id);
                                         core.rec(req_id).out.initHandles();
                                     end
-                                    
+
                                     % Substitute key "$" into command list with the one from PAR target
                                     if this.isTargetWorker()
                                         for c = 1 : numel(cmd_file.cmd_list)
@@ -352,24 +352,24 @@ classdef Go_Slave < Com_Interface
                                     for c = 1 : numel(cmd_file.cmd_list)
                                         cmd_file.cmd_list{c} = strrep(cmd_file.cmd_list{c},'PAR', 'FOR');
                                     end
-                                    
+
                                     if this.isSessionWorker()
                                         core.state.setCurSession(req_id);
                                         core.prepareSession(req_id);
                                         %cmd_file.cmd_list = [{sprintf('FOR S%d', req_id);} cmd_file.cmd_list(:) {'ENDPAR'}];
                                     end
-                                    
+
                                     core.exec(cmd_file.cmd_list);
-                                    
+
                                     if this.isTargetWorker()
                                         % Save the output ar rec
                                         % store command list in the rec as it was executed
                                         rec(req_id).work.state.cmd_list = cmd_file.cmd_list;
-                                        
+
                                         % Export work
                                         rec = core.rec(req_id);
                                         rec.out = []; % do not want to save out
-                                        
+
                                         save(fullfile(this.getComDir, sprintf('job%04d_%s.mat', req_id, this.id)), 'rec');
                                     elseif this.isSessionWorker()
                                         % Export all the rec work spaces of the session
@@ -379,7 +379,7 @@ classdef Go_Slave < Com_Interface
                                             rec(r).out = []; % do not want to save out
                                             rec(r).clearHandles(); % do not want to save handles
                                             rec(r).work.clearHandles(); % do not want to save handles
-                                            
+
                                             % Clear what is not needed
                                             if not(core.state.flag_out_dt)
                                                 rec(r).work.dt = [];
@@ -423,7 +423,7 @@ classdef Go_Slave < Com_Interface
                                     core.rec = []; % empty space
                                     clear rec;
                                     % If for any reason the message DO was not removed, do it now it (might happen on Windows)
-                                    msg = this.checkMsg([this.id '_' Parallel_Manager.MSG_DO '*' Parallel_Manager.ID], true, false, false); 
+                                    msg = this.checkMsg([this.id '_' Parallel_Manager.MSG_DO '*' Parallel_Manager.ID], true, false, false);
                                     % Send JOBREADY message
                                     this.sendMsg([this.MSG_JOBREADY sprintf('%04d_', req_id)], sprintf('Work done!'));
                                 end
@@ -449,7 +449,7 @@ classdef Go_Slave < Com_Interface
                                 end
                                 core.rec = []; % empty space
                                 clear rec;
-                                
+
                                 % If for any reason the message DO was not removed, do it now it (might happen on Windows)
                                 msg = this.checkMsg([this.id '_' Parallel_Manager.MSG_DO '*' Parallel_Manager.ID], true, false, false);
                                 % If something bad happen during work restart
@@ -483,12 +483,12 @@ classdef Go_Slave < Com_Interface
                     end
                 end
             end
-            
+
             this.die();
             exit
         end
     end
-    
+
     %% METHODS INIT
     % ==================================================================================================================================================
     methods
@@ -500,5 +500,5 @@ classdef Go_Slave < Com_Interface
             this.initLogger();
         end
     end
-    
+
 end

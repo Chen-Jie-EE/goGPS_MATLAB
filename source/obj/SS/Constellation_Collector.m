@@ -7,7 +7,6 @@
 %
 % EXAMPLE
 %   cc = Constellation_Collector('GRECJS');
-%
 
 %  Software version 1.0.1
 %-------------------------------------------------------------------------------
@@ -23,17 +22,17 @@ classdef Constellation_Collector < Settings_Interface
         N_SYS_TOT = 7; % Max number of available satellite systems
         SYS_EXT_NAME = {'GPS', 'GLONASS', 'Galileo', 'QZSS', 'BeiDou', 'IRNSS', 'SBAS', 'ALL'}; % full name of the constellation
         SYS_NAME     = {'GPS', 'GLO', 'GAL', 'QZS', 'BDS', 'IRN', 'SBS', 'ALL'}; % 3 characters name of the constellation
-        ID_GPS       = 1 % Id of GPS constellation for goGPS internal use
-        ID_GLONASS   = 2 % Id of GLONASS constellation for goGPS internal use
-        ID_GALILEO   = 3 % Id of Galileo constellation for goGPS internal use
-        ID_QZSS      = 4 % Id of QZSS constellation for goGPS internal use
-        ID_BEIDOU    = 5 % Id of BeiDou constellation for goGPS internal use
-        ID_IRNSS     = 6 % Id of IRNSS constellation for goGPS internal use
-        ID_SBAS      = 7 % Id of SBAS constellation for goGPS internal use
-        ID_ALL       = 8 % Id of ALL the constellations for goGPS internal use
+        ID_GPS       = 1 % Id of GPS constellation for App internal use
+        ID_GLONASS   = 2 % Id of GLONASS constellation for App internal use
+        ID_GALILEO   = 3 % Id of Galileo constellation for App internal use
+        ID_QZSS      = 4 % Id of QZSS constellation for App internal use
+        ID_BEIDOU    = 5 % Id of BeiDou constellation for App internal use
+        ID_IRNSS     = 6 % Id of IRNSS constellation for App internal use
+        ID_SBAS      = 7 % Id of SBAS constellation for App internal use
+        ID_ALL       = 8 % Id of ALL the constellations for App internal use
         SYS_C        = 'GREJCISA'; % Array of constellation char ids GPS = 'G', GLONASS = 'R', ...
     end
-    
+
     properties (SetAccess = public, GetAccess = public)
         gps = GPS_SS();      % GPS parameters
         glo = GLONASS_SS();  % GLONASS parameters
@@ -42,7 +41,7 @@ classdef Constellation_Collector < Settings_Interface
         qzs = QZSS_SS();     % QZSS parameters
         irn = IRNSS_SS();    % IRNSS parameters
         sbs = SBAS_SS();     % sbs parameters
-        
+
         sys_name     % array of active constellations names (as in the list structure)
         num_id       % array of active constellations numeric id
         sys_c        % array of active constellations char id
@@ -51,20 +50,20 @@ classdef Constellation_Collector < Settings_Interface
         n_sat        % uint8 array of satellite used per active constellation
         n_sat_tot    % uint8 total teoretical number of satellite available for processing
         n_obs_tot    % uint16 total number of observables
-        
+
         index        % incremental index of the active satellite system
         prn          % relative id number in the satellite system
         system       % char id of the constellation per satellite
     end
-    
+
     methods (Access = 'private')
         function init(this, active_list)
             % Init function for the Constellation_Collector Class
             % SYNTAX: this.init(active_list)
-            
+
             this.updateStatus(active_list);
         end
-        
+
         function updateStatus(this, active_list)
             % Update function for the Constellation_Collector Class
             % SYNTAX: this.updateStatus(active_list)
@@ -72,7 +71,7 @@ classdef Constellation_Collector < Settings_Interface
             if (sum(active_list) > 0)
                 this.prn = [];     % relative id number in the satellite system
                 this.system = '';  % char id of the constellation per satellite
-                
+
                 this.n_sat_tot = 0; % counter for number of satellites
                 this.num_id = [];
                 this.sys_c = [];
@@ -159,7 +158,7 @@ classdef Constellation_Collector < Settings_Interface
                 else
                     this.irn.disable();
                 end
-                
+
                 if active_list(7) % SBAS is active (not yet implemented)
                     this.sbs.updateGoIds(this.n_sat_tot);
                     this.sbs.enable();
@@ -173,7 +172,7 @@ classdef Constellation_Collector < Settings_Interface
                 else
                     this.sbs.disable();
                 end
-                
+
                 this.index = (1 : this.n_sat_tot)';   % incremental index of the active satellite system
                 this.n_sys = numel(this.num_id);
                 this.sys_name = this.SYS_NAME(this.num_id);
@@ -185,7 +184,7 @@ classdef Constellation_Collector < Settings_Interface
             end
         end
     end
-    
+
     methods
         function this = Constellation_Collector(GPS_flag, GLO_flag, GAL_flag, QZS_flag, BDS_flag, IRN_flag, SBS_flag)
             % Constructor - parameters: [GPS_flag, GLO_flag, GAL_flag, QZS_flag, BDS_flag, IRN_flag, SBS_flag]
@@ -209,7 +208,7 @@ classdef Constellation_Collector < Settings_Interface
             %
             % DESCRIPTION:
             %   Multi-constellation set-up.
-                        
+
             % this f***ing software called MATLAB does not create new
             % constellation objects unless I do this
             this.gps = this.gps.getCopy();
@@ -219,7 +218,7 @@ classdef Constellation_Collector < Settings_Interface
             this.bds = this.bds.getCopy();
             this.irn = this.irn.getCopy();
             this.sbs = this.sbs.getCopy();
-            
+
             % Manually manage overloading
             switch nargin
                 case 0
@@ -236,7 +235,7 @@ classdef Constellation_Collector < Settings_Interface
                 case 7,  active_list = logical([GPS_flag, GLO_flag, GAL_flag, QZS_flag, BDS_flag, IRN_flag, SBS_flag]);
                 otherwise, error(['Initialization of Constellation_Collector failed: ' 10 '   invalid number of parameters in the constructor call']);
             end
-            
+
             % check the size of the array active_list
             if (numel(active_list) < this.N_SYS_TOT)
                 tmp = false(this.N_SYS_TOT, 1);
@@ -251,33 +250,33 @@ classdef Constellation_Collector < Settings_Interface
             end
             this.init(active_list);
         end
-        
+
         function update(this)
             % update the class, if some constallation have been modified
             % SYNTAX: this.update();
             this.getActive();
         end
-        
+
         function active_list = getActive(this)
             % Get the logical array of satellite actually active, order: GPS GLO GAL QZS BDS SBS -> and update the object if something has changed
             %
             % SYNTAX
             %   active_list = this.getActive();
             active_list = [this.gps.isActive this.glo.isActive this.gal.isActive this.qzs.isActive this.bds.isActive this.irn.isActive this.sbs.isActive];
-            
+
             % If some constellation have been activated not in the proper way
             if (sum(not(this.active_list(:) & active_list(:))) > 0)
                 this.updateStatus(active_list);
             end
         end
-        
+
         function active_list = getActiveSysChar(this)
             % Get the list of active constellation characters
             %
             % SYNTAX
             %   active_list = this.getActiveSysChar();
             active_list = this.SYS_C(this.getActive);
-        end       
+        end
 
         function setProperty(this, prop_name, value)
             % Get a property that might also be hidden in sub objects
@@ -325,11 +324,11 @@ classdef Constellation_Collector < Settings_Interface
             %
             % SYNTAX
             %   weight = this.getWeight();
-            % 
+            %
             % EXAMPLE
             %   weight = cc.getWeight('G');    % single value
             %   weight_list = cc.getWeight();  % list of weights
-            
+
             if nargin == 2 && not(isempty(sys_c))
                 ss_3ch = Constellation_Collector.sysCToAbb(sys_c);
                 weight = this.(lower(ss_3ch)).getWeight();
@@ -343,11 +342,11 @@ classdef Constellation_Collector < Settings_Interface
                     this.sbs.getWeight];
             end
         end
-        
+
         function sys_c = getAvailableSys(this)
             sys_c = this.SYS_C(this.getActive());
         end
-        
+
         function ant_mod = getAntennaId(this, id)
             % Equivalent to the old function sat_antenna_ID
             % return the "name" of the antennas of each active satellite
@@ -362,7 +361,7 @@ classdef Constellation_Collector < Settings_Interface
                 ant_mod = cell2mat(ant_mod(id));
             end
         end
-        
+
         function lambda = getLegacyLambda(this, eph, sp3)
             % Get lambda matrix [n_sat x 7], used in a lot of old goGPS functions
             lambda = zeros(this.n_sat_tot, 7);
@@ -380,7 +379,7 @@ classdef Constellation_Collector < Settings_Interface
                     channel_id(i) = eph(15, pos) + 8; % Add 8 cause the GLONASS channel start from -7
                 end
             end
-            
+
             for s = 1 : numel(this.sys_name)
                 pos = this.(char((this.sys_name{s} + 32))).go_ids();
                 iono_free = this.(char((this.sys_name{s} + 32))).getIonoFree();
@@ -400,7 +399,7 @@ classdef Constellation_Collector < Settings_Interface
             sat_ko = true(this.n_sat_tot, 1); sat_ko(sat_ok) = false;
             lambda(sat_ko, :) = 0;
         end
-        
+
         function is_ref = isRefFrequency(this,sys,freq)
             %DESCRIPTION: tell if the frequency is used as reference
             %frequency (also in combination with other one) for the
@@ -437,7 +436,7 @@ classdef Constellation_Collector < Settings_Interface
                     end
             end
         end
-        
+
         function ref_dcb = getRefDCB(this, goid)
             % consider to move change them on the base of the source of
             % precise orbit
@@ -458,7 +457,7 @@ classdef Constellation_Collector < Settings_Interface
                 otherwise
             end
         end
-        
+
         function band = getBand(this, sys, freq)
             % get band for given frequency and system
             %
@@ -470,7 +469,7 @@ classdef Constellation_Collector < Settings_Interface
             ss = this.getSys(sys);
             [~, band] = intersect(str2num(ss.CODE_RIN3_2BAND'), freq);
         end
-        
+
         function go_ids = getGoIds(this, sys_c)
             % get the go ids for the desidered constellation
             %
@@ -490,9 +489,9 @@ classdef Constellation_Collector < Settings_Interface
                 end
             end
         end
-        
+
     end
-    
+
     % =========================================================================
     %  INTERFACE REQUIREMENTS
     % =========================================================================
@@ -505,7 +504,7 @@ classdef Constellation_Collector < Settings_Interface
                 log.setVerbosityLev(0);
                 this.init([0 0 0 0 0 0 1]);
                 log.setVerbosityLev(vl);
-                
+
                 this.gps.import(state);
                 this.glo.import(state);
                 this.gal.import(state);
@@ -525,7 +524,7 @@ classdef Constellation_Collector < Settings_Interface
                 this.update();
             end
         end
-        
+
         function str = toString(this, str)
             % Display the satellite system in use
             if (nargin == 1)
@@ -535,7 +534,7 @@ classdef Constellation_Collector < Settings_Interface
             %[~, ids] = intersect(this.sys_c, this.sys_c);
             %toString = @(var) regexprep(regexprep(evalc(['disp(var)']), '''   ', ','), '''', '');
             %str = [str ' Constellation in use: ' toString(this.SYS_EXT_NAME(sort(ids)))];
-            
+
             str = this.gps.toString(str);
             str = this.glo.toString(str);
             str = this.gal.toString(str);
@@ -544,7 +543,7 @@ classdef Constellation_Collector < Settings_Interface
             str = this.irn.toString(str);
             str = this.sbs.toString(str);
         end
-        
+
         function str_cell = export(this, str_cell)
             % Conversion to string of the minimal information needed to reconstruct the this
             if (nargin == 1)
@@ -560,7 +559,7 @@ classdef Constellation_Collector < Settings_Interface
             %str_cell = Ini_Manager.toIniStringComment(' - "C" BeiDou', str_cell);
             %str_cell = Ini_Manager.toIniStringComment(' - "S" SBAS (not yet available)', str_cell);
             %str_cell = Ini_Manager.toIniString('active_constellation_ch', this.sys_c, str_cell);
-            
+
             str_cell = this.gps.export(str_cell);
             str_cell = this.glo.export(str_cell);
             str_cell = this.gal.export(str_cell);
@@ -568,14 +567,14 @@ classdef Constellation_Collector < Settings_Interface
             str_cell = this.bds.export(str_cell);
             str_cell = this.irn.export(str_cell);
             str_cell = this.sbs.export(str_cell);
-            
+
             % Maybe in a future it will be useful to export and import specific satellites in use
             % str_cell = Ini_Manager.toIniString('index', this.index, str_cell);
             % str_cell = Ini_Manager.toIniString('PRN', this.prn, str_cell);
             % str_cell = Ini_Manager.toIniString('system', this.system, str_cell);
         end
     end
-    
+
     % =========================================================================
     %  STATUS MODIFIER
     % =========================================================================
@@ -604,7 +603,7 @@ classdef Constellation_Collector < Settings_Interface
                     end
                 end
             end
-            
+
             this.glo.enable(active_list(this.ID_GLONASS));
             this.gal.enable(active_list(this.ID_GALILEO));
             this.qzs.enable(active_list(this.ID_QZSS));
@@ -614,92 +613,92 @@ classdef Constellation_Collector < Settings_Interface
             this.gps.enable(active_list(this.ID_GPS));
             this.update();
         end
-        
+
         function activateGPS(this)
             % Activate the use of GPS
             this.gps.enable();
             this.update();
         end
-        
+
         function deactivateGPS(this)
             % De-activate the use of GPS
             this.gps.disable();
             this.update();
         end
-        
+
         function activateGLONASS(this)
             % Activate the use of GLONASS
             this.glo.enable();
             this.update();
         end
-        
+
         function deactivateGLONASS(this)
             % De-activate the use of GLONASS
             this.glo.disable();
             this.update();
         end
-        
+
         function activateGalileo(this)
             % Activate the use of Galileo
             this.gal.enable();
             this.update();
         end
-        
+
         function deactivateGalileo(this)
             % De-activate the use of Galileo
             this.gal.disable();
             this.update();
         end
-        
+
         function activateBeiDou(this)
             % Activate the use of BeiDou
             this.bds.enable();
             this.update();
         end
-        
+
         function deactivateBeiDou(this)
             % De-activate the use of BeiDou
             this.bds.disable();
             this.update();
         end
-        
+
         function activateQZSS(this)
             % Activate the use of QZSS
             this.qzs.enable();
             this.update();
         end
-        
+
         function deactivateQZSS(this)
             % De-activate the use of QZSS
             this.qzs.disable();
             this.update();
         end
-        
+
         function activateIRNSS(this)
             % Activate the use of IRNSS
             this.qzs.enable();
             this.update();
         end
-        
+
         function deactivateIRNSS(this)
             % De-activate the use of IRNSS
             this.irn.disable();
             this.update();
         end
-        
+
         function activateSBAS(this)
             % Activate the use of SBAS
             this.gps.enable();
             this.update();
         end
-        
+
         function deactivateSBAS(this)
             % De-activate the use of SBAS
             this.sbs.disable();
             this.update();
         end
     end
-    
+
     % =========================================================================
     %  STATUS CHECKER
     % =========================================================================
@@ -708,37 +707,37 @@ classdef Constellation_Collector < Settings_Interface
             % get the activation status for GPS
             isActive = this.gps.isActive();
         end
-        
+
         function isActive = isGloActive(this)
             % get the activation status for GLONASS
             isActive = this.glo.isActive();
         end
-        
+
         function isActive = isGalActive(this)
             % get the activation status for Galileo
             isActive = this.gal.isActive();
         end
-        
+
         function isActive = isBdsActive(this)
             % get the activation status for Beidou
             isActive = this.bds.isActive();
         end
-        
+
         function isActive = isQzsActive(this)
             % get the activation status for QZSS
             isActive = this.qzs.isActive();
         end
-        
+
         function isActive = isIrnActive(this)
             % get the activation status for IRNSS
             isActive = this.irn.isActive();
         end
-        
+
         function isActive = isSbsActive(this)
             % get the activation status for SBAS
             isActive = this.sbs.isActive();
         end
-        
+
         function check(this)
             % check if all frequency of a activated system are unchecked check them all
             for i = 1 : length(this.active_list)
@@ -751,7 +750,7 @@ classdef Constellation_Collector < Settings_Interface
             end
         end
     end
-    
+
     % =========================================================================
     %  LEGACY IMPORT
     % =========================================================================
@@ -775,7 +774,7 @@ classdef Constellation_Collector < Settings_Interface
             end
         end
     end
-    
+
     % =========================================================================
     %  GETTERS
     % =========================================================================
@@ -794,9 +793,9 @@ classdef Constellation_Collector < Settings_Interface
                     n_sat = n_sat + this.getSys(sys_c(i)).N_SAT;
                 end
             end
-            
+
         end
-        
+
         function n_sat = getMaxObsSat(this)
             % return the total maximum number of observables
             %
@@ -804,7 +803,7 @@ classdef Constellation_Collector < Settings_Interface
             %   n_sat = this.getObsSat();
             n_sat = this.n_obs_tot;
         end
-        
+
         function n_sat = getMaxNumSat(this, sys_c)
             % return the total maximum number of satellites
             %
@@ -816,7 +815,7 @@ classdef Constellation_Collector < Settings_Interface
                 n_sat = sum(double(this.n_sat_tot));
             end
         end
-        
+
         function n_sys = getNumSys(this)
             % return the total number of enabled satellites
             %
@@ -824,7 +823,7 @@ classdef Constellation_Collector < Settings_Interface
             %   n_sat = this.getNumSat();
             n_sys = this.n_sys;
         end
-        
+
         function name = getSysName(this, sys_c)
             % get the 3 chars name of a constellation
             if isempty(sys_c)
@@ -837,47 +836,47 @@ classdef Constellation_Collector < Settings_Interface
                 end
             end
         end
-        
+
         function name = getSysExtName(this, sys_c)
             % get the name of a constellation
             name = this.SYS_EXT_NAME{this.SYS_C == sys_c};
         end
-        
+
         function gps = getGPS(this)
             % return the GPS satellite system object
             gps = handle(this.gps);
         end
-        
+
         function glo = getGLONASS(this)
             % return the GLONASS satellite system object
             glo = handle(this.glo);
         end
-        
+
         function gal = getGalileo(this)
             % return the Galileo satellite system object
             gal = handle(this.gal);
         end
-        
+
         function bds = getBeiDou(this)
             % return the BeiDou satellite system object
             bds = handle(this.bds);
         end
-        
+
         function qzs = getQZSS(this)
             % return the QZSS satellite system object
             qzs = handle(this.qzs);
         end
-        
+
         function irn = getIRNSS(this)
             % return the IRNSS satellite system object
             irn = handle(this.irn);
         end
-        
+
         function sbs = getSBAS(this)
             % return the SBAS satellite system object
             sbs = handle(this.sbs);
         end
-        
+
         function sys = getSys(this, sys)
             % return the system based on is identified char
             switch sys
@@ -897,24 +896,24 @@ classdef Constellation_Collector < Settings_Interface
                     sys = this.getSBAS();
             end
         end
-        
+
         function index = getIndex(this, sys, prn)
             % get progressive index for giving system and prns
             %
-            % SYNTAX 
+            % SYNTAX
             %   index = this.getIndex(sys, prn);
             %   index = this.getIndex(sat_name);
             %
             % EXAMPLE
             %   index = this.getIndex('G', 21);
             %   index = this.getIndex('G21');
-            
+
             if nargin == 2
                 sat_name = sys;
                 sys = sat_name(:,1);
                 prn = str2num(sat_name(:,2:end)); %#ok<ST2NM>
             end
-            
+
             index = zeros(size(prn));
             if length(sys) == 1
                 sys = repmat(sys,length(prn),1);
@@ -934,11 +933,11 @@ classdef Constellation_Collector < Settings_Interface
                 end
             end
         end
-        
+
         function sat_name = getSatName(this, go_id)
             sat_name = reshape(sprintf('%c%02d', [this.system(go_id); this.prn(go_id)'])', 3, length(go_id))';
         end
-        
+
         function [sys_c, prn] = getSysPrn(this, go_id)
             % return sys_c and prn for a given go_id
             % SYNTAX [sys_c, prn] = this.getSysPrn(go_id)
@@ -952,27 +951,27 @@ classdef Constellation_Collector < Settings_Interface
                 end
             end
         end
-        
+
         function lvec = getWavelength(this, go_id)
             % return wavelength of satellite for a given go id
             % SYNTAX [lvec] = this.getWavelength(go_id)
             [sys_c, prn] = getSysPrn(this, go_id);
-            
-            
+
+
             ss = this.getSys(sys_c);
             if sys_c ~= 'R'
                 lvec = ss.L_VEC;
             else
                 lvec = [ss.L_VEC(ss.PRN2IDCH(prn),:)];
             end
-            
+
         end
     end
-    
+
     % =========================================================================
     %  TEST
     % =========================================================================
-    
+
     methods (Static, Access = 'public')
         function test()
             % Test the class
@@ -983,20 +982,20 @@ classdef Constellation_Collector < Settings_Interface
             c.testInterfaceRoutines();
         end
     end
-    
+
     % =========================================================================
     %  UTILITIES
     % =========================================================================
-    
+
     methods (Static, Access = 'public')
-       
+
         function code = obsCode2num(obs_code, prn)
             % Get unique code for identifying an observation of a satellite
             % numeric full obs_code: <SS> + <prn> + <type of combination> + [<obs. type> + <obs. freq.> <obs. tracking>]
             %
             % SYNTAX
             %   code = obsCode2num(obs_code, prn);
-            
+
             obs_code(obs_code == '_') = ' ';
             ss_type = 'GREJCIS';
             comb_type = char([uint32('0'):uint32('9') uint32('A'):uint32('Z')]);
@@ -1006,7 +1005,7 @@ classdef Constellation_Collector < Settings_Interface
             field_dim = cumprod(uint64([numel(ss_type), 100, numel(comb_type), numel(obs_type), numel(freq_type), numel(freq_type), numel(obs_type), numel(freq_type), numel(freq_type), numel(obs_type), numel(freq_type), numel(freq_type)]));
             % for each entry
             code = zeros(numel(prn), 1, 'uint64');
-            
+
             % if there is no combination character add an empty space
             if size(obs_code,2) == 4
                 obs_code = [obs_code char(32 * ones(size(obs_code,1), 1, 'uint32'))];
@@ -1033,7 +1032,7 @@ classdef Constellation_Collector < Settings_Interface
                 code(i) = iif(isempty(num), 0, num);
             end
         end
-        
+
         function abb = constToAbb(constellation_name)
             % given the constellation name return is abberaviation in uppercase
             constellation_name = lower(constellation_name);
@@ -1053,7 +1052,7 @@ classdef Constellation_Collector < Settings_Interface
                 abb = 'SBS';
             end
         end
-        
+
         function sys_c = abbToSysC(abb)
             % give 3 char abbreviation return the system character
             abb = upper(abb);
@@ -1073,7 +1072,7 @@ classdef Constellation_Collector < Settings_Interface
                 sys_c = 'S';
             end
         end
-        
+
         function abb = sysCToAbb(sys_c)
             % give sys_c return the 3 char abbreviation
             sys_c = upper(sys_c);
@@ -1093,7 +1092,7 @@ classdef Constellation_Collector < Settings_Interface
                 abb = 'SBS';
             end
         end
-        
+
         function band = rin3ToBand(rin32ch, sys_c)
             % give 3 char abbreviation return the system character
             ocode = [sys_c rin32ch];
@@ -1154,5 +1153,5 @@ classdef Constellation_Collector < Settings_Interface
             end
         end
     end
-    
+
 end

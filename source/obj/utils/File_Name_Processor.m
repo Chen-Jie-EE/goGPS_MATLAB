@@ -11,7 +11,7 @@
 % FOR A LIST OF CONSTANTs and METHODS use doc FTP_Server
 %
 % REQUIRES:
-%   goGPS settings;
+%   App settings;
 %
 % COMMENTS
 %   Nothing to report
@@ -70,9 +70,9 @@ classdef File_Name_Processor < handle
         function file_name_out = dateKeyRep(this, file_name, date, session, vmf_res, vmf_source)
             % substitute time placeholder with the proper format
             %
-            % SYNTAX: 
+            % SYNTAX:
             %     file_name = this.dateKeyRep(file_name, date, session)
-            
+
             narginchk(3,6)
             if (nargin < 4)
                 session = '';
@@ -90,7 +90,7 @@ classdef File_Name_Processor < handle
                 doy  = sprintf('%03d', doy);
                 file_name_out = strrep(file_name_out, this.GPS_DOY, doy);
                 file_name_out = strrep(file_name_out, this.GPS_FIRST_DOY_TRIMESTER, sprintf('%03d', GPS_Time.doy2fdoytr(doy,year)));
-                
+
                 file_name_out = strrep(file_name_out, this.GPS_YY, year(3:4));
                 file_name_out = strrep(file_name_out, this.GPS_YYYY, year);
                 file_name_out = strrep(file_name_out, this.GPS_YYDOY, [year(3:4) doy]);
@@ -120,7 +120,7 @@ classdef File_Name_Processor < handle
                 file_name_out = strrep(file_name_out, this.GPS_MM, sprintf('%02d', date(2)));
                 file_name_out = strrep(file_name_out, this.GPS_DD, sprintf('%02d', date(3)));
                 file_name_out = strrep(file_name_out, this.GPS_1D, sprintf('%d', date(3)));
-            end            
+            end
             if any(file_name_out == '$') && ~isempty(session)
                 file_name_out = strrep(file_name_out, this.GPS_SESSION, sprintf('%01d', session));
             end
@@ -164,7 +164,7 @@ classdef File_Name_Processor < handle
 
         function [file_name_lst, date_list] = dateKeyRepBatch(this, file_name, date_start, date_stop, session_list, session_start, session_stop, vmf_res, vmf_source)
             % substitute time placeholder with the proper format
-            % SYNTAX: 
+            % SYNTAX:
             %   file_name = this.dateKeyRepBatch(file_name, date_start, date_stop)
             % NOTE: I consider only two possible file formats:
             %         - dependend on UTC time (year, doy)
@@ -196,9 +196,9 @@ classdef File_Name_Processor < handle
                 end
                 date0 = date0.getNominalTime(60);
                 date1 = date_stop.round(1);
-                
+
                 date_list.toUnixTime(); % keep an higher precision
-                
+
                 i = 1;
                 % Find all the file in the interval of dates
                 while (date0.getMatlabTime() <= date1.getMatlabTime())
@@ -254,13 +254,13 @@ classdef File_Name_Processor < handle
             %
             % SYNTAX
             %   dir_path_out = getInnerDir(dir_path_list)
-            
+
             dir_path_out = cell(0);
             % make base_dir a cell
             if ~iscell(dir_path_list)
                 dir_path_list = {dir_path_list};
             end
-            
+
             % loop on base_dirs
             for d = 1 : numel(dir_path_list)
                 dir_path_out = [dir_path_out dir_path_list(d)];
@@ -276,8 +276,8 @@ classdef File_Name_Processor < handle
                         dir_list = [dir_list {fullfile(dir_path, tmp(i).name)}];
                     end
                 end
-                               
-                if ~isempty(dir_list)                                    
+
+                if ~isempty(dir_list)
                     for c = 1 : numel(dir_list)
                         cur_dir = dir_list(c);
                         dir_path_out = [dir_path_out File_Name_Processor.getInnerDir(cur_dir)];
@@ -285,18 +285,18 @@ classdef File_Name_Processor < handle
                 end
             end
         end
-        
+
         function file_list_out = findFiles(dir_path_list, prefix)
             % Get recursive file list
             %
             % SYNTAX
-            %   file_list_out = findFiles(dir_path_list, prefix)                        
+            %   file_list_out = findFiles(dir_path_list, prefix)
             file_list_out = cell(0);
             % make base_dir a cell
             if ~iscell(dir_path_list)
                 dir_path_list = {dir_path_list};
             end
-            
+
             % loop on base_dirs
             for d = 1 : numel(dir_path_list)
                 dir_path = dir_path_list{d};
@@ -312,14 +312,14 @@ classdef File_Name_Processor < handle
                         dir_list = [dir_list {fullfile(dir_path, tmp_dir_list(i).name)}];
                     end
                 end
-                               
-                if ~isempty(dir_list)                                    
+
+                if ~isempty(dir_list)
                     for c = 1 : numel(dir_list)
                         cur_dir = dir_list(c);
                         file_list_out = [file_list_out File_Name_Processor.findFiles(cur_dir, prefix)];
                     end
                 end
-                
+
                 for i = 1 : numel(tmp_file_list)
                     if length(tmp_file_list(i).name) > length(prefix) &&  strcmp(tmp_file_list(i).name(1:length(prefix)), prefix)
                         file_list_out = [file_list_out {fullfile(dir_path, tmp_file_list(i).name)}];
@@ -327,12 +327,12 @@ classdef File_Name_Processor < handle
                 end
             end
         end
-        
+
         function dir_path = getFullDirPath(dir_path, dir_base, dir_fallback, empty_fallback)
             % Get the full path given the relative one and the relative dir_base
             % It changes the folder with dir_fallback only if the changed folder exist
             %
-            % SYNTAX: 
+            % SYNTAX:
             %   dir_path = getFullDirPath(dir_path, <dir_base default = pwd>, fallback_dir_base);
 
             if nargin == 1
@@ -344,7 +344,7 @@ classdef File_Name_Processor < handle
             if isempty(dir_base)
                 dir_base = pwd;
             end
-                       
+
             dir_path_bk = dir_path;
 
             fnp = File_Name_Processor;
@@ -382,9 +382,9 @@ classdef File_Name_Processor < handle
                     dir_path = fnp.checkPath(empty_fallback);
                 end
             end
-            
+
             dir_path = File_Name_Processor.remDirModifiers(dir_path);
-                
+
             % Fallback if not exist
             if (nargin >= 3) && ~isempty(dir_fallback)
                 if ~exist(dir_path, 'file')
@@ -401,25 +401,25 @@ classdef File_Name_Processor < handle
                 end
             end
         end
-        
+
         function path = remDirModifiers(path)
             % Utility to remove from a path dir changes with "." and ".."
             %
             % SYNTAX
             %   path = File_Name_Processor.remDirModifiers(path)
-            
+
             if ~isempty(path)
                 % remove './'
                 path = strrep(path, [filesep '.' filesep], filesep);
-                
+
                 prefix = '';
                 if numel(path) > 2
                     prefix = iif(strcmp(path(1:2),'\\'), '\\', '');
                 end
-                
+
                 % extract sub folder names
                 list = regexp(path,['[^' iif(filesep == '\', '\\', filesep) ']*'],'match');
-                
+
                 % search for "../"
                 dir_up = find(strcmp(list,'..'));
                 offset = 0;
@@ -427,7 +427,7 @@ classdef File_Name_Processor < handle
                     list(max(1, (i - 1 : i) - offset)) = [];
                     offset = offset + 2;
                 end
-                
+
                 % restore full path start
                 if isunix
                     path = [prefix filesep strCell2Str(list, filesep)];
@@ -467,7 +467,7 @@ classdef File_Name_Processor < handle
                         else
                             list_path = list_path(i+1:end);
                         end
-                        
+
                         dir_path{j} = strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep);
                     end
                 end
@@ -491,15 +491,15 @@ classdef File_Name_Processor < handle
                     end
                     if (n_dir_base -i) > 0
                         if i > 0
-                            list_path = [{repmat(['..' filesep],1, n_dir_base - i)} list_path(i+1:end)];                            
+                            list_path = [{repmat(['..' filesep],1, n_dir_base - i)} list_path(i+1:end)];
                         elseif isempty(prefix)
                             prefix = filesep;
                         end
-                        
+
                     else
                         list_path = list_path(i+1:end);
                     end
-                    
+
                     dir_path = [prefix strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep)];
                 end
             end
@@ -510,12 +510,12 @@ classdef File_Name_Processor < handle
             [~, name, extension] = fileparts(file_name);
             file_name = [name extension];
         end
-        
+
         function path = getPath(file_name)
             % Get only the path up to the folder name from a full path
             [path, ~, ~] = fileparts(file_name);
         end
-        
+
         function file_name = keyRep(file_name, key, substitution)
             % Substitute a key in the file_name with another value
             file_name = strrep(file_name, key, substitution);
@@ -581,19 +581,19 @@ classdef File_Name_Processor < handle
             %       7 => is a folder
 
             if instr(path, '${PRJ_HOME}')
-                if nargin < 2 
+                if nargin < 2
                 %    state = Core.getState();
                 %    prj_home = state.getHomeDir;
                     prj_home = '';
                 end
                 path = strrep(path, '${PRJ_HOME}', prj_home);
             end
-            
+
             prefix = '';
             if numel(path) > 2
                 prefix = iif(strcmp(path(1:2),'\\'), '\', '');
             end
-            
+
             if not(isempty(path))
                 if (iscell(path))
                     % for each line of the cell

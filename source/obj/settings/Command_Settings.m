@@ -20,7 +20,7 @@
 
 classdef Command_Settings < Settings_Interface
 
-    
+
     % Default values for each field - useful to restore corrupted fields
     properties (Constant, GetAccess = public)
         CMD_LIST = {};
@@ -58,13 +58,13 @@ classdef Command_Settings < Settings_Interface
                 this.cmd_list = cmd;
             end
         end
-        
+
         function import(this, settings)
             % This function import Mode (only) settings from another setting object
             %
             % SYNTAX:
             %   this.import(settings);
-            
+
             if isa(settings, 'Ini_Manager')
                 cmd_keys = settings.getKeys(this.CMD_SECTION);
                 this.cmd_list = {};
@@ -95,7 +95,7 @@ classdef Command_Settings < Settings_Interface
             end
             str = this.cmdToString(str);
         end
-        
+
         function str = cmdToString(this, str)
             % Display the command list
             %
@@ -123,7 +123,7 @@ classdef Command_Settings < Settings_Interface
             %
             % SYNTAX:
             %   str_cell = this.export(str_cell);
-            
+
             if (nargin == 1)
                 str_cell = {};
             end
@@ -138,47 +138,47 @@ classdef Command_Settings < Settings_Interface
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
-        
+
         function str_cell = exportCmdListHelp(this, str_cell)
             % Conversion to string ini format of the help
             %
             % SYNTAX:
             %   str_cell = this.exportCmdListHelp(str_cell);
-            
+
             if (nargin == 1)
                 str_cell = {};
             end
-            
+
             cmd = Core.getCommandInterpreter();
             % To be moved in the manual in the future
             str_cell = Ini_Manager.toIniStringComment(cmd.getHelp, str_cell);
         end
-        
+
         function str_cell = exportCmdListExamples(this, str_cell)
             % Conversion to string ini format of the example list
             %
             % SYNTAX:
             %   str_cell = this.exportCmdListExamples(str_cell);
-            
+
             if (nargin == 1)
                 str_cell = {};
             end
-            
+
             cmd = Core.getCommandInterpreter();
             % To be moved in the manual in the future
             str_cell = strrep(cmd.getExamples,'#','%');
         end
-        
+
         function str_cell = exportCmdList(this, str_cell)
             % Conversion to string ini format of the command list
             %
             % SYNTAX:
             %   str_cell = this.export(str_cell);
-            
+
             if (nargin == 1)
                 str_cell = {};
             end
-            
+
             cmd = Core.getCommandInterpreter();
             [cmd_list, ~, loop_lev] = cmd.fastCheck(this.cmd_list);
             % find how to indent commands:
@@ -188,14 +188,14 @@ classdef Command_Settings < Settings_Interface
                 loop_lev = loop_lev - (diff([0 loop_lev]) > 0);
             end
             this.cmd_list = cmd_list;
-            % To be moved in the manual in the future            
+            % To be moved in the manual in the future
             for l = 1 : numel(this.cmd_list)
                 str_cell = [str_cell; {sprintf('%s%s', char(32 * ones(1,3 * loop_lev(l))), strtrim(strrep(strrep(this.cmd_list{l}, Command_Interpreter.SUB_KEY, ' '), '''', '"')))}];
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
     end
-   
+
     % =========================================================================
     %  CHECKER CALL
     % =========================================================================
@@ -215,7 +215,7 @@ classdef Command_Settings < Settings_Interface
             end
         end
     end
-    
+
     methods (Access = 'public')
         function cmd_list = getCommandList(this)
             cmd_list = this.cmd_list;

@@ -18,40 +18,40 @@ classdef Core_Reference_Frame < handle
         FLAG_FIXED = 2
         FLAG_FIXED4PREPRO = 3
     end
-    
+
     properties
         station_code = {};
         xyz     % XYZ coordinates
         vxvyvz  % XYZ velocities
         std_pup % std planar up
-        
+
         end_validity_epoch;
         start_validity_epoch;
-        
+
         flag
         is_valid
     end
-    
+
     methods
         % Creator
         function this = Core_Reference_Frame()
             % Core object creator
             this.end_validity_epoch = GPS_Time();
-            this.start_validity_epoch = GPS_Time();        
+            this.start_validity_epoch = GPS_Time();
         end
     end
-    
+
     methods
         function init(this, crd_file)
             % initilize the reference frame object loading the crd file specified in state
             %
             % SYNTAX:
             % this.init()
-            
+
             if nargin == 2
                 Core.getState.setCrdFile(crd_file);
             end
-            
+
             this.clear();
             this.is_valid = true;
             try
@@ -63,14 +63,14 @@ classdef Core_Reference_Frame < handle
                 log.addWarning('CRD file seems empty or corrupted');
             end
         end
-        
+
         function load(this, crd_file)
             % initilize the reference frame object loading coordinates from
             % crd file
             %
             % SYNTAX:
             % this.init()
-            
+
             this.clear();
             this.is_valid = true;
             if ~isempty(crd_file)
@@ -82,7 +82,7 @@ classdef Core_Reference_Frame < handle
                 Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Opening file %s for reading', crd_file)));
                 txt = fread(fid,'*char')';
                 fclose(fid);
-                
+
                 % get new line separators
                 nl = regexp(txt, '\n')';
                 if nl(end) <  numel(txt)
@@ -97,7 +97,7 @@ classdef Core_Reference_Frame < handle
                 lim(header_line,:) = [];
                 %initilaize array
                 n_sta = size(lim,1);
-                
+
                 this.station_code = {};
                 this.xyz = zeros(n_sta,3);
                 this.vxvyvz = zeros(n_sta,3);
@@ -140,7 +140,7 @@ classdef Core_Reference_Frame < handle
                 this.end_validity_epoch   = GPS_Time(en_date);
             end
         end
-        
+
         function clear(this)
             % clear the object
             %
@@ -154,15 +154,15 @@ classdef Core_Reference_Frame < handle
             this.start_validity_epoch = [];
             this.end_validity_epoch = [];
         end
-        
+
         function coo = getAllCoordinates(this)
             % Get a single coordinate object containing the positions of all the stations
-            % 
+            %
             % SYNTAX
             %   rf.getAllCoordinates;
-            xyz = nan(numel(this.station_code), 3); 
-            for i = 1:numel(this.station_code); 
-                xyz(i,:) = this.getCoo(this.station_code{i}); 
+            xyz = nan(numel(this.station_code), 3);
+            for i = 1:numel(this.station_code);
+                xyz(i,:) = this.getCoo(this.station_code{i});
             end
             coo = Coordinates.fromXYZ(xyz);
         end
@@ -182,9 +182,9 @@ classdef Core_Reference_Frame < handle
                     this.init();
                 end
             end
-            
+
             if this.isValid()
-                
+
                 if ~isempty(this.station_code) && length(sta_name) == 4
                     idx_sta = find(strcmpi(this.station_code, sta_name));
                     if sum(idx_sta) > 0
@@ -201,7 +201,7 @@ classdef Core_Reference_Frame < handle
                         end
                         if not(isempty(idx_sta))
                             idx_sta = idx_sta(end); % take only the last coordinate matching
-                            
+
                             % remove velocity
                             if nargin > 2 && not(isempty(epoch))
                                 dt = epoch - this.start_validity_epoch.getEpoch(idx_sta);
@@ -209,7 +209,7 @@ classdef Core_Reference_Frame < handle
                             else
                                 xyz = this.xyz(idx_sta,:);
                             end
-                            
+
                             is_valid = true;
                             std_pup = this.std_pup(idx_sta,:);
                             flag = this.flag(idx_sta);
@@ -218,14 +218,14 @@ classdef Core_Reference_Frame < handle
                 end
             end
         end
-        
+
         function setCoo(this, sta_name, xyz, flag, vxvyvz, std_pup, start_validity_epoch, end_validity_epoch, flag_overwrite)
             % set the coordiates at the reference epoch
             %
             % SYNTAX:
             %  this.setCoo(sta_name, xyz)
-            % load RF if not loaded            
-            
+            % load RF if not loaded
+
             if ~this.isValid()
                 if exist(Core.getState.getCrdFile, 'file') == 2
                     this.init();
@@ -241,7 +241,7 @@ classdef Core_Reference_Frame < handle
                     if nargin > 4 && ~isempty(vxvyvz)
                         this.vxvyvz(idx_sta,:) = vxvyvz;
                     end
-                    
+
                     if nargin > 5 && ~isempty(std_pup)
                         this.std_pup(idx_sta,:) = std_pup;
                     end
@@ -261,18 +261,18 @@ classdef Core_Reference_Frame < handle
                         this.start_validity_epoch = start_validity_epoch;
                     else
                         this.start_validity_epoch.append(start_validity_epoch);
-                        
+
                     end
                     if isempty(this.end_validity_epoch)
                         this.end_validity_epoch = end_validity_epoch;
                     else
                         this.end_validity_epoch.append(end_validity_epoch);
-                        
+
                     end
                 end
             end
         end
-        
+
         function crx_list = getEntryCell(this)
             % Get the list of CORD entries in the format:
             % 'Marker Name'; 'X'; 'Y'; 'Z'; 'type'; 'std Planar'; 'std Up'; 'start'; 'stop'
@@ -285,7 +285,7 @@ classdef Core_Reference_Frame < handle
                     this.init();
                 end
             end
-            
+
             crx_list = {};
             if this.isValid()
                 crx_list = cell(numel(this.station_code), 7);
@@ -305,7 +305,7 @@ classdef Core_Reference_Frame < handle
                 end
             end
         end
-        
+
         function [status] = isValid(this)
             % Tell if station coordiantes are loaded
             %
@@ -313,7 +313,7 @@ classdef Core_Reference_Frame < handle
             %  [status] = this.isValid()
             status = ~isempty(this.is_valid) && this.is_valid;
         end
-        
+
         function [status] = isFixed(this, sta_code, epoch)
             % tell if station coordiantes are meant to be fixed
             % in case sation not sound return false
@@ -333,7 +333,7 @@ classdef Core_Reference_Frame < handle
                 end
             end
         end
-        
+
         function [status] = isFixedPrepro(this, sta_code, epoch)
             % tell if station coordiantes are meant to be fixed
             % in case sation not sound return false
@@ -354,7 +354,7 @@ classdef Core_Reference_Frame < handle
                 end
             end
         end
-        
+
         function [status] = hasAPriori(this, sta_code)
             % tell if station coordiantes are meant to be fixed
             % in case sation not sound return false
@@ -369,7 +369,7 @@ classdef Core_Reference_Frame < handle
                 end
             end
         end
-        
+
         function [status] = hasGoodAPriori(this, sta_code)
             % tell if station coordiantes are good enough to skip initla code postioining
             % in case sation not sound return false
@@ -384,7 +384,7 @@ classdef Core_Reference_Frame < handle
                 end
             end
         end
-        
+
         function setFlag(this, sta_code, flag)
             % Set the flag [fixed approximate] for the station sta code
             %
@@ -395,7 +395,7 @@ classdef Core_Reference_Frame < handle
                 this.flag(sta_idx) = flag;
             end
         end
-        
+
         function flag = getFlag(this, sta_code)
             % Get the flag [fixed / approximate] for the station sta code
             %
@@ -404,13 +404,13 @@ classdef Core_Reference_Frame < handle
             sta_idx = find(strcmpi(this.station_code, sta_code), 1, 'first');
             flag = this.flag(sta_idx);
         end
-        
+
         function importTableData(this, data)
             % Import from table (GUI) format to Core_Reference_Frame
             %
             % SYNTAX:
             %  this.importTableData(data)
-            
+
             % get marker names:
             if ~isempty(data)
                 name = {};
@@ -423,18 +423,18 @@ classdef Core_Reference_Frame < handle
                         name{i} = 'NAME';
                     end
                 end
-                
+
                 this.station_code = name;
-                
+
                 % get location
                 this.xyz = [[data{:,2}]' [data{:,3}]' [data{:,4}]'];
-                
+
                 % get speed
                 this.vxvyvz = [[data{:,10}]' [data{:,11}]' [data{:,12}]'];
-                
+
                 % get speed
                 this.std_pup = [[data{:,6}]' [data{:,7}]'];
-                
+
                 % epochs
                 date = [];
                 for i = 1 : size(data,1)
@@ -447,7 +447,7 @@ classdef Core_Reference_Frame < handle
                     end
                 end
                 this.start_validity_epoch = GPS_Time(date');
-                
+
                 date = [];
                 for i = 1 : size(data,1)
                     try
@@ -459,7 +459,7 @@ classdef Core_Reference_Frame < handle
                     end
                 end
                 this.end_validity_epoch = GPS_Time(date');
-                
+
                 flag = []; for i = 1 : size(data, 1); flag(i) = iif(isempty(data{i,5}), 0, str2double(data{i,5}(1))); end
                 this.flag = flag;
                 this.is_valid = 1;
@@ -467,7 +467,7 @@ classdef Core_Reference_Frame < handle
                 this.is_valid = 0;
             end
         end
-        
+
         function str = toCrdString(this)
             % Create the string to Export the object
             %
@@ -486,13 +486,13 @@ classdef Core_Reference_Frame < handle
                 end
             end
         end
-        
+
         function export(this, file_path)
             % Export the object in a CRD file
             %
             % SYNTAX:
             %  this.export(file_name)
-            
+
             [path, ~] = fileparts(file_path);
             if ~(exist(path, 'file') == 7)
                 mkdir(path);
@@ -506,7 +506,7 @@ classdef Core_Reference_Frame < handle
                 Core.getLogger.addError(sprintf('"%s" cannot be saved', file_path));
             end
         end
-        
+
         function fh_list = showMapGoogle(this)
             % Show Google Map of the stations
             %
@@ -519,30 +519,30 @@ classdef Core_Reference_Frame < handle
             %
             % SYNTAX
             %   sta_list.showMapGoogle(new_fig);
-           
+
             N_MAX_STA = 50;
-            
+
             flag_labels = true;
             flag_large_points = true;
             point_size = 15;
             point_color = [0, 255, 10]/256;
-            
+
             f = figure('Visible', 'off');
-            
+
             fh_list = f;
             fig_name = sprintf('RFMapGoogle');
             f.UserData = struct('fig_name', fig_name);
 
             Core.getLogger.addMarkedMessage('Preparing map, please wait...');
-            
+
             f.Color = [1 1 1];
             [lat, lon] = Coordinates.fromXYZ(this.xyz).getGeodetic;
             lat = lat / pi * 180;
             lon = lon / pi * 180;
-            
+
             lat_tmp = lat;
             lon_tmp = lon;
-            
+
             % set map limits
             if numel(lon_tmp) == 1
                 lon_lim = minMax(lon_tmp) + [-0.05 0.05];
@@ -563,12 +563,12 @@ classdef Core_Reference_Frame < handle
             [imh, lon_ggl,lat_ggl, img_ggl] = addMap('alpha', 0.95);
             xlim(lon_lim);
             ylim(lat_lim);
-            
+
             m_proj('equidistant','lon',clon,'lat',clat);   % Projection
             %m_proj('utm', 'lon',lon_lim,'lat',lat_lim);   % Projection
             drawnow
             m_image(lon_ggl, lat_ggl, img_ggl);
-            
+
             % read shapefile
             shape = 'none';
             if (~strcmp(shape,'none'))
@@ -602,14 +602,14 @@ classdef Core_Reference_Frame < handle
                 end
             end
             hold on;
-            
+
             m_grid('box','fancy','tickdir','in', 'fontsize', 16);
             % m_ruler(1.1, [.05 .40], 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
             drawnow
             %m_ruler([.7 1], -0.05, 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
             [x, y] = m_ll2xy(lon, lat);
-            
-            
+
+
             %point_color = Cmap.get('viridis', numel(x));
             %point_size = 25;
             if size(point_color, 1) > 1
@@ -636,7 +636,7 @@ classdef Core_Reference_Frame < handle
                     end
                 end
             end
-            
+
             if flag_large_points && numel(this) < N_MAX_STA
                 for r = 1 : numel(this.station_code)
                     plot(x(r), y(r), '.', 'MarkerSize', 45, 'Color', Core_UI.getColor(r, numel(this)), 'UserData', 'GNSS_point');
@@ -660,7 +660,7 @@ classdef Core_Reference_Frame < handle
                     end
                 end
             end
-            
+
             Core_UI.addExportMenu(f); Core_UI.addBeautifyMenu(f); Core_UI.beautifyFig(f);
             f.Visible = 'on'; drawnow;
             title(sprintf('Map of GNSS stations\\fontsize{5} \n'), 'FontSize', 16);
@@ -670,15 +670,15 @@ classdef Core_Reference_Frame < handle
             Core.getLogger.addStatusOk('The map is ready ^_^');
         end
 
-        
+
     end
-    
+
     methods (Static)
         function test()
-            rf = Core_Reference_Frame;      
+            rf = Core_Reference_Frame;
             rf.load('../data/project/default_PPP/station/CRD/stations.crd');
             rf.export('../data/project/default_PPP/station/CRD/stations_test.crd')
         end
     end
-    
+
 end

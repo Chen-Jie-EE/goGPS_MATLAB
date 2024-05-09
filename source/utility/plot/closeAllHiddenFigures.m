@@ -1,6 +1,6 @@
 function closeAllHiddenFigures(flag_dockable)
-% Close all the hidden figures 
-% goGPS main windows are not dockable and will remain open ^_^
+% Close all the hidden figures
+% App main windows are not dockable and will remain open ^_^
 %
 % SINTAX:
 %   closeAllHiddenFigures(<flag_dockable = false>);

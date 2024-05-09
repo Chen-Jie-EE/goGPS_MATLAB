@@ -6,7 +6,7 @@ function startSlave(com_dir)
 %   com_dir       communication directory
 %
 % DESCRIPTION:
-%   function launcher for goGPS slaves
+%   function launcher for app slaves
 %
 % EXAMPLE:
 %   startSlave('../com');

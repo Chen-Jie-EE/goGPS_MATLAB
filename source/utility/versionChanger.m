@@ -5,7 +5,7 @@ function versionChanger(new_version_str, base_dir)
 %    versionChanger('0.5.0');
 %
 % DESCRIPTION:
-%    Change the version number in all the goGPS source files with standard
+%    Change the version number in all the App source files with standard
 % header - it requires a unix system
 %
 
@@ -16,7 +16,7 @@ function versionChanger(new_version_str, base_dir)
 %  The licence of this file can be found in source/licence.md
 %-------------------------------------------------------------------------------
 
-% find all the m files in goGPS directory
+% find all the m files in App directory
 if (nargin <= 1)
     base_dir = '.';
 end

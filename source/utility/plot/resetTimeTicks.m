@@ -11,7 +11,7 @@ function resetTimeTicks(h, num, format)
 %  The licence of this file can be found in source/licence.md
 %-------------------------------------------------------------------------------
 
-    if (nargin == 1) 
+    if (nargin == 1)
         num = 9;
         format = 'yyyy/mm/dd HH:MM';
     end
@@ -60,7 +60,7 @@ function resetTimeTicks(h, num, format)
                 step = round(step/(round_val))*(round_val);
 
                 % Find the center of the axis
-                is_odd = mod(num,2) == 1;                
+                is_odd = mod(num,2) == 1;
                 center = round(( (ax(1) + ax(2)) / 2) /(round_val))*(round_val); % center but rounded according to round_val/2
 
                 % Calculate the tick positions symmetrically about the center
@@ -161,7 +161,7 @@ function resetTimeTicks(h, num, format)
                     h.XTickLabel = {};
                     nl_id = strfind(format, '\n');
                     format = strrep(format, '\n','??');
-                    for l = 1:numel(tick_pos)                        
+                    for l = 1:numel(tick_pos)
                         h.XTickLabel{l} = strrep(datestr(tick_pos(l), format),'??','\newline');
                     end
                 end

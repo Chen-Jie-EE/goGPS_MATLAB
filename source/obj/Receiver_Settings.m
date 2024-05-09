@@ -8,14 +8,8 @@
 %   receiver_setting = Receiver_Settings();
 %
 
-%--- * --. --- --. .--., ... * ---------------------------------------------
-%               ___ ___ ___
-%     __ _ ___ / __| _ | __|
-%    / _` / _ \ (_ |  _|__ \
-%    \__, \___/\___|_| |___/
-%    |___/                    v 1.0
-%
-%--------------------------------------------------------------------------
+%  Software version 1.0.1
+%-------------------------------------------------------------------------------
 %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
 %  Written by:        Giulio Tagliaferro, Andrea Gatti ...
 %  Contributors:      Giulio Tagliaferro, Andrea Gatti ...
@@ -29,7 +23,7 @@ classdef Receiver_Settings < Exportable
         % Deafult Value for obesrvations std
         %-------------------------------------
         stds = struct(    ...
-            'G1C', [3	0.003], ...
+            'G1C', [1	0.003], ...
             'G1S', [0.3	0.003], ...
             'G1L', [0.3	0.003], ...
             'G1X', [0.3	0.003], ...
@@ -39,7 +33,7 @@ classdef Receiver_Settings < Exportable
             'G1M', [0.3	0.003], ...
             'G1N', [0.3	0.003], ...
             'G1_', [3	0.003], ...
-            'G2C', [3	0.003], ...
+            'G2C', [1	0.003], ...
             'G2D', [0.3	0.003], ...
             'G2S', [0.3	0.003], ...
             'G2L', [0.3	0.003], ...
@@ -158,7 +152,7 @@ classdef Receiver_Settings < Exportable
             'I9_', [3	0.003]);
     end
     methods
-        function std = getStd(this, system, obs_code)            
+        function std = getStd(this, system, obs_code)
             % get std for given observation
 
             obs_code = strrep(obs_code,' ','_');
@@ -194,18 +188,18 @@ classdef Receiver_Settings < Exportable
             %               C1C, C2C = obs_code1/2
             %               I = iono free comb
             % SYNTAX:
-            %    
+            %
 
             sys_c = obs_code(1);
             t1 = obs_code(2:4);
             t2 = obs_code(5:7);
             cc = Core.getConstellationCollector;
 
-            
+
             ss = cc.getSys(sys_c);
             coeff = ss.getIonoFree(str2num(obs_code([3 6])')');
 
-            if (~isfield(this.stds, ([sys_c t1(2:3)])) + ~isfield(this.stds, ([sys_c t2(2:3)])))>0 
+            if (~isfield(this.stds, ([sys_c t1(2:3)])) + ~isfield(this.stds, ([sys_c t2(2:3)])))>0
                  % Do something
             else
                 std1 = this.stds.([sys_c t1(2:3)]);
@@ -221,10 +215,10 @@ classdef Receiver_Settings < Exportable
                     log.addWarning(['Iono Free code not valid'])
                 end
             end
-            
+
             std = sqrt((coeff.alpha1*std1)^2 + (coeff.alpha2*std2)^2);
         end
-        
+
         function loadSetting(this)
             %load custom settings file: TO BE IMPLEMENTED
         end

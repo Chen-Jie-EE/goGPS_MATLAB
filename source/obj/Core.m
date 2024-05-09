@@ -2,7 +2,7 @@
 % =========================================================================
 %
 % DESCRIPTION
-%   Collector of settings to manage a useful parameters of goGPS
+%   Collector of settings to manage a useful parameters of the app
 %   This singleton class collects multiple objects containing various
 %   parameters
 %
@@ -10,7 +10,6 @@
 %   core = Core();
 %
 % FOR A LIST OF CONSTANTs and METHODS use doc Core
-
 
 %  Software version 1.0.1
 %-------------------------------------------------------------------------------
@@ -26,7 +25,7 @@ classdef Core < handle
     %% PROPERTIES CONSTANTS
     % ==================================================================================================================================================
     properties (Constant)
-        APP_VERSION = '1.0';
+        APP_VERSION = '1.0.1';
         GUI_MODE = 0; % 0 means text, 1 means GUI, 5 both
     end
 
@@ -35,20 +34,20 @@ classdef Core < handle
     properties (GetAccess = private, SetAccess = private) % Public Access
         is_reserved = false;
     end
-   
+
     %% PROPERTIES MISC
     % ==================================================================================================================================================
     properties (GetAccess = private, SetAccess = private) % Public Access
         local_storage = '';
-        
+
         creation_time = GPS_Time(now);
         uick = false;       % UI working check
         is_advanced = true;
-        
+
         session_list = [];  % in the go function this variable is update to keep the list of session to compute
         preloaded_session = 0;  % Current preloaded session in Core (for meteo, orbits, and other data)
     end
-    
+
     %% PROPERTIES SINGLETON POINTERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
@@ -56,9 +55,9 @@ classdef Core < handle
         log         % Logger handler
         log_gui     % Message window
         w_bar       % Wait_Bar handler
-        
+
         app_cfg   % Breva config ini
-        
+
         state       % state
         sky         % Core_Sky handler
         atx         % antenna manager (stores all the antennas available)
@@ -67,34 +66,34 @@ classdef Core < handle
         mn          % Meteorological Network handler
         rf          % Reference Frame handler
         cmd         % Command_Interpreter handler
-        
+
         geoid = struct('file', [], 'grid', 0, 'cellsize', 0, 'Xll', 0, 'Yll', 0, 'ncols', 0, 'nrows', 0); % parameters of the reference geoid
-        
+
         gom         % Parallel controller
-        
+
         isValid = true; % must be converted into a function
     end
     %% PROPERTIES RECEIVERS
     % ==================================================================================================================================================
-    properties % Utility Pointers to Singletons        
+    properties % Utility Pointers to Singletons
         rin_list        % List of observation file (as File_Rinex objects) to store minimal information on the input files
         met_list        % List of meteorological file (as File_Rinex objects) to store minimal information on the input files
-        
+
         rec             % List of all the receiver used
-        
+
         net             % List of all the network used
     end
-    
+
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods (Static, Access = private)
         % Concrete implementation.  See Singleton superclass.
         function this = Core()
-            % Core object creator                        
+            % Core object creator
             this.initSimpleHandlers();
         end
     end
-    
+
     methods (Access = private)
         function delete(this)
             if ~isempty(this.log_gui)
@@ -103,8 +102,8 @@ classdef Core < handle
                 end
             end
         end
-    end    
-    
+    end
+
     %% METHODS INIT & STATIC GETTERS & SETTERS
     % ==================================================================================================================================================
     methods (Static, Access = public)
@@ -122,15 +121,15 @@ classdef Core < handle
             % Set the persistent instance of the class
             % substitute the current persistent link to the core
             %
-            % INPUT 
+            % INPUT
             %   core           existent core
             %   skip_init      flag
             %   ini_file_path  path to the ini file to load
             %
             % SYNTAX
             %   core = getInstance(core, <skip_init>, <ini_file_path>)
-            
-            
+
+
             persistent unique_instance_core__
             if nargin == 3 && (isa(ini, 'char') && ~exist(ini, 'file'))
                 log = Logger.getInstance();
@@ -149,12 +148,12 @@ classdef Core < handle
                     if nargin < 2 || isempty(skip_init)
                         skip_init = false;
                     end
-                    
-                    
+
+
                     if isempty(unique_instance_core__)
                         this = Core();
                         unique_instance_core__ = this;
-                        
+
                         if ~skip_init
                             if nargin == 3 && ~isempty(ini) && (isa(ini, 'Prj_Settings') || exist(ini, 'file'))
                                 this.init(force_clean, ini);
@@ -167,7 +166,7 @@ classdef Core < handle
                             end
                         end
                         this.is_reserved = exist('GReD_Utility', 'class') == 8;
-                        
+
                     else
                         this = unique_instance_core__;
                         if ~skip_init
@@ -185,8 +184,8 @@ classdef Core < handle
                     end
                 end
             end
-        end        
-        
+        end
+
         function this = setInstance(core)
             % Set the persistent instance of the class
             % substitute the current persistent link to the core
@@ -196,10 +195,10 @@ classdef Core < handle
             %
             % SYNTAX
             %   core = Core.setInstance(core)
-            
+
             this = Core.getInstance(core);
         end
-        
+
         function initGeoid(geoid)
             % load external geoid
             %
@@ -215,7 +214,7 @@ classdef Core < handle
                     core.state.geoid_dir = File_Name_Processor.getFullDirPath('../../reference/geoid', core.state.getHomeDir);
                     geoid_file = core.state.getGeoidFile();
                 end
-                
+
                 if ~strcmp(core.geoid.file, geoid_file) || (core.geoid.ncols == 0 || core.geoid.nrows == 0) % if it is not reqeusting the same goid or if the loaded geoid is empty
                     if exist(geoid_file, 'file')
                         g = load(geoid_file);
@@ -248,20 +247,20 @@ classdef Core < handle
                 end
             end
         end
-        
+
         function geoid = getRefGeoid()
             % Get reference geoid
             core = Core.getInstance(false, true);
-            
+
             if isempty(core.geoid)
                 core.initGeoid();
             elseif(core.geoid.grid == 0)
                 core.initGeoid();
             end
-            
+
             geoid = core.geoid;
         end
-        
+
         function [dtm, lat, lon, georef, info] = getRefDTM(nwse, mode, res, flag_2x)
             % Get the dtm of an area delimited by geographical coordinates NSWE
             % DTM can be requested as orthometric or ellipsoidal heights
@@ -281,11 +280,11 @@ classdef Core < handle
             %
             % SYNTAX
             %  [dtm, lat, lon, georef, info] = Core.getDTM(nwse, res)
-            
+
             if nargin < 2
                 mode = 'ortho';
             end
-            
+
             if nargin < 3
                 res = 'low';
             end
@@ -301,33 +300,33 @@ classdef Core < handle
                     tic; N(:) = getOrthometricCorr(lat, lon', geoid, 'grid_cubic'); toc
                     dtm = dtm + N; % dtm_ellips =  dtm_ortho - N;
             end
-            
+
             % Remove NaN lines
             y_ok = any(dtm');
             x_ok = any(dtm);
             lat = lat(y_ok);
             lon = lon(x_ok);
             dtm = dtm(y_ok, x_ok);
-            
+
             if nargin == 4 && flag_2x
                 % Resize DTM (2x)
                 dtm  = Core_Utils.resize2(dtm, size(dtm) * 2);
                 step_lon = median(diff(lon)) / 2;
-                step_lat = median(diff(lat)) / 2;                
+                step_lat = median(diff(lat)) / 2;
                 lon = ((lon(1) - (step_lon / 2)) : step_lon : (lon(end) + (step_lon / 2)))';
                 lat = ((lat(1) - (step_lat / 2)) : step_lat : (lat(end) + (step_lat / 2)))';
             end
         end
-        
+
 	function [is_adv] = isAdvanced()
             % Get the status of usage (normal/advanced)
             %
             % SYNTAX:
             %   this.isAdvanced()
             core = Core.getInstance(false, true);
-            
+
             is_adv = core.is_advanced;
-        end  
+        end
 
         function [uick] = isUICK()
             % Get the status of usage (normal/advanced)
@@ -336,107 +335,113 @@ classdef Core < handle
             %   this.isUICK()
             core = Core.getInstance(false, true);
             uick = core.uick;
-        end    
-    
+        end
+
         function ok_go = openGUI()
             ok_go = gui_goGPS;
         end
-              
+
         function log = getLogger()
             % Return the pointer to the Logger Object
             %
             % SYNTAX
             %   log = Core.getLogger()
-            
+
             core = Core.getInstance(false, true);
             log = core.log;
             if isempty(log)
                 log = Logger.getInstance();
                 core.log = log;
-            end            
+            end
         end
-        
+
         function msg_gui = getMsgGUI(flag_reset)
             % Return the pointer to the Logger Object
             %
             % SYNTAX
             %   log = Core.getMsgGUI(flag_reset)
-            
+
             if nargin < 1
                 flag_reset = false;
             end
             core = Core.getInstance(false, true);
             msg_gui = core.log_gui;
-            if isempty(msg_gui) || ~ishandle(msg_gui.win)
+            valid_win = false;
+            try
+                valid_win = ishandle(msg_gui.win);
+            catch
+                valid_win = false;
+            end
+            if isempty(msg_gui) || ~valid_win
                 msg_gui = GUI_Msg.getInstance();
                 core.log_gui = msg_gui;
             elseif flag_reset && ishandle(msg_gui.win)
                 msg_gui.clear();
             end
         end
-        
+
         function wb = getWaitBar()
             % Return the pointer to the Go_Wait_Bar
             %
             % SYNTAX
             %   log = Core.getWaitBar()
-            
+
             core = Core.getInstance(false, true);
             wb = core.w_bar;
             if isempty(wb)
                 wb = Go_Wait_Bar.getInstance();
                 core.w_bar = wb;
-            end            
+            end
         end
-        
+
         function atmo = getAtmosphere()
             % Return the pointer to the Atmosphere Object
             %
             % SYNTAX
             %   atmo = Core.getAtmosphere()
-            
+
             core = Core.getInstance(false, true);
             atmo = core.atmo;
             if isempty(atmo)
                 atmo = Atmosphere();
                 core.atmo = atmo;
-            end            
+            end
         end
-        
+
         function ency = getEncyclopedia()
             % Return the pointer to the Encylcopedia Object
             %
             % SYNTAX
             %   atmo = Core.getAtmosphere()
-            
+
             core = Core.getInstance(false, true);
             ency = core.encyclopedia;
             if isempty(ency)
                 ency = Encyclopedia();
                 core.encyclopedia = ency;
-            end            
+            end
         end
-        
+
         function atx = getAntennaManager()
             % Return the pointer to the Atmosphere Object
             %
             % SYNTAX
             %   atx = Core.getAntennaManager()
-            
+
             core = Core.getInstance(false, true);
             atx = core.atx;
             if isempty(atx)
                 atx = Core_Antenna.fromAntex(core.getState.getAtxFile);
                 core.atx = atx;
-            end            
+            end
         end
-        
+
         function mn = getMeteoNetwork()
             % Return the pointer to the Meteorological Network Object
             %
             % SYNTAX
             %   mn = Core.getMeteoNetwork()
-            
+
             core = Core.getInstance(false, true);
             mn = core.mn;
             if isempty(mn)
@@ -444,13 +449,13 @@ classdef Core < handle
                 core.mn = mn;
             end
         end
-        
+
         function rf = getReferenceFrame(flag_reset)
             % Return the pointer to the Reference Frame
             %
             % SYNTAX
             %   rf = Core.getReferenceFrame()
-            
+
             core = Core.getInstance(false, true);
             rf = core.rf;
             if isempty(rf)
@@ -464,13 +469,13 @@ classdef Core < handle
                 rf.init(core.getState.getCrdFile);
             end
         end
-        
+
         function sky = getCoreSky(flag_reset)
             % Return the pointer to the Core Sky Object
             %
             % SYNTAX
             %   sky = Core.getCoreSky()
-            
+
             if nargin == 0
                 flag_reset = false;
             end
@@ -479,9 +484,9 @@ classdef Core < handle
             if isempty(sky) || flag_reset
                 sky = Core_Sky();
                 core.sky = sky;
-            end            
+            end
         end
-        
+
         function is_reserved = isReserved()
             % Return true if GReD Utilities are present
             %
@@ -490,7 +495,7 @@ classdef Core < handle
             core = Core.getInstance(false, true);
             is_reserved = core.is_reserved;
         end
-        
+
         function setGReD(is_reserved)
             % Set true if GReD Utilities are present
             %
@@ -498,8 +503,8 @@ classdef Core < handle
             %   core.setGReD(is_reserved)
             core = Core.getInstance(false, true);
             core.is_reserved = is_reserved;
-        end        
-        
+        end
+
         function setModeGUI(mode)
             % Set false if no GUI is used
             %
@@ -508,7 +513,7 @@ classdef Core < handle
             core = Core.getInstance(false, true);
             core.gui_mode = mode;
         end
-        
+
         function mode = getModeGUI()
             % Get GUI status
             %
@@ -520,16 +525,16 @@ classdef Core < handle
                 mode = 0;
             end
         end
-        
+
         function rec_list = getRecList()
             % Get receiver list
             %
             % SYNTAX
-            %   rec_list = Core.getRecList()          
+            %   rec_list = Core.getRecList()
             core = Core.getInstance(false, true);
             rec_list = core.rec;
         end
-                     
+
         function [cur_session, session_list, cur_pos] = getCurrentSession()
             % Get the id of the current session
             %
@@ -569,14 +574,14 @@ classdef Core < handle
                 end
                 met_list = core.met_list;
             end
-        end              
-        
+        end
+
         function app_cfg = getGoConfig(ini_settings_file)
             % Get the persistent app config
             %
             % SYNTAX
             %   app_cfg = Core.getCurrentSettings(<ini_settings_file>)
-            
+
             core = Core.getInstance(false, true);
             if isempty(core.state)
                 core.app_cfg = App_Settings.getInstance();
@@ -587,18 +592,18 @@ classdef Core < handle
             % Return the handler to the object containing the current settings
             app_cfg = handle(core.app_cfg);
         end
-        
+
         function state = getState()
             % Return the pointer to the State pointed by Core
             %
             % SYNTAX
             %   state = Core.getState()
-            
+
             state = Core.getCurrentSettings;
         end
-        
+
         function flag = isNew()
-            % If the state have not been created, 
+            % If the state have not been created,
             % the core is not yet initialized
             %
             % SYNTAX
@@ -606,13 +611,13 @@ classdef Core < handle
             core = Core.getInstance(false, true);
             flag = isempty(core.state);
         end
-        
+
         function [state, is_new] = getCurrentSettings(ini_settings_file)
             % Get the persistent settings
             %
             % SYNTAX
             %  [state, is_new] = Core.getCurrentSettings(<ini_settings_file>)
-            
+
             if nargin == 1 && ~isempty(ini_settings_file)
                 core = Core.getInstance(false, true, ini_settings_file);
             else
@@ -626,8 +631,8 @@ classdef Core < handle
             % Return the handler to the object containing the current settings
             state = handle(core.state);
         end
-        
-       
+
+
         function cmd = getCommandInterpreter()
             % Return the pointer to the Command Interpreter
             %
@@ -645,10 +650,10 @@ classdef Core < handle
             %
             % SYNTAX
             %   core = Core.getCurrentCore()
-            
+
             core = Core.getInstance(false, true);
         end
-        
+
         function cc = getConstellationCollector()
             % get current constalltion collector
             %
@@ -656,13 +661,13 @@ classdef Core < handle
             %   cc = Core.getConstellationCollector()
             cc = Core.getState.getConstellationCollector;
         end
-                        
+
         function core = setCurrentCore(core)
             % Set the pointer to the actual Core instance
             %
             % SYNTAX
             %   core = Core.setCurrentCore(core)
-            
+
             core.cmd = [];
             core = Core.getInstance(core);
             Core.getCommandInterpreter();
@@ -673,11 +678,11 @@ classdef Core < handle
             %
             % SYNTAX
             %   Core.setLogger(log)
-            
+
             core = Core.getInstance(false, true);
             core.log = log;
         end
-        
+
 	function setAdvanced(mode)
             % Set the status of usage (normal/advanced)
             %
@@ -700,14 +705,14 @@ classdef Core < handle
                 uick = true;
             end
             core.uick = uick;
-        end        
+        end
 
         function setAtmosphere(atmo)
             % Set the pointer to the Atmosphere Object
             %
             % SYNTAX
             %   Core.setAtmosphere(atmo)
-            
+
             core = Core.getInstance(false, true);
             core.atmo = atmo;
         end
@@ -717,7 +722,7 @@ classdef Core < handle
             %
             % SYNTAX
             %   Core.setMeteoNetwork(mn)
-            
+
             core = Core.getInstance(false, true);
             core.mn = mn;
         end
@@ -727,7 +732,7 @@ classdef Core < handle
             %
             % SYNTAX
             %   Core.setReferenceFrame(rf)
-            
+
             core = Core.getInstance(false, true);
             core.rf = rf;
         end
@@ -737,21 +742,21 @@ classdef Core < handle
             %
             % SYNTAX
             %   Core.setCoreSky(sky)
-            
+
             core = Core.getInstance(false, true);
             core.sky = sky;
         end
-        
+
         function setState(state)
             % Set the pointer to the State pointed by Core
             %
             % SYNTAX
             %   Core.setState(state)
-            
+
             core = Core.getInstance(false, true);
             core.state = state;
         end
-        
+
         function setCurrentSettings(cs)
             % Set the persistent settings
             %
@@ -760,21 +765,21 @@ classdef Core < handle
             core = Core.getInstance(false, true);
             core.state = cs;
         end
-        
+
         function setCommandInterpreter(cmd)
             % Return the pointer to the Command Interpreter
             %
             % SYNTAX
             %   Core.setCommandInterpreter(cmd)
-            
+
             core = Core.getInstance(false, true);
             core.cmd = cmd;
         end
     end
-    
+
     %% METHODS INIT
     % ==================================================================================================================================================
-    methods        
+    methods
         function init(this, force_clean, ini)
             % Get instances for:
             %   - Settings
@@ -784,17 +789,17 @@ classdef Core < handle
             %
             % SYNTAX:
             %   this.init(<force_clean>, <ini_file_path>)
-            
+
             if nargin < 2
                 force_clean = false;
-            end        
+            end
             this.log.setOutMode([], false, []);
             this.initLocalPath();
-            
+
             if ispc, fclose('all'); end
-            
-            this.log.setColorMode(true);   
-            
+
+            this.log.setColorMode(true);
+
             if nargin == 3 && ~isempty(ini)
                 if isa(ini,'Prj_Settings')
                     this.state  = Prj_Settings(ini);
@@ -821,15 +826,15 @@ classdef Core < handle
 
         function initPreloadSession(this)
             % Reset preloaded session
-            this.preloaded_session = 0;            
+            this.preloaded_session = 0;
         end
-        
+
         function initLocalPath(this)
             % Renew local path properties
-            
+
             % Knows if GReD utilities are available
             this.is_reserved = exist('GReD_Utility', 'class') == 8;
-            
+
             if ispc()
                 home = [getenv('HOMEDRIVE') getenv('HOMEPATH')];
                 this.local_storage = [home '\AppData\Local\goGPS'];
@@ -848,7 +853,7 @@ classdef Core < handle
                     Core_Utils.printEx(ex);
                     Logger.getInstance.addError(sprintf('Creating "%s" seems impossible, check your permissions!', this.local_storage));
                 end
-            end            
+            end
         end
 
         function initSimpleHandlers(this)
@@ -859,18 +864,18 @@ classdef Core < handle
             %
             % SYNTAX:
             %   this.initSimpleHandlers()
-            
+
             this.log = Logger.getInstance;
             this.log.setOutMode([], false, []);
             if ispc, fclose('all'); end
             this.w_bar = Go_Wait_Bar.getInstance(100, 'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
             this.cmd = Command_Interpreter();
         end
-        
+
         function initConfiguration(this)
             % Load all the files necessary to the functioning of a goGPS session
             % SYNTAX:   this.initProcessing()
-            
+
             % Load external resources and update
             fnp = File_Name_Processor();
             out_dir = fnp.checkPath(this.state.getOutDir());
@@ -883,25 +888,25 @@ classdef Core < handle
             this.log.addMessage(this.log.indent(this.state.cc.toString, 5));
 
             this.initGeoid();
-        end       
-        
+        end
+
         function import(this, state)
             % Import Settings from ini files
-            % 
+            %
             % INPUT:
             %   state       can be a string to the path of the settings file
             %               or a state object
             %
             % SYNTAX:
             %   this.import(state)
-            
+
             if ischar(state)
                 this.importIniFile(state);
             else
                 this.importState(state);
             end
         end
-            
+
         function importIniFile(this, ini_settings_file)
             % Import Settings from ini files
             %
@@ -911,16 +916,16 @@ classdef Core < handle
                 this.state.importIniFile(ini_settings_file);
             end
         end
-        
+
         function importState(this, state)
             % Import Settings from state
             %
             % SYNTAX:
             %   this.importState(state)
-            
+
             this.state.import(state);
         end
-        
+
         function prepareProcessing(this, flag_download)
             % Init settings, and download necessary files
             %
@@ -929,30 +934,36 @@ classdef Core < handle
             if nargin == 2
                 this.state.setAutomaticDownload(flag_download);
             end
-            
+
             this.log.newLine();
             this.log.addMarkedMessage(sprintf('PROJECT: %s', this.state.getPrjName()));
 
             this.initConfiguration(); % Set up / download observations and navigational files
-            this.log.addMessage('Conjuring all the auxiliary files...');
+            this.log.addMessage('Preload RINEX files...');
             rin_list = this.getRinFileList(); %#ok<NASGU>
-            
-            fw = File_Wizard;
-            %c_mode = this.log.getColorMode();
-            %this.log.setColorMode(false);
-            if ~this.state.isRinexSession()
-                [buff_lim, ~] = this.state.getSessionLimits(1);
-                time_lim_large = buff_lim.getEpoch(1);
-                [buff_lim, ~] = this.state.getSessionLimits(this.state.getSessionCount());
-                time_lim_large.append(buff_lim.getEpoch(2));
-            else
-              [~, time_lim_large] = this.getRecTimeSpan();
+
+            try
+                this.log.addMessage('Conjuring all the auxiliary files...');
+                fw = File_Wizard;
+                %c_mode = this.log.getColorMode();
+                %this.log.setColorMode(false);
+                if ~this.state.isRinexSession()
+                    [buff_lim, ~] = this.state.getSessionLimits(1);
+                    time_lim_large = buff_lim.getEpoch(1);
+                    [buff_lim, ~] = this.state.getSessionLimits(this.state.getSessionCount());
+                    time_lim_large.append(buff_lim.getEpoch(2));
+                else
+                    [~, time_lim_large] = this.getRecTimeSpan();
+                end
+                fw.conjureFiles(time_lim_large.first, time_lim_large.last);
+                %this.log.setColorMode(c_mode);
+                this.initAntennaManager(this.state.getAtxFile);
+            catch ex
+                Core_UI.printEx(ex);
             end
-            fw.conjureFiles(time_lim_large.first, time_lim_large.last);
-            %this.log.setColorMode(c_mode);
-            this.initAntennaManager(this.state.getAtxFile);
-        end        
-        
+
+        end
+
         function activateParallelWorkers(this, flag_par_target, id_rec2pass)
             % Call the activation of the receivers
             %
@@ -967,7 +978,7 @@ classdef Core < handle
             this.gom.activateWorkers(flag_par_target, id_rec2pass);
         end
     end
-    
+
     %% METHODS EXPORT
     methods
         function logCurrentSettings(this)
@@ -980,13 +991,13 @@ classdef Core < handle
             log.addMessageToFile('== END OF CONFIG FILE ======================================================================');
             log.addMessageToFile('============================================================================================\n');
         end
-        
+
         function out_file_name = exportMat(core, out_file_name)
             % export the core as a .mat file
             %
             % SYNTAX:
             %    core.exportMat(<out_file_name>)
-            
+
             if nargin < 2 || isempty(out_file_name)
                 out_dir = core.state.getOutDir();
                 out_file_name = fullfile(out_dir, sprintf('core_%s_%s.mat', strrep([core.state.getPrjName], ' ', '_'), GPS_Time.now.toString('yyyymmdd_HHMMSS')));
@@ -1000,12 +1011,12 @@ classdef Core < handle
             core.log.addMarkedMessage(sprintf('Exporting core to %s',out_file_name));
             log_gui = core.log_gui;
             core.log_gui = [];
-            save(out_file_name, 'core', '-v7.3');            
+            save(out_file_name, 'core', '-v7.3');
             core.log_gui = log_gui;
             core.log.addStatusOk('Exporting succeded!')
-        end        
+        end
     end
-    
+
     %% METHODS RUN
     % ==================================================================================================================================================
     methods
@@ -1014,25 +1025,25 @@ classdef Core < handle
             %
             % SYNTAX
             %    this.loadSessionOrbits()
-            
+
             [lim] = this.getCurSessionLimits();
             fw = File_Wizard;
             fw.conjureNavFiles(lim.first, lim.last);
         end
-        
+
         function is_empty = prepareSession(this, session_number, flag_preload)
             % Check the time-limits for the files in the session
             % Init the Sky and Meteo object
             %
             % SYNTAX
             %   is_empty = this.prepareSession(session_number)
-            
+
             if nargin < 3 || isempty(flag_preload)
                 flag_preload = false;
             end
-            
+
             log = Core.getLogger();
-            
+
             session = session_number;
             old_session = Core.getState.getCurSession;
             if ~flag_preload
@@ -1044,18 +1055,18 @@ classdef Core < handle
                 if log.isGUIOut
                     fprintf(sprintf(' ** %s Starting session %d of %d --------------------------------\n', GPS_Time.now.toString('yyyy-mm-dd HH:MM:SS'), session, this.state.getSessionCount())); % write the command in console too
                 end
-                    
+
                 if isempty(this.rec)
                     rec = GNSS_Station;
                 else
                     rec = this.rec;
                 end
-                
-                this.log.newLine();                
+
+                this.log.newLine();
             elseif (session ~= this.preloaded_session)
                 this.log.addMarkedMessage(sprintf('Preloading session %d', session), 0);
             end
-            
+
             rin_list = this.getRinFileList();
 
             if ~this.state.isRinexSession()
@@ -1069,7 +1080,7 @@ classdef Core < handle
             else
                 [out_limits, time_lim_large] = this.getRecTimeSpan(session);
             end
-            
+
             if out_limits.length < 2 || (out_limits.last - out_limits.first) < 0 || (~this.state.isRinexSession() && ~rin_list.isValid) || ((time_lim_large.last - time_lim_large.first) < 0) % && ~rin_list_chk.isValid
                 is_empty = true;
                 this.log.addMessage(sprintf('No valid receivers are present / session not valid %d', session));
@@ -1144,7 +1155,7 @@ classdef Core < handle
                     if ~flag_preload
                         this.rec = rec;
                     end
-                                        
+
                     % Init Meteo and Sky objects
                     if ~this.state.isNoResources() && ((session ~= this.preloaded_session) || this.sky.isEmpty || isempty(this.atmo.ionex.data))
                         this.initSkySession(time_lim_large);
@@ -1153,7 +1164,7 @@ classdef Core < handle
                             this.initMeteoNetwork(time_lim_large);
                         end
                         this.log.simpleSeparator();
-                        
+
                         % init atmo object
                         if this.state.isVMF()
                             this.atmo.initVMF(time_lim_large.first,time_lim_large.last);
@@ -1172,8 +1183,8 @@ classdef Core < handle
                 end
             end
             Core.getReferenceFrame(true); % re-read CRD file every session in case it is changed
-        end  
-        
+        end
+
         function initSkySession(this, time_lim, flag_no_clock)
             % Init sky for this session
             %
@@ -1192,7 +1203,7 @@ classdef Core < handle
                 this.sky.initSession(time_lim.first, time_lim.last, this.getState.getConstellationCollector, flag_no_clock);
             end
         end
-        
+
         function initAntennaManager(this, atx_file_name)
             % Init antenna for this session
             %
@@ -1204,42 +1215,42 @@ classdef Core < handle
             if isempty(this.atx) || isempty(this.atx.list)
                 this.atx = Core_Antenna();
             end
-            this.atx.init(atx_file_name);            
+            this.atx.init(atx_file_name);
         end
-        
+
         function initMeteoNetwork(this, time_lim)
-            % Init the meteo network            
+            % Init the meteo network
             this.mn = Meteo_Network();
-            this.mn.initSession(time_lim.first, time_lim.last);            
+            this.mn.initSession(time_lim.first, time_lim.last);
         end
-        
+
         function go(this)
             % Run a session and execute the command list in the settings
             %
             % SYNTAX
             %   this.go(session_num)
-            
+
             t0 = tic;
             this.log = Core.getLogger;
             if this.log.isGUIOut
                 this.getMsgGUI.bringOnTop();
             end
-            % init refererecne frame object            
+            % init refererecne frame object
             this.rf.init();
             this.rin_list.keepValid();
             this.exec(this.state.cmd_list);
-            
+
             this.log.newLine;
             this.log.addMarkedMessage(sprintf('Computation done in %.2f seconds', toc(t0)));
-            this.log.newLine;          
+            this.log.newLine;
         end
-        
+
         function exec(this, cmd_list, loop_level_add)
             % Execute a list of commands on the current session
             %
             % SYNTAX
             %   this.exec(cmd_list)
-            % 
+            %
             % EXAMPLE
             %   core.exec({'LOAD T*', 'PREPRO T*', 'PPP T*'})
             if isempty(this.cmd)
@@ -1250,9 +1261,9 @@ classdef Core < handle
             else
                 this.cmd.exec(this, cmd_list);
             end
-        end                    
+        end
     end
-    
+
     %% CHECK VALIDITY METHODS
     methods
         function err_code = resetMissingResources(this, new_home)
@@ -1260,10 +1271,10 @@ classdef Core < handle
             %
             % INPUT
             %   new_home = new_home
-            %   
+            %
             % SYNTAX
             %   err_code = resetMissingResources(this, new_home)
-            
+
             err_code = this.checkValidity(5, false);
             state = this.state;
             if ~exist(new_home, 'dir')
@@ -1312,7 +1323,7 @@ classdef Core < handle
             if err_code.vmf ~= 0
                 state.resetPath('vmf_dir', new_home, true);
             end
-            
+
             if err_code.crd ~= 0
                 state.resetPath('crd_dir', new_home, true);
             end
@@ -1322,30 +1333,30 @@ classdef Core < handle
             if err_code.clk ~= 0
                 state.resetPath('clk_dir', new_home, true);
             end
-            err_code = this.checkValidity();    
+            err_code = this.checkValidity();
         end
-        
+
         function err_code = checkValidity(this, level, flag_verbose)
             % Check validity of requiremets
             %
             % INPUT
-            %   level        0 - check before conjure, 
+            %   level        0 - check before conjure,
             %                1 - single files check (but not downloadable resurces)
             %                5 - check remote resources only
             %                15 - check all necessary files
-            %   
+            %
             % SYNTAX
             %   core.checkValidity(level, flag_verbosity);
-            
-            
+
+
             if nargin < 3
                 flag_verbose = true;
-            end         
-            
-            if nargin < 2 
+            end
+
+            if nargin < 2
                 level = 1;
             end
-            
+
             % Struct containing all the possible error codes coming from missing resources:
             err_code = struct('go', 0, ...
                 'home', 0, ...
@@ -1368,12 +1379,12 @@ classdef Core < handle
                 'iono', 0, ...
                 'igrf', 0, ...
                 'vmf', 0);
-            
+
             this.log.addMessage('Checking input files and folders...');
             this.log.newLine();
-            
+
             err_code.go = 0; % Global ok check
-            
+
             state = this.getState;
             if (level < 5) || (level > 10)
                 err_code.home  = state.checkDir('prj_home', 'Home dir', flag_verbose);
@@ -1386,9 +1397,9 @@ classdef Core < handle
                 err_code.home = 0;
                 err_code.obs = 0;
             end
-                        
+
             err_code.crd   = state.checkDir('crd_dir', 'Coordinate dir', flag_verbose);
-            
+
             if state.isOceanLoading
                 err_code.ocean = state.checkDir('ocean_dir', 'Ocean loading dir', flag_verbose);
             else
@@ -1397,7 +1408,7 @@ classdef Core < handle
                 end
                 err_code.ocean = 0;
             end
-            
+
             if state.isAtmLoading
                 err_code.atm = state.checkDir('atm_load_dir', 'Atmospheric loading dir', flag_verbose);
             else
@@ -1406,8 +1417,8 @@ classdef Core < handle
                 end
                 err_code.atm = 0;
             end
-            
-            err_code.atx   = state.checkDirErr('atx_dir', 'Antenna dir', flag_verbose);            
+
+            err_code.atx   = state.checkDirErr('atx_dir', 'Antenna dir', flag_verbose);
             err_code.atx_f = state.checkFileErr({'atx_dir', 'atx_name'}, 'Antenna file', flag_verbose);
             if state.isHOI
                 err_code.hoi   = state.checkDirErr('igrf_dir', 'International Geomagnetic reference dir', flag_verbose);
@@ -1420,10 +1431,10 @@ classdef Core < handle
             err_code.crx   = state.checkDir('crx_dir', 'Satellite Manouvers dir', flag_verbose);
             err_code.bias   = state.checkDir('bias_dir', 'Biases dir', flag_verbose);
             err_code.ems   = state.checkDir('ems_dir', 'EGNOS Message Center dir', flag_verbose);
-            
+
             %err_code.geoid = state.checkDir('geoid_dir', 'Geoid loading dir', flag_verbose);
             err_code.geoid_f = state.checkFile({'geoid_dir', 'geoid_name'}, 'Geoid file', flag_verbose);
-            
+
             geoid = Core.getRefGeoid();
             if isempty(geoid) || isempty(geoid.grid)
                 err_code.geoid = -1;
@@ -1431,12 +1442,12 @@ classdef Core < handle
                     this.log.addWarning('The Geoid is missing');
                 end
             else
-                err_code.geoid = 0;              
+                err_code.geoid = 0;
                 if flag_verbose
                     this.log.addStatusOk('The Geoid is loaded');
                 end
             end
-            
+
             if state.isHOI
                 err_code.iono = state.checkDir('iono_dir', 'Ionospheric map dir', flag_verbose);
                 err_code.igrf = state.checkDir('igrf_dir', 'International Geomagnetic Reference Frame dir', flag_verbose);
@@ -1444,19 +1455,19 @@ classdef Core < handle
                 if flag_verbose
                     this.log.addStatusDisabled('High order ionospheric corrections disabled');
                 end
-                err_code.iono = 0; % Who cares?   
-                err_code.igrf = 0; % Who cares?   
+                err_code.iono = 0; % Who cares?
+                err_code.igrf = 0; % Who cares?
             end
-            
+
             if state.isVMF
                 err_code.vmf = state.checkDir('vmf_dir', 'Vienna Mapping Function dir', flag_verbose);
             else
                 if flag_verbose
                     this.log.addStatusDisabled('Not using Vienna Mapping functions');
                 end
-                err_code.vmf = 0; % Who cares?                
+                err_code.vmf = 0; % Who cares?
             end
-            
+
             % Checking folder that are not created in conjure phase
             err_code.go = err_code.home + ...
                 err_code.obs + ...
@@ -1464,12 +1475,12 @@ classdef Core < handle
                 err_code.met + (err_code.met_f < 0) + ...
                 err_code.atx + err_code.atx_f +  ...
                 err_code.hoi * state.isHOI;
-            
+
             if ~(err_code.go)
                 if (level < 5) || (level > 10)
                     if this.state.isMet()
                         err_code.met   = state.checkDir('met_dir', 'Meteorological dir', flag_verbose);
-                        
+
                         if (level == 1) || (level > 10)
                             %[n_ok, n_ko] = this.checkMetFileList();
                             [n_ok, n_ko] = this.checkFileList(state.met_dir, state.met_name, [], 0);
@@ -1504,7 +1515,7 @@ classdef Core < handle
                     err_code.met_f = 0;
                 end
             end
-            
+
             % Checking folder that are not created in conjure phase
             err_code.go = err_code.home + ...
                 err_code.obs + ...
@@ -1512,7 +1523,7 @@ classdef Core < handle
                 err_code.met + (err_code.met_f < 0) + ...
                 err_code.atx + err_code.atx_f +  ...
                 err_code.hoi * state.isHOI;
-            
+
             if ~(err_code.go)
                 if (level == 1) || (level > 10)
                     [n_ok, n_ko] = this.checkRinFileList();
@@ -1538,9 +1549,9 @@ classdef Core < handle
                     end
                 end
             end
-            
+
             this.log.newLine();
-            
+
             % Checking folder that are not created in conjure phase
             err_code.go = err_code.home + ...
                 err_code.obs + ...
@@ -1549,9 +1560,9 @@ classdef Core < handle
                 err_code.atx + err_code.atx_f +  ...
                 err_code.hoi * state.isHOI;
         end
-        
+
         function printKoSessions_experimental(core)
-            sss_ko = []; 
+            sss_ko = [];
             for r = 1:numel(core.rec)
                 coo = core.rec(r).out.getPos;
                 [lid_ko{r}, time{r}, lid_ko_enu, trend_enu] = coo.getBadSession();
@@ -1565,7 +1576,7 @@ classdef Core < handle
             fprintf('%s\b\n', sprintf('%d,', sss_ko));
         end
     end
-    
+
     %% RIN FILE LIST
     % ==================================================================================================================================================
     methods
@@ -1692,7 +1703,7 @@ classdef Core < handle
                 end
             end
         end
-        
+
         function fh_list = showOutCooStatus(this, base_dir, n_obs, flag_cur_session)
             if nargin < 2 || isempty(base_dir)
                 base_dir = this.getState.getOutDir();
@@ -1734,7 +1745,7 @@ classdef Core < handle
                 all_coo.keep(GPS_Time(0), this.state.getSessionsStopExt);
             end
             if nargin < 3 || isempty(n_obs)
-                [bl,br] = this.getState.getBuffer;                 
+                [bl,br] = this.getState.getBuffer;
                 n_obs = (bl + br + this.getState.getSessionDuration) / 3600;
             end
             if ~isempty(all_coo)
@@ -1763,7 +1774,7 @@ classdef Core < handle
             this.getState.updateObsFileName;
             n_rec = this.state.getRecCount;
             rec_path = this.state.getRecPath;
-            
+
             clear fr
             if ~force_update
                 fr = this.getRinFileList();
@@ -1784,14 +1795,14 @@ classdef Core < handle
                 if verbosity
                     this.log.addMessage(sprintf('%s (%03d ok - %03d ko)', char(8 * ones(1, 2 + 15)), n_ok(r), n_ko(r)));
                 end
-            end            
-            
+            end
+
             this.rin_list = fr;
             if n_rec == 0
                 % 'No receivers found';
             end
         end
-        
+
         function updateReferenceFrame(this, mode)
             % update reference frame object with computed coordiantes
             %
@@ -1811,9 +1822,9 @@ classdef Core < handle
                     rf.setCoo(this.rec(i).getMarkerName4Ch, this.rec(i).out.getMedianPosXYZ,2,[0 0 0], [0 0], GPS_Time([1900 1 1 0 0 0]), GPS_Time([2900 1 1 0 0 0]));
                 end
             end
-            
+
         end
-        
+
         function [n_ok, n_ko] = updateMetFileList(this, force_update, verbosity)
             % Update and check met RINEX list
             %
@@ -1828,7 +1839,7 @@ classdef Core < handle
             if verbosity
                 this.log.addMarkedMessage('Checking Meteorological RINEX input files');
             end
-            
+
             station_file_list = this.getRequiredMetFile();
             if isempty(station_file_list)
                 n_ok = 0;
@@ -1852,24 +1863,24 @@ classdef Core < handle
                         this.log.addMessage(sprintf('%s (%d ok - %d ko)', char(8 * ones(1, 2 + 14)), n_ok(r), n_ko(r)));
                     end
                 end
-                
+
                 this.met_list = fr;
                 if n_rec == 0
                     % 'No receivers found';
                 end
             end
         end
-        
+
         function [n_ok, n_ko] = checkFileList(this, dir_path, file_name, time_par, margin)
             % Check file list
             %
             % SYNTAX
             %   [n_ok, n_ko] = this.checkRinFileList(dir_path, file_name)
             %   [n_ok, n_ko] = this.checkRinFileList(dir_path, file_name, margin)
-            %   [n_ok, n_ko] = this.checkRinFileList(dir_path, file_name, time_limits)                        
-            
+            %   [n_ok, n_ko] = this.checkRinFileList(dir_path, file_name, time_limits)
+
             verbosity = true;
-            
+
             if isempty(file_name)
                 n_ok = 0;
                 n_ko = 0;
@@ -1882,13 +1893,13 @@ classdef Core < handle
                 else
                     time_lim = time_par.getCopy();
                 end
-                
+
                 if ~isa(time_par, 'GPS_Time')
                     % is a margin!!!
                     time_lim.first.addIntSeconds(margin(1));
                     time_lim.first.addIntSeconds(margin(end));
                 end
-                
+
                 file_list = {};
                 fnp = File_Name_Processor();
                 if ~iscell(file_name)
@@ -1897,7 +1908,7 @@ classdef Core < handle
                 for i = 1 : numel(file_name)
                     file_list{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(dir_path, filesep, file_name{i})), this.state.getSessionsStartExt,  this.state.getSessionsStopExt, this.state.sss_id_list, this.state.sss_id_start, this.state.sss_id_stop);
                 end
-                
+
                 if isempty(file_list)
                     n_ok = 0;
                     n_ko = 0;
@@ -1923,14 +1934,14 @@ classdef Core < handle
                             this.log.addMessage(sprintf('%s (%d ok - %d ko)', char(8 * ones(1, 2 + 14)), n_ok(r), n_ko(r)));
                         end
                     end
-                    
+
                     if n_rec == 0
                         % 'No receivers found';
                     end
                 end
             end
         end
-        
+
         function [n_ok, n_ko] = checkRinFileList(this, force_update)
             % Update and check rinex list
             %
@@ -1938,10 +1949,10 @@ classdef Core < handle
             %   [n_ok, n_ko] = this.checkRinFileList()
             if nargin < 2 || isempty(force_update)
                 force_update = true;
-            end            
+            end
             [n_ok, n_ko] = this.updateRinFileList(force_update, true);
         end
-        
+
         function [n_ok, n_ko] = checkMetFileList(this, force_update)
             % Update and check meteorological rinex list
             %
@@ -1952,18 +1963,18 @@ classdef Core < handle
             end
             [n_ok, n_ko] = this.updateMetFileList(force_update, true);
         end
-        
+
         function rin_list = getRinFileList(this)
             % Update and check rinex list
             %
             % SYNTAX
-            %   rin_list = this.getRinFileList()            
+            %   rin_list = this.getRinFileList()
             if isempty(this.rin_list)
                 this.updateRinFileList();
-            end            
+            end
             rin_list = this.rin_list;
         end
-        
+
         function [time_lim_small, time_lim_large, is_empty] = getRecTimeSpan(this, session)
             % return a GPS_Time containing the first and last epoch for a session
             %
@@ -1974,16 +1985,16 @@ classdef Core < handle
             % SYNTAX:
             %   [time_lim_small, time_lim_large] = this.getRecTimeSpan(session)
             %   [time_lim_small, time_lim_large] = this.getRecTimeSpan()
-                                    
+
             fr = this.getRinFileList();
-            
+
             % ignore non valid receivers
             rec_ok = false(numel(fr), 1);
             for r = 1 : numel(fr)
                 rec_ok(r) = any(fr(r).is_valid_list);
             end
             fr = fr(rec_ok);
-            
+
             is_empty = ~fr.isValid;
             if nargin == 1 % Start and stop limits of all the sessions
                 time_lim_small = fr(1).first_epoch.first;
@@ -1998,7 +2009,7 @@ classdef Core < handle
                         if isempty(time_lim_large) || time_lim_large > fr(r).getFirstEpoch.first
                             time_lim_large = fr(r).getFirstEpoch.first;
                         end
-                        
+
                         if isempty(tmp_small) || tmp_small > fr(r).getLastEpoch.last
                             tmp_small = fr(r).getLastEpoch.last;
                         end
@@ -2007,7 +2018,7 @@ classdef Core < handle
                         end
                     end
                 end
-            else % Start and stop of a certain session                           
+            else % Start and stop of a certain session
                 time_lim_small = fr(1).getFirstEpoch(session);
                 tmp_small = fr(1).getLastEpoch(session);
                 time_lim_large = time_lim_small.getCopy;
@@ -2020,7 +2031,7 @@ classdef Core < handle
                         if isempty(time_lim_large) || time_lim_large > fr(r).getFirstEpoch(session)
                             time_lim_large = fr(r).getFirstEpoch(session);
                         end
-                        
+
                         if isempty(tmp_small) || tmp_small > fr(r).getLastEpoch(session)
                             tmp_small = fr(r).getLastEpoch(session);
                         end
@@ -2030,7 +2041,7 @@ classdef Core < handle
                     end
                 end
             end
-            
+
             % Check start limits out of sessions
             if time_lim_small < this.state.getSessionsStartExt()
                 time_lim_small = this.state.getSessionsStartExt();
@@ -2038,7 +2049,7 @@ classdef Core < handle
             if time_lim_large < this.state.getSessionsStartExt()
                 time_lim_large = this.state.getSessionsStartExt();
             end
-            
+
             % Check stop limits out of sessions
             if tmp_small > this.state.getSessionsStopExt()
                 tmp_small = this.state.getSessionsStopExt();
@@ -2049,7 +2060,7 @@ classdef Core < handle
             time_lim_small.append(tmp_small);
             time_lim_large.append(tmp_large);
         end
-        
+
         function net = getNetwork(this, rid, rec_list)
             % get a network based on the receiver id, 'if is not present crate a new one
             %
@@ -2061,7 +2072,7 @@ classdef Core < handle
             for i = 1: length(this.net)
                 if Core_Utils.permutedEqual(this.net(i).net_id,rid)
                     % Update rec_list
-                    this.net(i).rec_list = rec_list(this.net(i).net_id); 
+                    this.net(i).rec_list = rec_list(this.net(i).net_id);
                     net = this.net(i);
                     return
                 end
@@ -2074,15 +2085,15 @@ classdef Core < handle
             end
             net = this.net(end);
         end
-        
+
         function cur_session = getCurSession(this)
             % Get the id of the current session
             %
             % SYNTAX
-            %   cur_session = this.getCurSession()             
+            %   cur_session = this.getCurSession()
             cur_session = this.state.getCurSession;
         end
-        
+
         function [ext_limits, sss_limits] = getCurSessionLimits(this)
             % Get the id of the current session
             %
@@ -2092,11 +2103,11 @@ classdef Core < handle
             %
             % SYNTAX
             %   [ext_limits, sss_limits] = this.getCurSessionLimits()
-            
+
             cur_session = this.getCurSession();
             [ext_limits, sss_limits] = this.state.getSessionLimits(cur_session);
         end
-        
+
         function central_time = getSessionCentralTime(this)
             % Get the central time of the current session
             %
@@ -2109,7 +2120,7 @@ classdef Core < handle
             central_time = sss_limits.first;
             central_time.addIntSeconds((sss_limits.last - sss_limits.first + 1) / 2);
         end
-        
+
         function id = getStationId(this, marker_name)
             % Given a marker_name get the sequencial id of a station
             %
@@ -2126,12 +2137,12 @@ classdef Core < handle
             id = find(Core_Utils.code4Char2Num(upper(marker4ch_list)) == Core_Utils.code4Char2Num(upper(marker_name)));
         end
     end
-    
+
     methods
         function file_list = getRequiredMetFile(this)
             % Return the list of met_file local paths that will be loaded
-            % 
-            % SYNTAX 
+            %
+            % SYNTAX
             %    file_list = getRequiredMetFile(this)
             [~, time_lim_large, is_empty] = this.getRecTimeSpan();
             if ~is_empty
@@ -2139,9 +2150,9 @@ classdef Core < handle
             else
                 file_list = {};
             end
-        end        
+        end
     end
-    
+
     %% METHODS UTILITIES
     % ==================================================================================================================================================
     methods
@@ -2150,7 +2161,7 @@ classdef Core < handle
             log = this.log;
             w_bar = this.w_bar;
         end
-        
+
         function toString(this)
             % Display on screen information about the core object
             %
@@ -2164,7 +2175,7 @@ classdef Core < handle
             fprintf('----------------------------------------------------------------------------------\n')
             this.log.newLine();
         end
-        
+
         function printStationCoordinates(this)
             % Display on screen information about the station location
             %
@@ -2173,7 +2184,7 @@ classdef Core < handle
             [lat, lon, h_ellips, h_ortho] = this.rec.getMedianPosGeodetic();
             [xyz] = this.rec.getMedianPosXYZ;
             log = Core.getLogger();
-            
+
             log.addMonoMessage(sprintf('\n-------------------------------------------------------------------------------------------------------'));
             log.addMonoMessage(sprintf(' Station position'));
             log.addMonoMessage(sprintf('-------------------------------------------------------------------------------------------------------'));
@@ -2189,7 +2200,7 @@ classdef Core < handle
 
     %% METHODS UTILITIES
     % ==================================================================================================================================================
-    methods (Static) % Public Access        
+    methods (Static) % Public Access
         function clearSingletons()
             % clear all singletons
             %
@@ -2201,23 +2212,54 @@ classdef Core < handle
                 Parallel_Manager ...
                 Go_Wait_Bar ...
                 Logger;
-        end        
-        
-        function install_dir = getInstallDir()
+        end
+
+        function install_dir = getInstallDir(flag_app_base)
             % Get the directory that contains goGPS.m aka the install dir
             %
             % SYNTAX
             %   install_dir = Core.getInstallDir()
             [install_dir, name, ext] = fileparts(which('goGPS'));
+
+
+            if nargin == 1 && flag_app_base && isdeployed
+                if ismac
+                    [install_dir, ~, ~] = fileparts(regexp(install_dir,'.*\.app','match', 'once'));
+                elseif ispc
+                    % install_dir = ctfroot;
+                    %---------------------------
+                    % Get the MATLAB process ID
+                    pid = feature('getpid');
+
+                    % Use WMIC to get the executable path for the current process ID
+                    [status, cmdout] = system(['wmic process where processid=', num2str(pid), ' get ExecutablePath']);
+
+                    % Process the output to extract the path
+                    if status == 0
+                        % The command output will have the path in the second line
+                        cmdoutLines = strsplit(cmdout, '\n');
+                        if length(cmdoutLines) >= 2
+                            % The path is on the second line (first line is the header)
+                            fullPath = strtrim(cmdoutLines{2});
+                            % Use fileparts to separate the directory path and the executable name
+                            [install_dir, ~, ~] = fileparts(fullPath);
+                        else
+                            install_dir = '';
+                        end
+                    else
+                        install_dir = '';
+                    end
+                end
+            end
         end
-        
+
         function [local_storage] = getLocalStorageDir()
-            % Get local storage dir 
-            % 
+            % Get local storage dir
+            %
             % SYNTAX
             %   local_storage = Core.getLocalStorageDir();
             core = Core.getInstance(false, true);
-            
+
             if isempty(core.local_storage)
                 core.initLocalPath();
             end
@@ -2234,7 +2276,7 @@ classdef Core < handle
             %Core.getFilePath('elevation', true);
         end
 
-        function createLocalStorageLink()  
+        function createLocalStorageLink()
             % Try to create a link to the local storage folder
             %
             % SYNTAX
@@ -2242,7 +2284,7 @@ classdef Core < handle
             local_storage = Core.getLocalStorageDir();
             cmd = sprintf('ln -s "%s" "%s"', local_storage, fullfile(Core.getInstallDir, 'toLocalStorage'));
             Core.getLogger.addMarkedMessage(sprintf('Trying to create local storage link, executing\n%s', cmd));
-            try 
+            try
                 system(cmd);
             catch ex
                 Core_Utils.printEx(ex);
@@ -2263,22 +2305,27 @@ classdef Core < handle
             local_storage = Core.getLocalStorageDir();
             file_name = '';
             switch type
-                case 'app_settings'  
+                case 'app_settings'
                     storage_path = fullfile(local_storage, 'config');
                     file_name = 'app_settings.ini';
-                case 'resources' 
+                case 'resources'
                     storage_path = fullfile(local_storage, 'config');
                     file_name = 'remote_resource.ini';
-                case 'credentials'  
+                case 'credentials'
                     storage_path = fullfile(local_storage, 'config');
                     file_name = 'credentials.txt';
-                    if ~exist(file_name, 'file')
-                        copyfile('credentials.example.txt', file_name);
+                    if ~exist(fullfile(storage_path, 'credentials.txt'), 'file')
+                        try
+                            file_tmp = fullfile(Core.getInstallDir(true), 'credentials.example.txt');
+                            copyfile(file_tmp, fullfile(storage_path, 'credentials.txt'));
+                        catch ex
+                            Core_Utils.printEx(ex);
+                        end
                     end
-                case 'nominatim'                    
+                case 'nominatim'
                     storage_path = fullfile(local_storage, 'cache');
                     file_name = 'nominatim_cache.mat';
-                case 'elevation'                    
+                case 'elevation'
                     storage_path = fullfile(local_storage, 'cache');
                     file_name = 'elevation_cache.mat';
             end
@@ -2296,20 +2343,20 @@ classdef Core < handle
 
                 file_path = fullfile(storage_path, file_name);
 
-                if ~exist(file_path, 'file') && ~exist(file_name, 'file')
-                    Core.getLogger.addError(sprintf('File "%s" cannot be copied to "%s"\nThe file does not exist!', file_name,  file_path));
-                else
-                    file_is_missing = ~exist(file_path, 'file');
-                    if file_is_missing || ...
-                            ((nargin == 2) && ~isempty(force_copy) && force_copy)
-                        % copy the file to local storage dir
-                        [status, message] = copyfile(file_name, file_path, 'f');
-                        if ~status
-                            Core.getLogger.addError(sprintf('File "%s" cannot be copied to "%s"\n%s', file_name,  file_path, message));
-                            file_path = file_name;
-                        else
-                            Core.getLogger.addStatusOk(sprintf('File "%s" copied to "%s"', file_name,  file_path));
-                        end
+                if ~exist(file_path, 'file') || ((nargin == 2) && ~isempty(force_copy) && force_copy)
+                    % copy the file to local storage dir
+
+                    app_dir = Core.getInstallDir(true);
+                    [~, file_name, file_ext] = fileparts(file_name);
+                    file_name = [file_name, file_ext];
+                    file_name = fullfile(app_dir, file_name);
+
+                    [status, message] = copyfile(file_name, file_path, 'f');
+                    if ~status
+                        Core.getLogger.addWarning(sprintf('File "%s" cannot be copied to "%s"\n%s', file_name,  file_path, message));
+                        file_path = file_name;
+                    else
+                        Core.getLogger.addStatusOk(sprintf('File "%s" copied to "%s"', file_name,  file_path));
                     end
                 end
             end
@@ -2331,9 +2378,9 @@ classdef Core < handle
                     % Windows to be managed
                     runtime_path = '';
                 end
-                
+
                 if isempty(runtime_path)
-                    runtime_path = matlabroot;                
+                    runtime_path = matlabroot;
                 else
                     if iscell(runtime_path)
                         runtime_path = runtime_path{1};
@@ -2345,11 +2392,11 @@ classdef Core < handle
                 runtime_path = matlabroot;
             end
         end
-        
+
         function core = load(file_name)
             % Micro function to load the core and set it as default
             %
-            % INPUT 
+            % INPUT
             %   file_name   if missing or empty ask with a dialogbox the
             %               location of the core
             %
@@ -2359,19 +2406,19 @@ classdef Core < handle
             %
             % SYNTAX
             %   core = Core.load(file_name);
-            
+
             if ~isdeployed
                 addPathGoGPS; % This is necessary for loading the Core
             end
-            
+
             if nargin == 0 || isempty(file_name)
                 core_dir = Core.getState.getOutDir();
                 [file_name, path_name] = uigetfile({'*.mat;','goGPS core from previous session (*.mat)';}, 'Choose file with saved core', core_dir);
-                
+
                 if path_name ~= 0 % if the user pressed cancelled, then we exit this callback
                     % get the extension (mat/ini):
                     [~, ~, ext] = fileparts(file_name);
-                    
+
                     % build the path name of the file to be loaded
                     core_file = fullfile(path_name, file_name);
                     if strcmp(ext, '.mat')
@@ -2380,7 +2427,7 @@ classdef Core < handle
                     end
                 end
             end
-            
+
             if (~isempty(file_name)) && ischar(file_name)
                 try
                     log = Logger.getInstance();
@@ -2391,7 +2438,7 @@ classdef Core < handle
                 catch ex
                     Core_Utils.printEx(ex);
                 end
-                
+
                 try
                     core.initLocalPath();
                     Core.setCurrentCore(core);
@@ -2401,7 +2448,7 @@ classdef Core < handle
                         % Export into workspace
                         rec = core.rec;
                         coo = rec.getCoo();
-                        
+
                         assignin('base', 'core', core);
                         assignin('base', 'rec', rec);
                         assignin('base', 'coo', coo);

@@ -10,7 +10,7 @@
 
 %  Software version 1.0.1
 %-------------------------------------------------------------------------------
-%  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2024 Geomatics Research & Development srl (GReD),  Andrea Gatti, Eugenio Realini
 %  Written by:        Giulio Tagliaferro
 %  Contributors:      Giulio Tagliaferro, Andrea Gatti
 %
@@ -29,20 +29,19 @@ classdef Observation_Set < handle
                  %             G -> geometry free
                  %             M -> melbourne wubbena
         wl       % wavelength of the observations (only for phase measurements)
-        el       % elevation 
+        el       % elevation
         az       % azimuth
         prn      % prn
         snr      % signla to naoise ration
-        cycle_slip % cycle slip index [ n_epochs x n_obs_type] (sparse) 1 cycle slip 0 no cycle slip        
+        cycle_slip % cycle slip index [ n_epochs x n_obs_type] (sparse) 1 cycle slip 0 no cycle slip
         go_id    % go_ids of the observations
-        sigma    % teoretical precision of the measurements [m]
-        iono_free%
+        sigma    % theoretical precision of the measurements [m]
     end
-    
+
     methods
-        
+
         function this = Observation_Set(time, obs, obs_code, wl, el, az, prn)
-            % SYNTAX: 
+            % SYNTAX:
             %   obs_set = Observation_Set(time, obs, obs_code, wl, el, az, prn)
             if nargin == 0
             return
@@ -56,12 +55,12 @@ classdef Observation_Set < handle
             this.prn = prn;
             cc = Core.getCurrentSettings().getConstellationCollector;
             this.go_id = cc.getIndex(this.obs_code(:,1), this.prn);
-                        
+
         end
-        
+
         function merge(this, obs_set)
             % Merge observation with same time stamps
-            % 
+            %
             % SYNTAX:
             %   this.merge(obs_set)
             %
@@ -85,14 +84,14 @@ classdef Observation_Set < handle
             this.prn = [this.prn(:); obs_set.prn(:)];
             this.go_id = [this.go_id(:); obs_set.go_id(:)];
             this.sigma = [this.sigma(:); obs_set.sigma(:)];
-            
+
             if isempty(obs_set.snr)
                 snr2 = nan(size(obs_set.obs));
             else
                 snr2 = obs_set.snr;
             end
             this.snr = [this.snr snr2];
-            
+
             if isempty(obs_set.cycle_slip)
                 cycle_slip2 = sparse(size(obs_set.obs,1),size(obs_set.obs,2));
             else
@@ -100,33 +99,33 @@ classdef Observation_Set < handle
             end
             this.cycle_slip = [this.cycle_slip cycle_slip2];
         end
-                
+
         function remUnderCutOff(this, cut_off)
             % Remove observations under the selcted cut off
             %
-            % SYNTAX : 
+            % SYNTAX :
             %   this.remUnderCutOff(cut_off);
             %
             idx = this.el < cut_off;
             this.remObs(idx);
         end
-        
+
         function remUnderSnrThr(this, snr_thr)
             % Remove observations under the selcted snr threshold
             %
-            % SYNTAX : 
+            % SYNTAX :
             %   this.remUnderSnrThr(snr_thr);
             %
             idx = this.snr < snr_thr;
             this.remObs(idx);
         end
-        
+
         function remObs(this, idx,sanitize)
             % Remove the observations identified by the index
             % idx, remove all corrsponding paramaters ( snr el az cycle
             % slip) then sanitize the object for empty row or columns
             %
-            % SYNTAX : 
+            % SYNTAX :
             %      this.remObs(idx)
             %
             if nargin < 3
@@ -157,14 +156,14 @@ classdef Observation_Set < handle
                 this.sanitizeEmpty();
             end
         end
-        
+
         function sanitizeEmpty(this)
             %Remove empty lines and rows in obs
             %
             % SYNTAX
             %     this.sanitizeEmpty()
             %
-            
+
             %remove empty lines
             idx_e = sum(this.obs,2) == 0;
             if sum(idx_e)
@@ -173,14 +172,14 @@ classdef Observation_Set < handle
             %remove empty column
             this.remEmptyColumns();
         end
-        
+
         function remEpochs(this, lid_rem)
             % Remove obseravtions at desidered epoch
             %
             % SYNTAX
             %     this.remEpochs(idx)
             %
-            
+
             if sum(lid_rem) > 0
                 this.obs(lid_rem,:) = [];
                 if ~isempty(this.el)
@@ -190,7 +189,7 @@ classdef Observation_Set < handle
                     this.az(lid_rem,:) = [];
                 end
                 this.snr(lid_rem,:) = [];
-                
+
                 if ~isempty(this.cycle_slip)
                     lim = getFlagsLimits(lid_rem);
                     if lim(end) == numel(lid_rem)
@@ -202,18 +201,18 @@ classdef Observation_Set < handle
                     end
                     this.cycle_slip(lid_rem,:) = [];
                 end
-                
+
                 this.time = this.time.getSubSet(~lid_rem);
             end
         end
-        
+
         function setZeroEpochs(this, idx_rem)
             % Remove obseravtions at desidered epoch
             %
             % SYNTAX
             %     this.remEpochs(idx)
             %
-            
+
             if sum(idx_rem) > 0
                 this.obs(idx_rem,:) = 0;
                 if ~isempty(this.el)
@@ -223,7 +222,7 @@ classdef Observation_Set < handle
                     this.az(idx_rem,:) = 0;
                 end
                 this.snr(idx_rem,:) = 0;
-                
+
                 lim = getFlagsLimits(idx_rem);
                 if lim(end) == numel(idx_rem)
                     lim(end,:) = [];
@@ -235,7 +234,7 @@ classdef Observation_Set < handle
                 this.cycle_slip(idx_rem,:) = 0;
             end
         end
-        
+
         function keepEpochs(this, idx)
             % Remove all onservations not at epochs than are not idx
             %
@@ -246,7 +245,7 @@ classdef Observation_Set < handle
             idx_rem(idx) = false;
             this.remEpochs(idx_rem);
         end
-        
+
         function idx = getTimeIdx(this, time_st, rate)
             % Using a start time and a rate return at which integer
             % multiple o rate the observations are closer
@@ -261,7 +260,7 @@ classdef Observation_Set < handle
                 time_rec = time_st.getNominalTime(rate).getRefTime(round(time_st.first.getMatlabTime));
                 time_obs = this.time.getNominalTime(rate).getRefTime(round(time_st.first.getMatlabTime));
                 idx = (time_obs-time_rec)/rate + 1;
-            else % assume time_st is the full time 
+            else % assume time_st is the full time
                 rate = time_st.getRate();
                 time_rec = time_st.getNominalTime(rate).getRefTime(round(time_st.first.getMatlabTime));
                 time_obs = this.time.getNominalTime(rate).getRefTime(round(time_st.first.getMatlabTime));
@@ -272,7 +271,7 @@ classdef Observation_Set < handle
             end
             idx = round(idx);
         end
-        
+
         function has_phase = hasPhase(this)
             % tell if there are pahse measuremt
             %
@@ -280,7 +279,7 @@ classdef Observation_Set < handle
             %    has_phase = hasPhase(this)
             has_phase = sum(this.wl ~= -1)>0;
         end
-        
+
         function obs_cy = getObsCy(this, idx)
             % Get the observation in cycle
             % (Instead of meters)
@@ -292,7 +291,7 @@ classdef Observation_Set < handle
             end
             obs_cy = this.obs(:,idx) ./ repmat(this.wl(idx), size(this.obs,1),1);
         end
-        
+
         function amb_mat = getRoundedAmb(this, idx)
             % Get the rounded cycle
             %
@@ -303,7 +302,7 @@ classdef Observation_Set < handle
             end
             obs_cy = this.getObsCy(idx);
             amb_idx = this.getAmbIdx();
-            
+
             amb_mat = nan(size(obs_cy));
             for i = 1 : max(amb_idx(:,end))
                 idx_amb = amb_idx == i;
@@ -311,7 +310,7 @@ classdef Observation_Set < handle
                 amb_mat(idx_amb) = amb;
             end
         end
-        
+
         function [p_time, id_sync] = getSyncTimeExpanded(obs_set_list, p_rate)
             % Get the common time among all the observation_sets
             %
@@ -320,11 +319,11 @@ classdef Observation_Set < handle
             %
             % EXAMPLE:
             %   [p_time, id_sync] = obs_set_list.getSyncTimeExpanded(30);
-            
-            
+
+
             if nargin < 2 || isempty(p_rate)
                 p_rate = 1e-6;
-                
+
                 for r = 1 : numel(obs_set_list)
                     if obs_set_list(r).time.isEmpty
                         p_rate = inf;
@@ -333,17 +332,17 @@ classdef Observation_Set < handle
                     end
                 end
             end
-            
+
             % prepare reference time
             % processing time will start with the obs_set with the last first epoch
             %          and it will stop  with the obs_set with the first last epoch
-            
+
             % first_id_ok = find(~obs_set_list.isEmpty_mr, 1, 'first');
             first_id_ok = 1;
             if ~isempty(first_id_ok)
                 p_time_zero = round(obs_set_list(first_id_ok).time.first.getMatlabTime() * 24)/24; % get the reference time
             end
-            
+
             % Get all the common epochs
             t = [];
             for r = 1 : numel(obs_set_list)
@@ -352,18 +351,18 @@ classdef Observation_Set < handle
                 % p_rate = lcm(round(p_rate * 1e6), round(rec(r).time.getRate * 1e6)) * 1e-6; % enable this line to sync rates
             end
             t = unique(t);
-            
+
             % If p_rate is specified use it
             if nargin > 1
                 if ~isempty(t)
                     t = intersect(t, (t(1) : p_rate : t(end) + p_rate)');
                 end
             end
-            
+
             % Create reference time
             p_time = GPS_Time(p_time_zero, t);
             id_sync = nan(p_time.length(), numel(obs_set_list));
-            
+
             % Get intersected times
             for r = 1 : numel(obs_set_list)
                 rec_rate = min(1, obs_set_list(r).time.getRate);
@@ -371,7 +370,7 @@ classdef Observation_Set < handle
                 id_sync(id1, r) = id2;
             end
         end
-        
+
         function [obs_c_matrix] = getMRObsMat(obs_set_list, p_time, id_sync)
             % get the common obesrvation matrix for all eleent of the reciever list,
             % first direction time, second direction satellites. third direction receiver
@@ -399,7 +398,7 @@ classdef Observation_Set < handle
             % tranform zeros to nan
             obs_c_matrix = zero2nan(obs_c_matrix);
         end
-        
+
         function removeColumn(this, idx_col)
             % Remove colums from observations
             %
@@ -423,7 +422,7 @@ classdef Observation_Set < handle
             this.go_id(idx_col) = [];
             this.sigma(idx_col) = [];
         end
-        
+
         function remEmptyColumns(this)
            % Remove empty colums from observations
             %
@@ -437,7 +436,7 @@ classdef Observation_Set < handle
                 end
             end
         end
-        
+
         function amb_idx = getAmbIdx(this)
             % get matrix of same dimesion of the observation showing the ambiguity index of the obsarvation
             %
@@ -445,7 +444,7 @@ classdef Observation_Set < handle
             % this.getAmbIdx()
             amb_idx = Core_Utils.getAmbIdx(this.cycle_slip(:,this.wl ~= -1), this.obs(:,this.wl ~= -1));
         end
-        
+
         function n_obs = getNumObs(this)
             % get totoal number of observations
             %
@@ -453,10 +452,10 @@ classdef Observation_Set < handle
             %  this.getNumObs()
             n_obs = 0;
             for r = 1 : length(this)
-                n_obs = n_obs + sum(sum(this.obs~=0 & ~isnan(this.obs))); 
+                n_obs = n_obs + sum(sum(this.obs~=0 & ~isnan(this.obs)));
             end
         end
-        
+
         function arc_jmp_mat = getArcJmpMat(this, id_comm)
             % get a matrix of the dimension of observation set that has true value if the ambiguity is jumping and false value if the ambiguity is not jumping
             %
@@ -486,7 +485,7 @@ classdef Observation_Set < handle
                         arc_jmp_mat(it,s) = true;
                         it = it -1;
                     end
-                    
+
                 end
                 % mark as jmp all the epoch after the last valid one
                 it = ne;
@@ -496,7 +495,7 @@ classdef Observation_Set < handle
                 end
             end
         end
-        
+
         function remShortArc(this, min_arc_len)
             % Remove short arcs
             %
@@ -512,7 +511,7 @@ classdef Observation_Set < handle
             for i = 1 : size(this.obs, 2)
                 % remove single arcs
                 for j = 2:(n_ep)
-                    if cs(j, i) && cs(j-1, i) 
+                    if cs(j, i) && cs(j-1, i)
                         id_rm(j-1, i) = true;
                     end
                 end
@@ -532,7 +531,7 @@ classdef Observation_Set < handle
             id_rm(this.obs == 0) = false; %do not remove observation that are not there
             this.remObs(id_rm);
         end
-        
+
         function is_empty = isEmpty(this)
             % Check if the object is empty
             %

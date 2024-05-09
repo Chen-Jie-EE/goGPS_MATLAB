@@ -11,18 +11,18 @@
 %
 % SYNTAX:
 %   smoothed = iterativeLowess(time, data, win_size, iterations, lambda)
-    
+
 
 %  Software version 1.0.1
 %-------------------------------------------------------------------------------
 %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
-%  Written by:       Andrea Gatti
-%  Contributors:     Andrea Gatti, ...
+%  Written by:        Andrea Gatti
+%  Contributors:      Andrea Gatti
 %
 %  The licence of this file can be found in source/licence.md
 %-------------------------------------------------------------------------------
 
-function smoothed = iterativeLowess(time, data, win_size, iterations, lambda)    
+function smoothed = iterativeLowess(time, data, win_size, iterations, lambda)
 
     if (nargin <= 2) || isempty(win_size)
         % Estimate win_size
@@ -54,7 +54,7 @@ function smoothed = iterativeLowess(time, data, win_size, iterations, lambda)
     n = size(data,1);
     smoothed = data;  % Initial smoothed values
     frac_days = win_size / 86400;  % Convert frac from seconds to days
-    
+
     for iter = 1:iterations
         left = 1;
         right = 1;
@@ -66,7 +66,7 @@ function smoothed = iterativeLowess(time, data, win_size, iterations, lambda)
             while right < n && (time(right) - time(i)) <= frac_days
                 right = right + 1;
             end
-            
+
             % Ensure at least 3 data points in the window for stability
             while right - left + 1 < 3 && (left > 1 || right < n)
                 if left > 1
@@ -87,7 +87,7 @@ function smoothed = iterativeLowess(time, data, win_size, iterations, lambda)
                 local_weights = weights(left:right);
                 w = local_weights .* w; % Combined weights
             end
-                        
+
             % Weighted linear regression with Tikhonov regularization
             X = [ones(length(x), 1), x];
             W = diag(w);

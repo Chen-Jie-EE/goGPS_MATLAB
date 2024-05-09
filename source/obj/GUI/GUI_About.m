@@ -2,7 +2,7 @@
 % =========================================================================
 %
 % DESCRIPTION
-%   class to manage the about window of goGPSz
+%   class to manage the about window of goGPS
 %
 % EXAMPLE
 %   ui = GUI_About.getInstance();
@@ -20,30 +20,30 @@
 %-------------------------------------------------------------------------------
 
 classdef GUI_About < handle
-    
+
     properties (Constant, Access = 'protected')
         BG_COLOR = Core_UI.DARK_GREY_BG;
     end
-    
+
     %% PROPERTIES SINGLETON POINTERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
         log
         state
     end
-    
+
     %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties
-        w_main      % Handle of the main window 
-        win         % Handle to this window        
-    end    
-    
+        w_main      % Handle of the main window
+        win         % Handle to this window
+    end
+
     %% PROPERTIES STATUS
     % ==================================================================================================================================================
     properties (GetAccess = private, SetAccess = private)
     end
-    
+
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods (Static)
@@ -55,7 +55,7 @@ classdef GUI_About < handle
                 this.w_main = w_main;
             end
         end
-    end    
+    end
     %% METHODS INIT
     % ==================================================================================================================================================
     methods
@@ -63,10 +63,10 @@ classdef GUI_About < handle
             this.log = Core.getLogger();
             this.state = Core.getState();
         end
-        
+
         function openGUI(this)
             % Main Window ----------------------------------------------------------------------------------------------
-            
+
             win = figure( 'Name', 'About', ...
                 'Visible', 'on', ...
                 'DockControls', 'off', ...
@@ -75,9 +75,9 @@ classdef GUI_About < handle
                 'NumberTitle', 'off', ...
                 'Position', [0 0 680 540], ...
                 'Resize', 'off');
-            
+
             this.win = win;
-            
+
             if isunix && not(ismac())
                 win.Position(1) = round((win.Parent.ScreenSize(3) - win.Position(3)) / 2);
                 win.Position(2) = round((win.Parent.ScreenSize(4) - win.Position(4)) / 2);
@@ -85,11 +85,11 @@ classdef GUI_About < handle
                 win.OuterPosition(1) = round((win.Parent.ScreenSize(3) - win.OuterPosition(3)) / 2);
                 win.OuterPosition(2) = round((win.Parent.ScreenSize(4) - win.OuterPosition(4)) / 2);
             end
-                        
+
             try
                 main_vb = uix.VBox('Parent', win, ...
                     'Padding', 5, ...
-                    'BackgroundColor', Core_UI.DARKER_GREY_BG);                
+                    'BackgroundColor', Core_UI.DARKER_GREY_BG);
             catch
                 log = Core.getLogger;
                 log.setOutMode(1,[],0); % to plot a Warning I need to disable GUI and enable
@@ -101,18 +101,18 @@ classdef GUI_About < handle
                 return;
             end
             top_bh = uix.HBox('Parent', main_vb);
-            
+
             logo_GUI_About.BG_COLOR = Core_UI.DARK_GREY_BG;
             left_tbv = uix.VBox('Parent', top_bh, ...
                 'BackgroundColor', logo_GUI_About.BG_COLOR, ...
                 'Padding', 5);
-            
+
             % Logo/title box -------------------------------------------------------------------------------------------
-            
+
             logo_g = uix.Grid('Parent', left_tbv, ...
                 'Padding', 5, ...
                 'BackgroundColor', logo_GUI_About.BG_COLOR);
-            
+
             logo_ax = axes( 'Parent', logo_g);
             logo_g.Widths = 64;
             logo_g.Heights = 64;
@@ -123,20 +123,20 @@ classdef GUI_About < handle
             logo_ax.XTickLabel = [];
             logo_ax.YTickLabel = [];
             axis off;
-                        
+
             Core_UI.insertEmpty(left_tbv, logo_GUI_About.BG_COLOR);
             left_tbv.Heights = [82 -1];
-            
+
             % Title Panel -----------------------------------------------------------------------------------------------
             right_tvb = uix.VBox('Parent', top_bh, ...
                 'Padding', 5, ...
                 'BackgroundColor', logo_GUI_About.BG_COLOR);
 
             top_bh.Widths = [106 -1];
-            
+
             title = uix.HBox('Parent', right_tvb, ...
                 'BackgroundColor', logo_GUI_About.BG_COLOR);
-            
+
             txt = this.insertBoldText(title, 'goGPS', 10, Core_UI.LBLUE, 'left');
             txt.BackgroundColor = logo_GUI_About.BG_COLOR;
             title_l = uix.VBox('Parent', title, 'BackgroundColor', GUI_About.BG_COLOR);
@@ -145,7 +145,7 @@ classdef GUI_About < handle
             txt = this.insertBoldText(title_l, ['- software V' Core.APP_VERSION], 8, [], 'left');
             txt.BackgroundColor = logo_GUI_About.BG_COLOR;
             title_l.Heights = [2, -1];
-            
+
             % Disclaimer Panel -----------------------------------------------------------------------------------------------
             Core_UI.insertEmpty(right_tvb, logo_GUI_About.BG_COLOR)
             txt = this.insertText(right_tvb, {['This release is loosely based on the original goGPS software, most of the code has '...
@@ -153,9 +153,9 @@ classdef GUI_About < handle
                 'Legacy version can still be found at:'], ...
                 'https://github.com/goGPS-Project/goGPS_MATLAB/tree/legacy'}, 7, [], 'left');
             txt.BackgroundColor = logo_GUI_About.BG_COLOR;
-            
+
             right_tvb.Heights = [20 3 -1];
-            
+
             credits_bh = uix.HBox('Parent', main_vb, ...
                 'Padding', 5, ...
                 'BackgroundColor', GUI_About.BG_COLOR);
@@ -163,13 +163,13 @@ classdef GUI_About < handle
                 'BackgroundColor', GUI_About.BG_COLOR);
             credits_new = uix.VBox('Parent', credits_bh, ...
                 'BackgroundColor', GUI_About.BG_COLOR);
-            
+
             % Old Credits -----------------------------------------------------------------------------------------------
-            
+
             this.insertBoldText(credits_legacy, 'Legacy version', 9);
             bar_cont = uix.HBox('Parent', credits_legacy, ...
                 'BackgroundColor', GUI_About.BG_COLOR);
-            
+
             Core_UI.insertEmpty(bar_cont, GUI_About.BG_COLOR)
             Core_UI.insertHBarDark(bar_cont);
             Core_UI.insertEmpty(bar_cont, GUI_About.BG_COLOR)
@@ -178,14 +178,14 @@ classdef GUI_About < handle
             this.insertBoldText(credits_legacy, 'Developers of the original core', 8);
             this.insertText(credits_legacy, {'Mirko Reguzzoni', 'Eugenio Realini'}, 7);
             Core_UI.insertEmpty(credits_legacy, GUI_About.BG_COLOR)
-            
+
             this.insertBoldText(credits_legacy, 'Founding fathers', 8);
             this.insertText(credits_legacy, {'Alessio Dominioni', ...
                 'Roberto Terruzzi', ...
                 'Marco Colla', ...
                 'Marcello Palmulli', ...
                 'Michele Tettamanti'}, 7);
-            
+
             Core_UI.insertEmpty(credits_legacy, GUI_About.BG_COLOR)
             this.insertBoldText(credits_legacy, 'Contributors (in temporal order)', 8);
             this.insertText(credits_legacy, {'Sara Lucca', ...
@@ -206,15 +206,15 @@ classdef GUI_About < handle
                 'Yuya Iwaki', ...
                 'Louis Osei-Poku', ...
                 'Paiyuan Zhou'}, 7);
-            
+
             credits_legacy.Heights = [22 5 18 14*2 5 18 14*5 5 18 14*17];
-            
+
             % New Credits -----------------------------------------------------------------------------------------------
 
             this.insertBoldText(credits_new, 'Object oriented new version', 9);
             bar_cont = uix.HBox('Parent', credits_new, ...
                 'BackgroundColor', GUI_About.BG_COLOR);
-            
+
             Core_UI.insertEmpty(bar_cont, GUI_About.BG_COLOR)
             Core_UI.insertHBarDark(bar_cont);
             Core_UI.insertEmpty(bar_cont, GUI_About.BG_COLOR)
@@ -237,22 +237,22 @@ classdef GUI_About < handle
 
             % IMPORTANT NOTE:
             % If you are a contributor and your name is not in this list feel free to add your name
-            
+
             this.insertBoldText(credits_new, 'Acknoledgments', 8);
             this.insertText(credits_new, {'This release is funded by', 'GReD srl (www.g-red.eu)'}, 7);
             txt = this.insertText(credits_new, {'I dedicate my work on this software to my father, Tiziano Gatti, ', 'who taught me, among countless things, the importance of putting passion in everything you choose to do. I will never forget you,'}, 7, [], 'right'); txt.FontAngle = 'italic';
             txt = this.insertText(credits_new, {'Andrea Gatti'}, 7, [20 183 242]/255, 'right'); txt.FontAngle = 'italic';
-            
+
             credits_new.Heights = [22 5 18 14*2 5 18 14*7 5 18 -1 14*3 28];
-            
-            
+
+
 
             % Manage dimension -------------------------------------------------------------------------------------------
-            
+
             main_vb.Heights = [84 -1];
-            
+
             %session_height = sum(left_bv.Children(2).Children(1).Heights);
-            
+
             this.win.Visible = 'on';
             %uiwait(this.win);
         end
@@ -292,15 +292,15 @@ classdef GUI_About < handle
                 'FontSize', Core_UI.getFontSize(font_size), ...
                 'BackgroundColor', GUI_About.BG_COLOR);
         end
-            
+
     end
     %% METHODS getters
     % ==================================================================================================================================================
     methods
     end
-    
+
     %% METHODS EVENTS
     % ==================================================================================================================================================
-    methods (Access = public)         
+    methods (Access = public)
     end
 end

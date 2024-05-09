@@ -29,58 +29,24 @@
 %   This will return processes that have both 'matlab' and 'python' in their command line or path.
 %
 
-%--------------------------------------------------------------------------
-%   ______   ______ _______ _    _ _______ (TM)
-%   |_____] |_____/ |______  \  /  |_____|
-%   |_____] |    \_ |______   \/   |     |
-%                                           v0.9999.1
-%--------------------------------------------------------------------------
+%  Software version 1.0.1
+%-------------------------------------------------------------------------------
 %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti
 %
-%  This software is based on GReD's goGPS software
-%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%  The licence of this file can be found in source/licence.md
 %-------------------------------------------------------------------------------
-%
-%    GReD Geomatics Research & Development - Proprietary Use License
-%    Version 1.0, - July, 2023
-%
-%    This software and its associated code, functions, and tools are the property
-%    of GReD (Geomatics Research & Development). All rights reserved.
-%
-%    Redistribution and use of this software in source and binary forms, with or
-%    without modification, are strictly prohibited without explicit permission
-%    from GReD, except as permitted by law.
-%
-%    You may not distribute, sublicense, sell, or otherwise transfer any part of
-%    this software, code, functions, or tools, nor grant usage rights to any
-%    third party without explicit written permission from GReD.
-%
-%    Unauthorized use, reproduction, or distribution of any part of this software
-%    will be considered a breach of the GReD Geomatics Research & Development
-%    Proprietary Use License and may result in legal consequences.
-%
-%    For licensing inquiries or permissions, please contact GReD at:
-%    info@g-red.eu
-%
-%    For the avoidance of doubt, any part of the software not explicitly
-%    mentioned under this license remains under the terms of its
-%    respective licence
-%
-%-------------------------------------------------------------------------------
-% 1000010 1010010 1000101 1010110 1000001
-%--------------------------------------------------------------------------
 
-function processes = getProcesses(keywords)    
+function processes = getProcesses(keywords)
     if nargin < 1
         error('You must provide at least one keyword to filter by.');
     end
-    
+
     if ~iscell(keywords)
         keywords = {keywords};
     end
-    
+
     if ispc
         % Windows systems
         command = 'tasklist /v /fo csv';
@@ -98,13 +64,13 @@ function processes = getProcesses(keywords)
     else
         error('Unsupported operating system.');
     end
-    
+
     [status, cmdout] = system(command);
-    
+
     %if status ~= 0
     %    error('Failed to retrieve the list of processes.');
     %end
-    
+
     % Parse the command output and populate the structure
     processes = parseProcessesOutput(cmdout, ispc);
 end
@@ -113,11 +79,11 @@ function processes = parseProcessesOutput(cmdout, is_windows)
     % Initialize an empty structure array
     processes = struct('name', {}, 'params', {}, 'full_path', {}, 'user', {}, ...
                        'pid', {}, 'mem', {}, 'cpu', {}, 'cpu_time', {});
-    
+
     % Split the output into lines
     lines = regexp(cmdout, '\r?\n', 'split');
     lines = lines(~cellfun('isempty',lines)); % Remove empty lines
-    
+
     for i = 1:length(lines)
         if is_windows
             % Parse CSV formatted line from Windows WMIC output

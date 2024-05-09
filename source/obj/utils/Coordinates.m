@@ -27,16 +27,16 @@
 %-------------------------------------------------------------------------------
 
 classdef Coordinates < Exportable & handle
-    
+
     properties (Constant, GetAccess = public)
         ELL_A = GPS_SS.ELL_A;       % Ellipsoid semi-major axis
         ELL_E = GPS_SS.ELL_E;       % Ellipsoid eccentricity
         E2 = Coordinates.ELL_E^2;   % Square of the ellipsoidal eccentricity
-        
+
         DEG2RAD = pi/180;           % Convert degree to radius
         RAD2DEG = 180/pi;           % Convert radius to degree
-        
-        VERSION = '2.0';            % New file version
+
+        VERSION = ['2.1'];            % New file version
         % 1.1 => adding s0_ip
         % 1.2 => adding observation rate
         % 1.3 => adding coo_type (fixed / non fixed)
@@ -45,15 +45,16 @@ classdef Coordinates < Exportable & handle
         % 1.6 => new marker v3
         % 1.7 => adding reflectometry support
         % 1.8 => adding mean_snr
-        % 2.0 => adding more reflectometry data (incompatible with version 1 - BREVA only)
+        % 2.0 => adding more reflectometry data (incompatible with version 1)
+        % 2.1 => adding reflectometry output for soil moisture (tracks)
         REF_TYPE = categorical({'ECEF','ENU','ENU_ROT'})
     end
-    
+
     properties (SetAccess = public, GetAccess = public) % set permission have been changed from private to public (Giulio)
         name = ''                   % Name of the point
         name_v3 = ''                % 9 character long RINEX v3 name (it my or not be the same as name
         description = ''            % Point description
-        
+
         time = GPS_Time             % Position time
         xyz = []                    % Coordinates are stored in meters in as cartesian XYZ ECEF [m]
         xyz_model = []              % Coordinates are stored in meters in as cartesian XYZ ECEF [m]
@@ -66,15 +67,15 @@ classdef Coordinates < Exportable & handle
         local_ref_type = categorical({'ECEF'})
         Cxx = []
         info = struct('n_epo', [], 'n_obs', [], 's0', [], 's0_ip', [], 'flag', [], 'fixing_ratio', [],'obs_used',[], 'rate', [], 'coo_type', [], 'mean_snr', [], 'master_name', uint64([])) % Additional info related to the coordinate in use
-        reflectometry = struct('time', GPS_Time(), 'value', [], 'n_obs', [], 'std', []);
+        reflectometry = struct('time', GPS_Time(), 'value', [], 'n_obs', [], 'std', [], 'tracks', Tracks());
         rate = [];                  % coordinates rate: - default daily
         std_scaling_factor = 30;
     end
-    
+
     % =========================================================================
-    %% CONSTRUCTOR    
+    %% CONSTRUCTOR
     % =========================================================================
-    
+
     methods
         function this = Coordinates()
             % Constructor
@@ -82,7 +83,7 @@ classdef Coordinates < Exportable & handle
             % SYNTAX
             %   t = Coordinates();
         end
-        
+
         function copyFrom(this, pos)
             % Copy from an object of the same type
             %
@@ -134,16 +135,16 @@ classdef Coordinates < Exportable & handle
             catch
                 this.rate = [];
             end
-            
+
             try % legacy support
                 this.reflectometry = pos.reflectometry;
                 this.reflectometry.time = pos.reflectometry.time.getCopy;
             catch
-                this.reflectometry = struct('time', GPS_Time(), 'value', [], 'n_obs', [], 'std', [], 'p2n', []);
+                this.reflectometry = struct('time', GPS_Time(), 'value', [], 'n_obs', [], 'std', [], 'p2n', [], 'tracks', Tracks());
             end
 
         end
-        
+
         function az = getAzimuth(coo1, coo2)
             % GETAZIMUTH calculates the azimuth between two coordinates.
             %   az = GETAZIMUTH(coo1, coo2) calculates the azimuth from coordinate
@@ -167,16 +168,16 @@ classdef Coordinates < Exportable & handle
             lon1 = (coo1.lon);
             lat2 = (coo2.lat);
             lon2 = (coo2.lon);
-        
+
             % Calculate the longitude difference
             dlon = lon2 - lon1;
-        
+
             % Calculate azimuth using the formula: arctan2(sin(dlon)*cos(lat2), cos(lat1)*sin(lat2)-sin(lat1)*cos(lat2)*cos(dlon))
             az = atan2(sin(dlon)*cos(lat2), cos(lat1)*sin(lat2)-sin(lat1)*cos(lat2)*cos(dlon));
-        
+
             % Convert azimuth from radians to degrees
             az = rad2deg(az);
-        
+
             % Adjust azimuth range from -180 to 180 to 0 to 360
             if az < 0
                 az = az + 360;
@@ -187,18 +188,18 @@ classdef Coordinates < Exportable & handle
             % OUTPUT:
             %    baseline      distance
             %    height_diff   height difference
-            % 
+            %
             % DESCRIPTION: overload of '-' function
             %
             % SYNTAX
             %   [baseline, height_diff] = getBaseline(coo1, coo2)
             %
-            
+
             loc_enu = coo1.getMedianPos.getLocal(coo2.getMedianPos);
             bsl = hypot(loc_enu(1), loc_enu(2));
             dh = loc_enu(3);
-        end 
-        
+        end
+
         function [bsl, dh] = getLongBaseline(coo_ref, coo_list)
             % Get long baseline (vincentyDistance)
             %
@@ -209,10 +210,10 @@ classdef Coordinates < Exportable & handle
             % OUTPUT
             %    baseline      distance
             %    height_diff   height difference
-            %             
+            %
             % SYNTAX
             %   [baseline, height_diff] = getBaseline(coo_ref, coo_list)
-            
+
             [lat, lon, h] = coo_ref.getMedianPos.getGeodetic();
             [lat_list, lon_list, h_list] = deal(nan(numel(coo_list),1));
             for c = 1:numel(coo_list)
@@ -220,8 +221,8 @@ classdef Coordinates < Exportable & handle
             end
             bsl = coo_ref.vincentyDistance(lat/pi*180, lon/pi*180, lat_list/pi*180, lon_list/pi*180);
             dh = h-h_list;
-        end 
-        
+        end
+
         function copy = getCopy(this)
             % Get a copy of this
             %
@@ -232,73 +233,73 @@ classdef Coordinates < Exportable & handle
                 copy(i).copyFrom(this(i));
             end
         end
-        
+
         function this = sort(this)
             % Sort the coordinates in ascending time
             %
             % SYNTEX
             %   this = sort(this)
-            
+
             [id_sort] = this.time.sort();
             if not(issorted(id_sort))
                 this.xyz = this.xyz(id_sort, :);
-                
+
                 if ~isempty(this.Cxx)
                     this.Cxx = this.Cxx(:, :, id_sort);
                 end
-                
+
                 % XYZ model
                 if not(isempty(this.xyz_model)) && numel(this.xyz_model(:)) == numel(this.xyz(:))
                     this.xyz_model = this.xyz_model(id_sort, :);
                 else
                     this.xyz_model = [];
                 end
-                
+
                 % Number of epocs
                 if not(isempty(this.info.n_epo))
                     this.info.n_epo = this.info.n_epo(id_sort);
                 end
-                
+
                 % Number of observations
                 if not(isempty(this.info.n_obs))
                     this.info.n_obs = this.info.n_obs(id_sort);
                 end
-                
+
                 % Sigma0 of the solution
                 if not(isempty(this.info.s0))
                     this.info.s0 = this.info.s0(id_sort);
                 end
-                
+
                 % Sigma0 of the initial (pre-processing) solution
                 if not(isempty(this.info.s0_ip))
                     this.info.s0_ip(id_sort) = this.info.s0_ip(id_sort);
                 end
-                
+
                 % Validity flag
                 if not(isempty(this.info.flag))
                     this.info.flag(id_sort) = this.info.flag(id_sort);
                 end
-                
+
                 % Fixing ratio
                 if not(isempty(this.info.fixing_ratio))
                     this.info.fixing_ratio(id_sort) = this.info.fixing_ratio(id_sort);
                 end
-                
+
                 % Encyclopedia
                 if not(isempty(this.info.obs_used))
                     this.info.obs_used(id_sort) = this.info.obs_used(id_sort);
                 end
-                
+
                 % Rate of the original observations
                 if not(isempty(this.info.rate))
                     this.info.rate(id_sort) = this.info.rate(id_sort);
                 end
-                
+
                 % Coordinate type (Bernese style: F: fixed / G: rover)
                 if not(isempty(this.info.coo_type))
                     this.info.coo_type(id_sort) = char(this.info.coo_type(id_sort));
                 end
-                
+
                 % Coordinate type (Bernese style: F: fixed / G: rover)
                 if ~isfield(this.info, 'mean_snr')
                     % Old Coordinates does not have mean_snr
@@ -309,14 +310,14 @@ classdef Coordinates < Exportable & handle
                 else
                     this.info.coo.mean_snr = [];
                 end
-                
+
                 % Name of the master station saved as numeric namev3
                 if not(isempty(this.info.master_name))
                     this.info.master_name(id_sort) = this.info.master_name(id_sort);
                 end
-                
+
                 % Reflectometry have is own time to sort -----
-                
+
                 if isempty(this.reflectometry.time)
                     if numel(this.reflectometry.value) == this.time.length()
                         this.reflectometry.time = this.time.getCopy;
@@ -334,7 +335,7 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function this = append(this, pos, flag_refl_only)
             % Append a Coordinates object into the this
             %
@@ -344,16 +345,16 @@ classdef Coordinates < Exportable & handle
             if nargin < 3
                 flag_refl_only = false;
             end
-            flag_refl_only = flag_refl_only && (this.time.length > 0); % if there are no coordinates, add also coordinates            
-            
+            flag_refl_only = flag_refl_only && (this.time.length > 0); % if there are no coordinates, add also coordinates
+
             if not(isempty(pos)) && not(all(pos.isEmpty))
                 if ~this.isEmpty && ~this.time.isEmpty && pos.time.isEmpty
                     error('Inconsistent positions');
                 end
-                
+
                 % Get the times of the reflectometry observations
                 refl_time_list = [this.getReflectometryTime; pos.getReflectometryTime];
-                
+
                 % Start exporting coordinates
                 if not(flag_refl_only)
                     n_el_old = size(this.xyz, 1);
@@ -436,7 +437,7 @@ classdef Coordinates < Exportable & handle
                         Core_Utils.printEx(ex);
                     end
                 end
-                try 
+                try
                     % Reflectometry
                     [sync_time, id_sync] = refl_time_list.getSyncedTime();
 
@@ -454,11 +455,11 @@ classdef Coordinates < Exportable & handle
                 catch ex
                     Core_Utils.printEx(ex);
                 end
-                
+
                 this.sort();
                 this.setRate(this.getRate()); % Update the rate if needed
             end
-            
+
             function data_out = mergeNumericData(id_sync, data1, data2)
                 % merge two numeric array according to id_sync
                 if isempty(data1)
@@ -484,7 +485,7 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function remBadTimes(coo_list)
             for coo = coo_list(:)'
                 pos_time = coo.time.getMatlabTime*86400;
@@ -502,24 +503,24 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   this = keep(this, time_start, timee_stop)
-            
+
             coo_list.rem(GPS_Time(0), time_start);
             coo_list.rem(time_stop, GPS_Time('2100-01-01'));
         end
-        
+
         function rem(coo_list, idx, time_stop)
             % Remove coordinates into the idx
             %
             % SYNTAX
             %   this = rem(this, idx)
             %   this = rem(this, time_start, timee_stop)
-            
+
             if nargin == 3
                 time_start = idx;
             end
             for c = 1 : numel(coo_list)
                 coo = coo_list(c);
-                
+
                 if nargin == 3
                     idx = coo.time > time_start & coo.time < time_stop;
                 else
@@ -533,9 +534,9 @@ classdef Coordinates < Exportable & handle
                        time_stop = [];
                     end
                 end
-                
+
                 coo.xyz(idx,:) = [];
-                
+
                 if ~isempty(coo.Cxx)
                     coo.Cxx(:,:,idx) = [];
                 end
@@ -594,18 +595,18 @@ classdef Coordinates < Exportable & handle
                         end
                         coo.info.master_name = [tmp; mtmp * ones(n_data - numel(tmp),1,'uint64')];
                     end
-                    
+
                     coo.info.master_name(idx) = [];
                 end
-                
+
                 coo.time.remEpoch(idx);
-                
+
                 tr = coo.getReflectometryTime;
                 if not(isempty(time_stop)) && not(isempty(tr)) && not(tr.isEmpty())
                     % they might not have the same time,
                     % recompute idx
                     idx = coo.reflectometry.time > time_start & coo.reflectometry.time < time_stop;
-                
+
                     coo.reflectometry.time.remEpoch(idx);
 
                     if ~isfield(coo.reflectometry, 'value')
@@ -627,7 +628,7 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function remReflectometryEntry(coo_list, idx, time_stop)
             % Remove coordinates into the idx
             %
@@ -639,7 +640,7 @@ classdef Coordinates < Exportable & handle
             end
             for c = 1 : numel(coo_list)
                 coo = coo_list(c);
-                coo.getReflectometryTime; 
+                coo.getReflectometryTime;
 
                 if nargin == 3
                     idx = coo.reflectometry.time > time_start & coo.reflectometry.time < time_stop;
@@ -673,29 +674,29 @@ classdef Coordinates < Exportable & handle
                 this.discontinuity_applied = [];
                 n_data = 0;
                 this.info = struct('n_epo', zeros(n_data, 1, 'uint32'), 'n_obs', zeros(n_data, 1, 'uint32'), 's0', zeros(n_data, 1, 'single'), 's0_ip', zeros(n_data, 1, 'single'), 'flag', zeros(n_data, 1, 'uint8'), 'fixing_ratio', zeros(n_data, 1, 'single'), 'obs_used',  zeros(n_data, 1, 'single'), 'rate', zeros(n_data, 1, 'single'), 'coo_type', char(ones(n_data, 1, 'uint8')) * 'U', 'mean_snr', zeros(n_data, 1, 'single'), 'master_name', zeros(n_data, 1, 'uint64'));
-                this.reflectometry = struct('time', GPS_Time(), 'value', zeros(n_data, 1, 'single'), 'n_obs', zeros(n_data, 1, 'uint16'), 'std', zeros(n_data, 1, 'single'));
+                this.reflectometry = struct('time', GPS_Time(), 'value', zeros(n_data, 1, 'single'), 'n_obs', zeros(n_data, 1, 'uint16'), 'std', zeros(n_data, 1, 'single'), 'tracks', Tracks());
             end
         end
     end
-    
+
     % =========================================================================
     %%    GETTERS
     % =========================================================================
-    
+
     methods
         function [coo, id_coo] = get(coo_list, name)
             % get a coordinate with a specific name
             %
             % SINTAX
             %    coo_list.get(name)
-            
+
             coo = Coordinates();
             id_coo = [];
             if iscell(name)
                 c = 0;
                 for name = name(:)'
                     c = c+1;
-                    [coo(c), id_coo(c)] = coo_list.get(name{1});                    
+                    [coo(c), id_coo(c)] = coo_list.get(name{1});
                 end
             else
                 if isnumeric(name)
@@ -730,7 +731,7 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function [id_ref] = getIdRef(coo_list)
             % Get the id of the reference station
             % The reference station has coo_type = 'F';
@@ -741,8 +742,8 @@ classdef Coordinates < Exportable & handle
             %
             id_ref = [];
             for i = 1:numel(coo_list)
-                if (median(coo_list(i).info.coo_type) == 'F') 
-                    id_ref = [id_ref; i]; 
+                if (median(coo_list(i).info.coo_type) == 'F')
+                    id_ref = [id_ref; i];
                 end
             end
         end
@@ -752,7 +753,7 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   marker_name = this.getNameV3();
-            
+
             name = '';
             descr = '';
             for p = 1 : numel(coo_list)
@@ -771,13 +772,13 @@ classdef Coordinates < Exportable & handle
                     descr{p} = name{p};
                 end
             end
-            
+
             if numel(name) == 1
                 name = name{1};
                 descr = descr{1};
             end
         end
-        
+
         function [name_v3, id_num] = getNameV3(coo_list)
             % Get marker name in RINEX V3 format
             %
@@ -794,7 +795,7 @@ classdef Coordinates < Exportable & handle
                 end
                 name_v3{p} = upper(this.name_v3);
             end
-            
+
             if numel(name_v3) == 1
                 name_v3 = name_v3{1};
                 if nargout == 2
@@ -802,17 +803,17 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function time = getTime(coo_list)
             % Get the time of the coordinates
             %
             % SYNTAX
             %   time = coo_list.getTime()
-            
-            time = [coo_list.time]; 
+
+            time = [coo_list.time];
             time = [time.getCopy];
         end
-        
+
         function time = getReflectometryTime(this)
             % Get time of the reflectometry measurement
             %
@@ -878,13 +879,13 @@ classdef Coordinates < Exportable & handle
             end
             id_sync = id_sync(:, 1:end-1);
         end
-        
+
         function [err_status, time_sync] = getProcessingStatus(coo_list, n_hours, flag_now)
             % Get error status synced among all the coordinates
             %
             % SYNTAX
             %    [err_status, time_sync] = coo_list.getProcessingStatus(n_hours, flag_now)
-            
+
             switch nargin
                 case 1
                     [id_sync, time_sync] = coo_list.getSyncId();
@@ -893,7 +894,7 @@ classdef Coordinates < Exportable & handle
                 case 3
                     [id_sync, time_sync] = coo_list.getSyncId(n_hours, flag_now);
             end
-            
+
             err_status = uint32(isnan(id_sync));
             for c = 1 : numel(coo_list)
                 if numel(noNaN(id_sync(:,c))) > 1
@@ -931,18 +932,18 @@ classdef Coordinates < Exportable & handle
             norm_thr(1) = norm_thr(1) * 0.9; % of epochs
             norm_thr(2) = norm_thr(2) * 0.8; % of epochs
             norm_thr(5) = norm_thr(5) * 0.7; % of s0 pre-processing
-            norm_thr(6) = norm_thr(6) * 0.7; % of s0 network / PPP 
+            norm_thr(6) = norm_thr(6) * 0.7; % of s0 network / PPP
             qi = min(1, qi ./ norm_thr);
             qi = prod(qi,2);
             flag = qi > 0.4;
         end
-        
+
         function [sigmas_status, time_sync] = getProcessingSigmas(coo_list, n_hours, flag_now)
             % Get sigmas synced among all the coordinates
             %
             % SYNTAX
             %    [err_status, time_sync] = coo_list.getProcessingSigmas(n_hours, flag_now)
-            
+
             switch nargin
                 case 1
                     [id_sync, time_sync] = coo_list.getSyncId();
@@ -951,7 +952,7 @@ classdef Coordinates < Exportable & handle
                 case 3
                     [id_sync, time_sync] = coo_list.getSyncId(n_hours, flag_now);
             end
-            
+
             sigmas_status = single(isnan(id_sync));
             for c = 1 : numel(coo_list)
                 if numel(noNaN(id_sync(:,c))) > 1
@@ -968,13 +969,13 @@ classdef Coordinates < Exportable & handle
             end
 
         end
-        
+
         function [fixing_status, time_sync] = getProcessingFixingRatio(coo_list, n_hours, flag_now)
             % Get fixing ratio synced among all the coordinates
             %
             % SYNTAX
             %    [err_status, time_sync] = coo_list.getProcessingFixingRatio(n_hours, flag_now)
-            
+
             switch nargin
                 case 1
                     [id_sync, time_sync] = coo_list.getSyncId();
@@ -983,7 +984,7 @@ classdef Coordinates < Exportable & handle
                 case 3
                     [id_sync, time_sync] = coo_list.getSyncId(n_hours, flag_now);
             end
-            
+
             fixing_status = single(isnan(id_sync));
             for c = 1 : numel(coo_list)
                 if numel(noNaN(id_sync(:,c))) > 1
@@ -994,7 +995,7 @@ classdef Coordinates < Exportable & handle
             end
 
         end
-        
+
         function coo = getMedianPos(coo_list, type)
             % get the median of the coordinates
             %
@@ -1005,11 +1006,11 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   coo = getMedianPos(this, type)
-            
+
             if nargin == 1 || isempty(type)
                 type = 'obs';
             end
-            
+
             coo = Coordinates();
             for c = 1 : numel(coo_list)
                 this = coo_list(c);
@@ -1029,7 +1030,7 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function coo = getMergedPos(coo)
             if numel(coo) > 1
                 % getSyncIndexes
@@ -1054,11 +1055,11 @@ classdef Coordinates < Exportable & handle
                     lam(:,r) = lam(:,r) - l;
                     h_ellips(:,r) = h_ellips(:,r) - h;
                 end
-                
+
                 phi = robAdj(nan2zero(phi), double(~isnan(phi))) + m_phi;
                 lam = robAdj(nan2zero(lam), double(~isnan(lam))) + m_lam;
                 h_ellips = robAdj(nan2zero(h_ellips), double(~isnan(h_ellips))) + m_h_ellips;
-                
+
                 coo = Coordinates.fromGeodetic(phi, lam, h_ellips, [], sync_time);
                 coo.setName('MRGD');
             end
@@ -1072,7 +1073,7 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   coo = getElement(this, id_el)
-            
+
             try
                 if isempty(this.time) || this.time.isEmpty
                     % Simplified coo
@@ -1118,8 +1119,8 @@ classdef Coordinates < Exportable & handle
                 coo_list(c) = coo_list(c).getElement(id_ok);
             end
         end
-        
-        
+
+
         function [xyz, y, z, time] = getXYZ(this, type)
             % Get Coordinates as cartesian Earth Centered Earth Fixed Coordinates
             %
@@ -1133,11 +1134,11 @@ classdef Coordinates < Exportable & handle
             % SYNTAX
             %   [xyz, time] = this.getXYZ()
             %   [x, y, z, time] = this.getXYZ()
-            
+
             if nargin == 1 || isempty(type)
                 type = 'obs';
             end
-            
+
             if type(1) == 'm'
                 xyz_tmp = this.xyz_model;
                 if isempty(xyz_tmp)
@@ -1150,7 +1151,7 @@ classdef Coordinates < Exportable & handle
             if isempty(xyz_tmp)
                 xyz_tmp = [nan nan nan];
             end
-            
+
             if nargout >= 3
                 xyz = xyz_tmp(:, 1);
                 y =   xyz_tmp(:, 2);
@@ -1168,7 +1169,7 @@ classdef Coordinates < Exportable & handle
                 y = this.time.getCopy;
             end
         end
-        
+
         function [east, north, utm_zone, time] = getUTM(this, type)
             % Get Coordinates as UTM coordinates
             %
@@ -1183,23 +1184,23 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   [east, north, utm_zone, time] = this.getUTM();
-            
+
             if nargin < 2 || isempty(type)
                 type = 'obs';
             end
-            
+
             [lat, lon] = this.getGeodetic(type);
             [east, north, utm_zone] = this.geod2utm(lat, lon);
             if nargout == 4
                 time = this.time.getCopy;
-            elseif nargout <=2 
-                    east = [east; north];            
-            end            
+            elseif nargout <=2
+                    east = [east; north];
+            end
             if nargout == 2
                 north = this.time.getCopy;
             end
         end
-        
+
         function [east, north, up, utm_zone, time] = getENU(this, theta)
             % Get Coordinates as UTM ENUs coordinates
             %
@@ -1215,10 +1216,10 @@ classdef Coordinates < Exportable & handle
             % SYNTAX
             %   [east, north, up, utm_zone, time] = this.getENU(<theta>);
             %   [enu, utm_zone, time] = this.getENU(<theta>);
-            
+
             [lat, lon, up] = this.getGeodetic();
             [east, north, utm_zone] = this.geod2utm(lat, lon);
-            
+
             if nargin == 2 && ~isempty(theta)
                 tmp = [east(:) north(:)] * [cosd(theta) sind(theta); -sind(theta) cosd(theta)];
                 east = tmp(:,1);
@@ -1235,7 +1236,7 @@ classdef Coordinates < Exportable & handle
                 time = this.time.getCopy;
             end
         end
-        
+
         function h_ortho = getOrthometricHeight(this)
             % Get Coordinate orthometric height
             %
@@ -1277,7 +1278,7 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   [lat, lon, h_ellips, h_ortho] = this.getGeodetic(type)
-            
+
             if nargin < 2 || isempty(type)
                 type = 'obs';
             end
@@ -1293,7 +1294,7 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function geod_lat = lat(this, type)
             % Get geodetic latitude
             %
@@ -1306,13 +1307,13 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   [lat] = this.lat(<type>)
-            
+
             if nargin < 2 || isempty(type)
                 type = 'obs';
             end
             [geod_lat, geod_lon] = this.getGeodetic(type);
         end
-        
+
         function geod_lon = lon(this, type)
             % Get geodetic latitude
             %
@@ -1325,14 +1326,14 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   [lat] = this.lat(<type>)
-            
+
             if nargin < 2 || isempty(type)
                 type = 'obs';
             end
             [geod_lat, geod_lon] = this.getGeodetic(type);
         end
-        
-        
+
+
         function [lat_geoc, lon, h] = getGeocentric(this, type)
             % Get Coordinates as Geodetic coordinates
             %
@@ -1352,7 +1353,7 @@ classdef Coordinates < Exportable & handle
             end
             [lat_geoc, lon, h] = Coordinates.cart2geoc(this.getXYZ(type));
         end
-        
+
         function ondu = getOrthometricCorrection(this, type)
             % Get Orthometric correction from the geoid loaded in Core
             %
@@ -1365,19 +1366,19 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   ondu = getOrthometricCorrection(this, type)
-            
+
             if nargin < 2 || isempty(type)
                 type = 'obs';
             end
             [lat, lon] = this.getGeodetic(type);
             ondu = this.getOrthometricCorrFromLatLon(lat, lon);
         end
-        
+
         function [loc_enu, v_enu, id_ok] = getLocal(this, ref_pos, type)
             % Get Coordinates as Local coordinates with respect to ref_pos
             %
             % INPUT
-            %   ref_pos     coo obj of the reference point, 
+            %   ref_pos     coo obj of the reference point,
             %               if it is a series of coordinates takes the median
             %   type        it can be "obs" | "model"
             %               default "obs"
@@ -1389,15 +1390,15 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   [loc_enu, v_enu, id_ok] = this.getLocal(ref_pos, type)
-            
+
             if nargin < 3 || isempty(type)
                 type = 'obs';
             end
             this = this.getCopy;
             ref_pos = ref_pos.getCopy;
-            tmp = [ref_pos; this(:)]; 
+            tmp = [ref_pos; this(:)];
             tmp.setNewRef(1);
-            ref_pos = tmp(1); 
+            ref_pos = tmp(1);
             this = tmp(2:end);
             xyz_ref = ref_pos.getMedianPos.getXYZ;
             [xyz_this, time] = this.getXYZ(type);
@@ -1407,7 +1408,7 @@ classdef Coordinates < Exportable & handle
                 if size(xyz_this, 1) > 3
                     if (nargout > 1)
                         v_enu = [0 0 0];
-                        
+
                         for c = 1:3
                             tmp_time = time.getMatlabTime();
                             [~, id_ok(:,c), trend] = Coordinates.cooFilter([time.getMatlabTime loc_enu(:,c)], 0.8, 7);
@@ -1424,38 +1425,38 @@ classdef Coordinates < Exportable & handle
                     id_ok = true(size(xyz_ref,1));
                     v_enu = [nan nan nan];
                 end
-                
+
             end
         end
-        
+
         function cov_xyz = getCovXYZ(this)
             % return variance covariance matrix in XYZ coordinates
             %
             % SYNTAX
             %   cov_xyz = this.getCovXYZ()
-            
+
             cov_xyz = this.Cxx;
         end
-        
+
         function cov_enu = getCovENU(this)
             % return variance covariance matrix in enu (local) coordinates
             %
             % SYNTAX
             %   cov_enu = this.getCovENU()
-            
+
             [~, rot_mat] = Coordinates.cart2loca(this.getMedianPos.getXYZ, [0 0 0]);
             cov_enu = this.Cxx;
             for i = 1 :size(cov_enu,3)
                 cov_enu(:,:,i) = rot_mat*cov_enu(:,:,i)*rot_mat';
             end
         end
-        
+
         function std_xyz = getStdXYZ(this)
             % return std in XYZ coordinates
             %
             % SYNTAX
             %   std_xyz = this.getStdXYZ()
-            
+
             std_xyz = nan(size(this.xyz,1),3);
             if ~isempty(this.Cxx)
                 for i = 1 : size(this.Cxx,3)
@@ -1463,13 +1464,13 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function setStdXYZ(this, std_xyz)
             % return std in XYZ coordinates
             %
             % SYNTAX
             %   this.setStdXYZ(std_xyz)
-            
+
             this.Cxx = zeros(3,3,size(this.xyz,1));
             if ~isempty(std_xyz)
                 for i = 1 : size(this.Cxx,3)
@@ -1479,13 +1480,13 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function std_enu = getStdENU(this)
             % return vstd in ENU (local) coordinates
             %
             % SYNTAX
             %   cov_enu = this.getStdENU()
-            
+
             [~, rot_mat] = Coordinates.cart2loca(this.getMedianPos.getXYZ, [0 0 0]);
             std_enu = nan(size(this.xyz,1),3);
             if ~isempty(this.Cxx)
@@ -1494,13 +1495,13 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function setStdENU(this, std_enu)
             % return std in ENU coordinates
             %
             % SYNTAX
             %   this.setStdENU(std_enu)
-            
+
             [~, rot_mat] = Coordinates.cart2loca(this.getMedianPos.getXYZ, [0 0 0]);
             this.Cxx = zeros(3,3,size(this.xyz,1));
             if ~isempty(std_enu)
@@ -1523,7 +1524,7 @@ classdef Coordinates < Exportable & handle
                 status(c) = isempty(coo_list(c).xyz);
             end
         end
-        
+
         function n_el = length(this)
             % Return the number of coordinates present in the object
             %
@@ -1531,7 +1532,7 @@ classdef Coordinates < Exportable & handle
             %   n_el = this.length();
             n_el = size(this.xyz, 1);
         end
-        
+
         function is_pp = isPreProcessed(this, flag_list)
             % Find if the workspace have been pre-processed
             %
@@ -1542,7 +1543,7 @@ classdef Coordinates < Exportable & handle
             end
             is_pp = bitand(flag_list, 1);
         end
-        
+
         function is_ppp = isPPPOk(this, flag_list)
             % Find if the workspace have completed PPP
             %
@@ -1553,7 +1554,7 @@ classdef Coordinates < Exportable & handle
             end
             is_ppp = bitand(flag_list, 2);
         end
-        
+
         function is_net = isNETOk(this, flag_list)
             % Find if the workspace have completed NET
             %
@@ -1564,7 +1565,7 @@ classdef Coordinates < Exportable & handle
             end
             is_net = bitand(flag_list, 4);
         end
-        
+
         function setPreProOk(this)
             % Set completed pre-processing
             %
@@ -1572,7 +1573,7 @@ classdef Coordinates < Exportable & handle
             %    is_pp = this.setPreProOk()
             this.info.flag = bitor(this.info.flag, 1);
         end
-        
+
         function setPPPOk(this)
             % Set completed PPP
             %
@@ -1580,7 +1581,7 @@ classdef Coordinates < Exportable & handle
             %    is_pp = this.setNETOk()
             this.info.flag = bitor(this.info.flag, 2);
         end
-        
+
         function setNETOk(this)
             % Set completed NET
             %
@@ -1593,15 +1594,15 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %     dist = this.sphDistanceTo(coo)
-                        
+
             [lat1, lon1] = this.getGeodetic();
             [lat2, lon2] = coo.getGeodetic();
             r1 = sqrt(sum(this.getXYZ.^2));
             r2 = sqrt(sum(coo.getXYZ.^2));
-            
+
             dist = Coordinates.sphericaldist(double(lat1) ./ pi * 180, double(lon1) ./ pi * 180, double(r1), double(lat2) ./ pi * 180, double(lon2) ./ pi * 180, double(r2));
         end
-        
+
         function dist = ellDistanceTo(this, coo)
             % return the distance on the ellipsoid between the object
             % coordinates and the coordinate coo using vincenty's formula
@@ -1609,7 +1610,7 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %     dist = this.distanceTo(coo)
-            
+
             % reduced latitude
             a = this.ELL_A;
             b = sqrt((1 - this.E2)*a^2) ;
@@ -1623,7 +1624,7 @@ classdef Coordinates < Exportable & handle
             L = lon2 - lon1;
             lambda_old = 10000;
             lambda = L;
-            
+
             cos2_alpha = 0;
             while abs(lambda - lambda_old) > 1e-12
                 sin_sigma = sqrt((cos(U2) * sin(lambda))^2 + (cos(U1)*sin(U2) - sin(U1)*cos(U2)*cos(lambda))^2);
@@ -1642,7 +1643,7 @@ classdef Coordinates < Exportable & handle
             Dsigma = B*sin_sigma*(cos_2sigmam + 1/4*B*(cos_sigma*(-1 + 2*cos_2sigmam^2) -B/6*cos_2sigmam*(-3 + 4 * sin_sigma^2)*(- 3 + 4 * cos_2sigmam^2)));
             dist = b*A*(sigma -Dsigma);
         end
-        
+
         function [lid_ko, time, lid_ko_enu, trend_enu] = getBadSession(coo_list, coo_ref, n_obs)
             % Get outliers in East North Up coordinates
             %
@@ -1651,7 +1652,7 @@ classdef Coordinates < Exportable & handle
             %
             % SEE ALSO
             %   core.printKoSessions_experimental
-            
+
             thr = 0.8;
             time = {};
             log = Core.getLogger();
@@ -1659,7 +1660,7 @@ classdef Coordinates < Exportable & handle
             for i = 1 : numel(coo_list)
                 pos = coo_list(i);
                 if ~pos.isEmpty
-                    
+
                     if nargin == 1 || isempty(coo_ref)
                         enu_diff = pos.getLocal(pos.getMedianPos) * 1e3;
                         flag_time = true;
@@ -1694,22 +1695,22 @@ classdef Coordinates < Exportable & handle
                         end
                         enu_diff = bsxfun(@minus, enu_diff,median(enu_diff,1,'omitnan'));
                     end
-                    
+
                     if nargin >= 2 && n_obs > 0
                         id_ok = (max(1, size(enu_diff,1) - n_obs + 1)) : size(enu_diff,1);
                         enu_diff = enu_diff(id_ok, :);
                         t = t(id_ok);
                     end
-                    
+
                     e = enu_diff(1:numel(t),1);
                     [data, lid_ko_enu{i}(:,1), trend_enu{i}(:,1)] = Coordinates.cooFilter(e, 0.8, 7);
-                    
+
                     n = enu_diff(:,2);
                     [data, lid_ko_enu{i}(:,2), trend_enu{i}(:,1)] = Coordinates.cooFilter(n, 0.8, 7);
-                    
+
                     up = enu_diff(:,3);
                     [data, lid_ko_enu{i}(:,3), trend_enu{i}(:,1)] = Coordinates.cooFilter(up, 0.8, 7);
-                    
+
                     lid_ko = isnan(e) | lid_ko_enu{i}(:,1) | isnan(n) | lid_ko_enu{i}(:,2) | isnan(up) | lid_ko_enu{i}(:,3);
                     time{i} = t;
                 end
@@ -1721,20 +1722,20 @@ classdef Coordinates < Exportable & handle
                 time = time{1};
             end
         end
-        
+
     end
-    
+
     % =========================================================================
     %%    SETTERS
     % =========================================================================
-    
+
     methods
         function setName(this, name, description)
             % Set the name of the coordinates
             %
             % SYNTAX
             %   this.setName(<name>,<description>)
-            
+
             if not(isempty(name))
                 name = upper(name);
                 name_len = min(9,max(4, numel(name)));
@@ -1754,15 +1755,15 @@ classdef Coordinates < Exportable & handle
                     % this try catch is here only for legacy support of old missing description field
                 end
             end
-            
+
         end
-        
+
         function setTime(this, time)
             % Set the time of the coordinates
             %
             % SYNTAX
             %   this.setTime(time)
-            
+
             if time.length > 3
                 this.time = time.getNominalTime(time.getRate/2);
             else
@@ -1778,13 +1779,13 @@ classdef Coordinates < Exportable & handle
             end
             this.setRate(this.getRate);
         end
-        
+
         function rate = getRate(coo_list)
             % Get the rate of the coordinates
             %
             % SYNTAX:
             %   rate = this.getRate
-            
+
             rate = nan(numel(coo_list),1);
             for p = 1 : numel(coo_list)
                 coo = coo_list(p);
@@ -1815,7 +1816,7 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX:
             %   sol_rate = this.getRateSolution
-            
+
             sol_rate = this.getRate();
             if isempty(sol_rate) || isnan(zero2nan(sol_rate))
                 sol_rate = this.rate;
@@ -1831,7 +1832,7 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function setRate(this, rate)
             % Manually set the coordinate rate (do it carefully)
             %
@@ -1842,20 +1843,20 @@ classdef Coordinates < Exportable & handle
             %   this.setRate(Core.getState.sss_duration);
             this.rate = rate;
         end
-        
+
         function setPosXYZ(this, xyz, y, z)
             % Set the Coordinates
             %
             % SYNTAX
             %   this.setPosXYZ(xyz)
             %   this.setPosXYZ(x, y, z)
-            
+
             if nargin == 4
                 xyz = [xyz(:) y(:) z(:)];
             end
             this.xyz = xyz;
         end
-        
+
         function empty(this)
             % Empty the object
             %
@@ -1864,7 +1865,7 @@ classdef Coordinates < Exportable & handle
             this.xyz = [];
             this.time = GPS_Time();
         end
-        
+
         function addOffset(this, enu_offset, time_start, time_stop)
             % Add the offset (of the anntenna) to a set of coordinates
             %
@@ -1876,13 +1877,13 @@ classdef Coordinates < Exportable & handle
                 else
                     id_ok = 1 : size(this.xyz,1);
                 end
-                
+
                 xyz_offset = Coordinates.local2cart(this.getElement(id_ok).getMedianPos.xyz, enu_offset);
                 this.xyz = this.xyz + repmat(xyz_offset, size(this.xyz,1), 1);
             end
         end
-        
-        function insertRHEntry(this, time, value, n_obs, std_val)
+
+        function insertRHEntry(this, time, value, n_obs, std_val, tracks_new)
             % Insert in the reflectometry structure a value of reflector
             % height
             %
@@ -1890,7 +1891,7 @@ classdef Coordinates < Exportable & handle
             %   coo.insertRHEntry(time, value, n_obs, std_val)
             %   coo.insertRHEntry(reflectometry_struct)
             %
-            
+
             if nargin == 2 && isstruct(time)
                 value = time.value;
                 n_obs = time.n_obs;
@@ -1899,15 +1900,16 @@ classdef Coordinates < Exportable & handle
             end
             % Check coo reflectometry struct integrity
             t_ref = this.getReflectometryTime();
-            
-            if t_ref.length == 0                                
+
+            if t_ref.length == 0
                 this.reflectometry.time = time;
                 this.reflectometry.value = single(value);
                 this.reflectometry.n_obs = uint16(n_obs);
                 this.reflectometry.std = single(std_val);
+                this.reflectometry.tracks.concat(tracks_new);
             else
                 % find the closest time to the one of the inserted data
-
+                this.reflectometry.tracks.concat(tracks_new);
                 for i = 1:time.length()
                     [t_dist, id_close] = min(abs(t_ref - time.getEpoch(i)));
                     if t_dist ~= 0 % this is not same time
@@ -1922,7 +1924,7 @@ classdef Coordinates < Exportable & handle
             end
         end
     end
-    
+
     % =========================================================================
     %%    STATIC CONSTRUCTOR
     % =========================================================================
@@ -1933,7 +1935,7 @@ classdef Coordinates < Exportable & handle
             % SYNTAX
             %   this = Coordinates.fromXYZ(xyz)
             %   this = Coordinates.fromXYZ(x, y, z)
-            
+
             this = Coordinates;
             if nargin > 2
                 xyz = [xyz(:) y(:) z(:)];
@@ -1947,27 +1949,27 @@ classdef Coordinates < Exportable & handle
                     time = GPS_Time();
                 end
             end
-            
+
             this.setPosXYZ(xyz);
             if ~time.isEmpty
                 this.setTime(time);
             end
         end
-        
+
         function this = fromCrdOut(name, crd_files, out_files)
             % Set the Coordinates from XYZ coordinates
             %
             % SYNTAX
             %   this = Coordinates.fromXYZ(xyz)
             %   this = Coordinates.fromXYZ(x, y, z)
-            
+
             this = Coordinates;
-            
+
             % read coordinates files
             logger = Logger.getInstance();
-            
+
             fid = fopen(crd_files,'rt');
-            
+
             if (fid < 0)
                 logger.addError(['Failed to open ', crd_files]);
                 time = [];
@@ -1979,7 +1981,7 @@ classdef Coordinates < Exportable & handle
                 txt = fread(fid,'*char')';
                 logger.addMessage(['Reading ', crd_files]);
                 fclose(fid);
-                
+
                 data = textscan(txt(392:end)',' %4d-%1d %4d-%03d %4d-%2d-%2d %1s %2d:%2d:%2d %2d:%2d:%2d %4s %6s %15f %15f %15f %15f %15f %15f %1s %8f %8f %8f %8f ');
                 time = GPS_Time(datenum(double([data{:,[5:7]} data{:,[9:11]}])));
                 xyz = [data{:,17:19}];
@@ -1989,7 +1991,7 @@ classdef Coordinates < Exportable & handle
                 master = data{:,15};
             end
             fid = fopen(out_files,'rt');
-            
+
             if (fid < 0)
                 logger.addError(['Failed to open ', out_files]);
                 n_epochs = [];
@@ -2001,7 +2003,7 @@ classdef Coordinates < Exportable & handle
                 txt = fread(fid,'*char')';
                 logger.addMessage(['Reading ', out_files]);
                 fclose(fid);
-                
+
                 data = textscan(txt(233:end)',' %4d-%1d %4d-%03d %4d-%2d-%2d %1s %2d:%2d:%2d %2d:%2d:%2d %8d %8d %8d %8d %8d %12f %8f');
                 n_epochs = data{:,15};
                 n_l1 = [];
@@ -2026,15 +2028,15 @@ classdef Coordinates < Exportable & handle
                 rot_mat = [ -sin(lon) cos(lon) 0; -sin(lat)*cos(lon) -sin(lat)*sin(lon) cos(lat); cos(lat)*cos(lon) cos(lat)*sin(lon) sin(lat)];
                 this.Cxx(:,:,i) = rot_mat*Cxxenu*rot_mat';
             end
-            
+
         end
-        
+
         function this = fromStringXYZ(xyz_string, time)
             % Set the Coordinates from XYZ coordinates (String)
             %
             % SYNTAX
             %   this = Coordinates.fromStringXYZ(xyz)
-            
+
             this = Coordinates;
             xyz = sscanf(xyz_string, '%f%f%f')';
             if numel(xyz) ~= 3
@@ -2046,7 +2048,7 @@ classdef Coordinates < Exportable & handle
             this.setPosXYZ(xyz);
             this.setTime(time);
         end
-        
+
         function this = fromGeodetic(lat, lon, h_ellips, h_ortho, time)
             % Set the Coordinates from Geodetic coordinates
             %
@@ -2056,28 +2058,28 @@ classdef Coordinates < Exportable & handle
             % SYNTAX
             %   this = Coordinates.fromGeodetic(phi, lam, h_ellips, [], time);
             %   this = Coordinates.fromGeodetic(phi, lam, [], h_ortho, time);
-            
+
             this = Coordinates;
             if nargin >= 4 && ~isempty(h_ortho)
                 h_ellips = h_ortho + this.getOrthometricCorrFromLatLon(lat, lon);
             end
             if nargin < 5
                 time = GPS_Time();
-            end            
+            end
             if ~((nargin > 2 && ~isempty(h_ellips)) || (nargin > 3 && ~isempty(h_ortho)))
                 % No vertical coordinate => get it from SRTM
                 h_ortho = Core_Utils.getElevation(lat, lon, true, {'etopo1'});
-                h_ellips = h_ortho + this.getOrthometricCorrFromLatLon(lat, lon);                
+                h_ellips = h_ortho + this.getOrthometricCorrFromLatLon(lat, lon);
             end
             N = GPS_SS.ELL_A ./ sqrt(1 - GPS_SS.ELL_E.^2 * sin(lat).^2);
-            
+
             x = (N + h_ellips) .* cos(lon) .* cos(lat);
             y = (N + h_ellips) .* sin(lon) .* cos(lat);
             z = (N * (1 - GPS_SS.ELL_E.^2) + h_ellips) .* sin(lat);
-            
+
             this = Coordinates.fromXYZ(x, y, z, time);
         end
-        
+
         function this = fromUTM(easting, northing, utmzone, h_ortho, time)
             % Set the Coordinates from Geodetic coordinates
             %
@@ -2092,19 +2094,19 @@ classdef Coordinates < Exportable & handle
                 h_ortho = zeros(size(easting));
             end
             if nargin == 5
-                this = Coordinates.fromGeodetic(lat/180*pi, lon/180*pi, [], h_ortho, time);            
+                this = Coordinates.fromGeodetic(lat/180*pi, lon/180*pi, [], h_ortho, time);
             else
-                this = Coordinates.fromGeodetic(lat/180*pi, lon/180*pi, [], h_ortho);            
+                this = Coordinates.fromGeodetic(lat/180*pi, lon/180*pi, [], h_ortho);
             end
         end
-        
+
         function coo_list = fromFile(file_name)
             % Import from a coo file, mod file o mat file
             % File extension is used to discriminate the file type
             %
             % SYNTAX
             %   coo_list = Coordinates.fromFile(file_name);
-            
+
             [folder, name, extension] = fileparts(file_name);
             coo_list = Coordinates();
             switch extension
@@ -2120,7 +2122,7 @@ classdef Coordinates < Exportable & handle
                     Core.getLogger.addError(sprintf('Unknown file type "%s"', file_name));
             end
         end
-        
+
         function coo_list = fromMatFile(file_name)
             % Import from a MATLAB file
             %
@@ -2129,20 +2131,20 @@ classdef Coordinates < Exportable & handle
             load(file_name, 'coo');
             coo_list = coo;
         end
-        
+
         function coo_list = fromCooFile(file_name)
             % Import from a coo file XYZ and timestamp to a Coordinate object
             %
             % SYNTAX
             %   coo_list = Coordinates.fromCooFile(file_name);
-            
+
             % cache for V3 names
             persistent cache4ch
-            
+
             if not(iscell(file_name))
                 file_name = {file_name};
             end
-            
+
             coo_list = Coordinates;
             tmp_list = file_name;
             i = 0;
@@ -2160,7 +2162,7 @@ classdef Coordinates < Exportable & handle
             for file_name = file_name_list
                 file_name = file_name{1};
                 coo = Coordinates;
-                
+
                 if ~exist(file_name, 'file') == 2
                     % this is maybe a wild card
                 end
@@ -2175,7 +2177,7 @@ classdef Coordinates < Exportable & handle
                         id_ver = find(txt(lim(:,1) + 1) == 'F'); % +FileVersion
                         version_ok = not(isempty(regexp(txt(lim(id_ver, 1):lim(id_ver, 2)), ['(?<=FileVersion[ ]*: )' coo.VERSION], 'once')));
                         file_ok = str2double(regexp(txt(lim(id_ver, 1):lim(id_ver, 2)), '(?<=FileVersion[ ]*: )[0-9].[0-9]', 'match', 'once')) >= 1;
-                        
+
                         % Data should be present
                         timestamp = [];
                         data_start = size(lim, 1);
@@ -2195,7 +2197,7 @@ classdef Coordinates < Exportable & handle
                                 timestamp = datenum(txt(repmat(id_data, 1, 19) + repmat(0:18, numel(id_data), 1)), 'yyyy-mm-dd HH:MM:SS');
                             end
                         end
-                        
+
                         if file_ok
                             % Point Name
                             id_line = find(txt(lim(1:data_start,1) + 1) == 'M'); % +MonitoringPoint
@@ -2206,7 +2208,7 @@ classdef Coordinates < Exportable & handle
                                 coo.name_v3 = regexp(txt(lim(id_line, 1):lim(id_line, 2)), '(?<=NameV3[ ]*: ).*', 'match', 'once');
                                 coo.description = regexp(txt(lim(id_line, 1):lim(id_line, 2)), '(?<=LongName[ ]*: ).*', 'match', 'once');
                             end
-                            
+
                             % DataRate
                             id_line_rate = find(txt(lim(1:data_start-1,1) + 1) == 'D' & txt(lim(1:data_start-1,1) + 5) == 'R'); % +DateRate
                             if not(isempty(id_line_rate))
@@ -2225,29 +2227,29 @@ classdef Coordinates < Exportable & handle
                             for t = 1 : numel(col)
                                 data_type(t) = categorical({txt((lim(id_line(t), 1) + 18) : lim(id_line(t), 2))});
                             end
-                            
+
                             % Data column
                             % data_col = [2, 3, 4] + 1; % x, y, z
                             data_col = [col(data_type == categorical({'x'})), ...
                                 col(data_type == categorical({'y'})), ...
                                 col(data_type == categorical({'z'}))];
                         end
-                        
-                        
+
+
                         % Import data and time
                         if file_ok
                             coo.xyz = nan(data_stop - data_start + 1, 3);
                             n_data = data_stop - data_start + 1;
                             coo.info = struct('n_epo', zeros(n_data, 1, 'uint32'), 'n_obs', zeros(n_data, 1, 'uint32'), 's0', zeros(n_data, 1, 'single'), 's0_ip', zeros(n_data, 1, 'single'), 'flag', zeros(n_data, 1, 'uint8'), 'fixing_ratio', zeros(n_data, 1, 'single'), 'obs_used',  zeros(n_data, 1, 'single'), 'rate', zeros(n_data, 1, 'single'), 'coo_type', char(ones(n_data, 1, 'uint8')) * 'U', 'mean_snr', zeros(n_data, 1, 'single'), 'master_name', zeros(n_data, 1, 'uint64'));
                             coo.Cxx = zeros(3, 3, n_data);
-                            
+
                             id_cov = [col(data_type == categorical({'Cxx'})), ...
                                 col(data_type == categorical({'Cxy'})), ...
                                 col(data_type == categorical({'Cxz'})), ...
                                 col(data_type == categorical({'Cyy'})), ...
                                 col(data_type == categorical({'Cyz'})), ...
                                 col(data_type == categorical({'Czz'}))];
-                            
+
                             id_n_epo = col(data_type == categorical({'nEpochs'}));
                             id_n_obs = col(data_type == categorical({'nObs'}));
                             id_s0_ip = col(data_type == categorical({'initialSigma0'}));
@@ -2261,7 +2263,7 @@ classdef Coordinates < Exportable & handle
                                 coo.xyz(l + 1, 1) = str2double(data_line{data_col(1)});
                                 coo.xyz(l + 1, 2) = str2double(data_line{data_col(2)});
                                 coo.xyz(l + 1, 3) = str2double(data_line{data_col(3)});
-                                
+
                                 if numel(id_cov) == 6
                                     tmp = str2double(data_line(id_cov));
                                     tmp = [tmp(1), tmp(2), tmp(3); ...
@@ -2271,7 +2273,7 @@ classdef Coordinates < Exportable & handle
                                         coo.Cxx(:,:,l + 1) = tmp;
                                     end
                                 end
-                                
+
                                 if any(id_n_epo)
                                     coo.info.n_epo(l + 1) = uint32(str2double(data_line{id_n_epo}));
                                 end
@@ -2338,7 +2340,7 @@ classdef Coordinates < Exportable & handle
                                             coo.info.master_name(l + 1) = id_cache;
                                         end
                                     end
-                                    
+
                                 end
                             end
                             coo.time = GPS_Time(timestamp);
@@ -2346,16 +2348,16 @@ classdef Coordinates < Exportable & handle
                                 coo.setRate(coo.getRate);
                             end
                         end
-                        
+
                     end
-                    
+
                     if isempty(coo.description)
                         coo.description = coo.name;
                     end
                     if not(Core_Utils.isMarkerV3(coo.name_v3))
                         coo.setName(coo.name); % this will set a V3 name;
                     end
-                    
+
                     if not(version_ok)
                         % If the version is changed re-export the coordinates to update the file
                         log = Core.getLogger();
@@ -2371,13 +2373,13 @@ classdef Coordinates < Exportable & handle
                 f = f + 1;
             end
         end
-        
+
         function coo_list = fromModFile(file_name)
             % Import from a model file XYZ, model and timestamp to a Coordinate object
             %
             % SYNTAX
             %   coo_list = Coordinates.fromCooFile(file_name);
-            
+
             coo_list = Coordinates;
             if exist(file_name, 'file') == 2
                 % Read and append
@@ -2389,7 +2391,7 @@ classdef Coordinates < Exportable & handle
                     % Verify the file version (it should match 1.0):
                     version_ok = true;
                     file_ok = true;
-                    
+
                     % Data should be present
                     timestamp = [];
                     data_start = size(lim, 1);
@@ -2409,7 +2411,7 @@ classdef Coordinates < Exportable & handle
                             timestamp = datenum(txt(repmat(id_data, 1, 19) + repmat(0:18, numel(id_data), 1)), 'yyyy-mm-dd HH:MM:SS');
                         end
                     end
-                    
+
                     if file_ok
                         % Point Name
                         id_line = find(txt(lim(1:data_start,1) + 1) == 'M'); % +MonitoringPoint
@@ -2419,7 +2421,7 @@ classdef Coordinates < Exportable & handle
                             coo_list.name = regexp(txt(lim(id_line, 1):lim(id_line, 2)), '(?<=MonitoringPoint[ ]*: ).*', 'match', 'once');
                             coo_list.description = regexp(txt(lim(id_line, 1):lim(id_line, 2)), '(?<=LongName[ ]*: ).*', 'match', 'once');
                         end
-                        
+
                         % DataRate
                         id_line_rate = find(txt(lim(1:data_start-1,1) + 1) == 'D' & txt(lim(1:data_start-1,1) + 5) == 'R'); % +DateRate
                         if not(isempty(id_line_rate))
@@ -2438,7 +2440,7 @@ classdef Coordinates < Exportable & handle
                         for t = 1 : numel(col)
                             data_type(t) = categorical({txt((lim(id_line(t), 1) + 18) : lim(id_line(t), 2))});
                         end
-                        
+
                         % Data column
                         data_col = [col(data_type == categorical({'XMes'})), ...
                             col(data_type == categorical({'YMes'})), ...
@@ -2447,21 +2449,21 @@ classdef Coordinates < Exportable & handle
                             col(data_type == categorical({'YMod'})), ...
                             col(data_type == categorical({'ZMod'}))];
                     end
-                    
+
                     % Import data and time
                     if file_ok
                         coo_list.xyz = nan(data_stop - data_start + 1, 3);
                         n_data = data_stop - data_start + 1;
                         coo_list.info = struct('n_epo', zeros(n_data, 1, 'uint32'), 'n_obs', zeros(n_data, 1, 'uint32'), 's0', zeros(n_data, 1, 'single'), 's0_ip', zeros(n_data, 1, 'single'), 'flag', zeros(n_data, 1, 'uint8'), 'fixing_ratio', zeros(n_data, 1, 'single'), 'obs_used',  zeros(n_data, 1, 'single'), 'rate', zeros(n_data, 1, 'single'), 'coo_type', char(ones(n_data, 1, 'uint8')) * 'U', 'mean_snr', zeros(n_data, 1, 'single'), 'master_name', zeros(n_data, 1, 'uint64'));
                         coo_list.Cxx = zeros(3, 3, n_data);
-                        
+
                         for l = 0 : (data_stop - data_start)
                             [data_line] = regexp(txt(lim(data_start + l, 1) : lim(data_start + l, 2)), ';', 'split');
 
                             coo_list.xyz(l + 1, 1) = str2double(data_line{data_col(1)});
                             coo_list.xyz(l + 1, 2) = str2double(data_line{data_col(2)});
                             coo_list.xyz(l + 1, 3) = str2double(data_line{data_col(3)});
-                            
+
                             coo_list.xyz_model(l + 1, 1) = str2double(data_line{data_model_col(1)});
                             coo_list.xyz_model(l + 1, 2) = str2double(data_line{data_model_col(2)});
                             coo_list.xyz_model(l + 1, 3) = str2double(data_line{data_model_col(3)});
@@ -2471,27 +2473,27 @@ classdef Coordinates < Exportable & handle
                             coo_list.setRate(coo_list.getRate);
                         end
                     end
-                    
+
                     % Check description field
                     % use the old one for the file
                     coo.setName(coo.name); % this will set a V3 name;
-                end 
+                end
             else
                 log = Core.getLogger();
                 log.addError(sprintf('%s cannot be imported', file_name));
             end
         end
-        
+
         function coo_list = fromCrdFile(file_name)
             % Import from a app crd file XYZ to a Coordinate object
             %
             % SYNTAX
             %   coo_list = Coordinates.fromCrdFile(file_name);
-            
+
             coo_list = Coordinates();
             if ~isempty(file_name)
                 [txt, lim] = Core_Utils.readTextFile(file_name);
-                
+
                 if isempty(txt)
                     Core.getLogger.addWarning(sprintf('File %s not found', file_name));
                     return
@@ -2547,23 +2549,23 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function coo_list = fromBernyCrdFile(file_name)
             % Import data from CRD file generated by Bernese processing
             % file_name can use wildcards e.g. filename = *.CRD
             %
             %  SYNTAX
             %   coo_list = Coordinates.fromBernyCrdFile(file_name);
-            
+
             log = Core.getLogger.getInstance();
-            
+
             file_list = dir(file_name);
             coo_list = Coordinates();
-            
+
             for f = 1:numel(file_list)
                 file_name = fullfile(file_list(f).folder, file_list(f).name);
                 fid = fopen(file_name,'rt');
-                
+
                 if (fid < 0)
                     log.addError(['Failed to open ', file_name]);
                     coo_list(f) = Coordinates();
@@ -2571,7 +2573,7 @@ classdef Coordinates < Exportable & handle
                     txt = fread(fid,'*char')';
                     log.addMessage(['Reading ', file_name]);
                     fclose(fid);
-                    
+
                     data = textscan(txt(392:end)',' %4d-%1d %4d-%03d %4d-%2d-%2d %1s %2d:%2d:%2d %2d:%2d:%2d %4s %6f %15f %15f %15f %15f %15f %15f %1s %8f %8f %8f %8f ');
                     time = GPS_Time(datenum(double([data{:,[5:7]} data{:,[9:11]}])));
                     rate = time.getRate;
@@ -2584,14 +2586,14 @@ classdef Coordinates < Exportable & handle
                     std_enu = [data{:,24:26}];
                     % std_3d = data{:,27};
                     [dir_name, marker_name, file_ext] = fileparts(file_name);
-                    
+
                     % Import into Coordinate object
                     coo_list(f) = Coordinates.fromXYZ(xyz, time);
                     coo_list(f).setName(marker_name);
                     coo_list(f).setStdENU(nan2zero(std_enu * 1e-3));
-                    
+
                     coo_list(f).info.s0_ip = [data{:,16}];
-                    
+
                     % Import master name code
                     for t = 1:time.length
                         name = data{1,15}{t};
@@ -2606,12 +2608,12 @@ classdef Coordinates < Exportable & handle
             end
         end
     end
-    
-        
+
+
     % =========================================================================
     %%    INFOs
     % =========================================================================
-    
+
     methods (Access = 'public')
         function str_description = toString(coo_list, flag_reverse)
             if nargin < 2 || isempty(flag_reverse)
@@ -2620,10 +2622,10 @@ classdef Coordinates < Exportable & handle
             i = 0;
             for coo = coo_list
                 i = i + 1;
-                [lat, lon, h_ellips, h_ortho] = coo.getMedianPos.getGeodetic(); 
+                [lat, lon, h_ellips, h_ortho] = coo.getMedianPos.getGeodetic();
                 lat = lat.*180/pi; lon = lon .*180/pi;
                 [E,N,Z] = coo.getUTM();
-                
+
                 str = {sprintf('Master station: %s', coo.name), ...
                     iif(length(coo.description) <= 4, sprintf('%s', coo.getNameV3), sprintf('%s', coo.description)), ...
                     sprintf('Lat: %.6f deg', lat), ...
@@ -2647,7 +2649,7 @@ classdef Coordinates < Exportable & handle
             if nargout == 0
                 for i = 1:numel(coo_list)
                     fprintf('%s\n', str_description{i});
-                end               
+                end
             end
         end
 
@@ -2701,7 +2703,7 @@ classdef Coordinates < Exportable & handle
             else
                 fprintf('No data found');
             end
-            
+
             for coo = coo_list
                 [lat, lon, h_ellips, h_ortho] = coo.getMedianPos.getGeodetic();
                 n_ch = 13;
@@ -2716,12 +2718,12 @@ classdef Coordinates < Exportable & handle
                     fprintf('%s|%11.6f |%11.6f |%13.2f |%12.2f | %s\n', name, lat/pi*180, lon/pi*180, h_ellips, h_ortho, loc_info.display_name);
                 else
                     fprintf('%s|%11.6f |%11.6f |%13.2f |%12.2f\n', name, lat/pi*180, lon/pi*180, h_ellips, h_ortho);
-                    
+
                 end
             end
             fprintf('\n');
         end
-        
+
         function dark_sky_link = openDarkSky(coo, date)
             % Get darkSky link (and open it in a browser)
             %
@@ -2748,7 +2750,7 @@ classdef Coordinates < Exportable & handle
             end
             web(dark_sky_link);
         end
-        
+
         function refl_link = openReflectionZoneMapping(coo_list, refl_height, az_lim);
             % Open the webpage of gnss-reflections to show
             % reflection the reflection zone mapping
@@ -2760,11 +2762,11 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   refl_link = openReflectionZoneMapping(coo, <ant_height>)
-            
+
             if nargin < 3
                 az_lim = [0 360];
             end
-            
+
             for r = 1 : numel(coo_list)
                 [lat, lon,h_ellips] = coo_list(r).getMedianPos.getGeodetic();
                 if nargin == 1
@@ -2777,10 +2779,10 @@ classdef Coordinates < Exportable & handle
                     refl_height, az_lim(1), az_lim(2));
                 web(refl_link{r});
             end
-        end   
-        
+        end
+
         function geoid_link = openGeoidPage(coo)
-            % Open the webpage of gnss-reflections to show 
+            % Open the webpage of gnss-reflections to show
             % a google map and geodetic height of the point
             %
             % INPUT
@@ -2799,11 +2801,11 @@ classdef Coordinates < Exportable & handle
             web(geoid_link);
         end
     end
-    
+
     % =========================================================================
     %%    SHOW
     % =========================================================================
-    
+
     methods (Access = 'public')
         function fh = showBaselineENU(coo_list, id_ref, id_list_sta, n_pts, rot_angle_cw)
             % Plot East North Up Baseline with respect to the coordinate with id = id_ref
@@ -2877,7 +2879,7 @@ classdef Coordinates < Exportable & handle
             %   this.showPositionENU(coo_list);
             fh = showCoordinatesENU(coo_list);
         end
-        
+
         function fh_list = showNData(coo_list)
             % Simple display of the number of data /obs used to compute the solution
             %
@@ -2904,7 +2906,7 @@ classdef Coordinates < Exportable & handle
                     title(sprintf('Number of data for %s\\fontsize{5} \n', coo.getName()));
                     xlim([coo.time.first.getMatlabTime coo.time.last.getMatlabTime]);
                     setTimeTicks();
-                    
+
                     fh_list = [fh_list fh];
                     Core_UI.beautifyFig(fh);
                     Core_UI.addBeautifyMenu(fh);
@@ -2912,7 +2914,7 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function fh_list = showMeanSNR(coo_list)
             % Simple display of the meanSNR per receiver
             %
@@ -2943,7 +2945,7 @@ classdef Coordinates < Exportable & handle
                     title(sprintf('Mean session SNR for %s\\fontsize{5} \n', coo.getName()));
                     xlim([coo.time.first.getMatlabTime coo.time.last.getMatlabTime]);
                     setTimeTicks();
-                    
+
                     fh_list = [fh_list fh];
                     Core_UI.beautifyFig(fh);
                     Core_UI.addBeautifyMenu(fh);
@@ -2951,7 +2953,7 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function fh_list = showSigmas(coo_list, flag_prepro)
             % Simple display of the sigmas of the system used to compute the solution
             %
@@ -2962,10 +2964,10 @@ classdef Coordinates < Exportable & handle
             end
             fh_list = [];
             coo_list = coo_list(not(coo_list.isEmpty));
-            
+
             yl = [0 -inf];
             xl = [inf -inf];
-            
+
             str_title = 'Sigmas';
             if not(isempty(coo_list))
                 fh = figure('Visible', 'off');  Core_UI.beautifyFig(fh);
@@ -2992,7 +2994,7 @@ classdef Coordinates < Exportable & handle
                     end
                     plotSep(coo.time.getMatlabTime, coo.info.s0, '.-', 'MarkerSize', 10, 'LineWidth', 2); hold on;
                     ylabel('Sigma 0');
-                    
+
                     yl(2) = max(yl(2), 2*perc(noNaN(coo.info.s0), 0.97));
                     xl(1) = min(xl(1), coo.time.first.getMatlabTime);
                     xl(2) = max(xl(2), coo.time.last.getMatlabTime);
@@ -3011,12 +3013,12 @@ classdef Coordinates < Exportable & handle
             ylim(yl);
             setTimeTicks();
             title(sprintf('%s\\fontsize{5} \n', str_title));
-            
+
             fh_list = [fh_list fh];
             Core_UI.beautifyFig(fh);
             Core_UI.addBeautifyMenu(fh);
             fh.Visible = iif(Core_UI.isHideFig, 'off', 'on'); drawnow;
-            
+
         end
 
         function fh_list = showSigmas_mr(coo_list, n_hours)
@@ -3027,19 +3029,19 @@ classdef Coordinates < Exportable & handle
             if nargin == 1
                 n_hours = 24*4;
             end
-                        
+
             [sigmas, time_sync] = coo_list.getProcessingSigmas(n_hours, true);
             [err_status, ~] = coo_list.getProcessingStatus(n_hours, true);
-            
+
             sigmas = nan2zero(sigmas .* single(err_status == 0));
             time_sync = time_sync.getMatlabTime();
-            
+
             fh = figure('Visible', 'off');
             fh.Name = sprintf('%03d: CooS0MR', fh.Number); fh.NumberTitle = 'off';
             fh_list = fh;
             fig_name = 'Coo_SigmasMR';
             fh.UserData = struct('fig_name', fig_name);
-            
+
             for r = 1 : size(sigmas, 2)
                 scatter(time_sync, r * ones(size(sigmas(:,r))), 30, double(sigmas(:,r))', 'filled'); hold on;
             end
@@ -3053,12 +3055,12 @@ classdef Coordinates < Exportable & handle
             grid on;
             title(sprintf('Epochs sigma0\\fontsize{5} \n'), 'FontName', 'Open Sans');
             Core_UI.beautifyFig(fh);
-            
+
             Core_UI.addExportMenu(fh);
-            Core_UI.addBeautifyMenu(fh);            
+            Core_UI.addBeautifyMenu(fh);
             fh.Visible = iif(Core_UI.isHideFig, 'off', 'on'); drawnow;
         end
-        
+
         function fh_list = showFixingRatio(coo_list)
             % Simple display of the fixing ratio
             %
@@ -3066,10 +3068,10 @@ classdef Coordinates < Exportable & handle
             %   fh_list = coo_list.showFixingRatio(n_hours);
             fh_list = [];
             coo_list = coo_list(not(coo_list.isEmpty));
-            
+
             yl = [0 100];
             xl = [inf -inf];
-            
+
             str_title = 'Fixing Ratio';
             if not(isempty(coo_list))
                 fh = figure('Visible', 'off');  Core_UI.beautifyFig(fh);
@@ -3090,7 +3092,7 @@ classdef Coordinates < Exportable & handle
 
                     plotSep(coo.time.getMatlabTime, coo.info.fixing_ratio, '.-', 'MarkerSize', 10, 'LineWidth', 2); hold on;
                     ylabel('Fixing ratio');
-                    
+
                     xl(1) = min(xl(1), coo.time.first.getMatlabTime);
                     xl(2) = max(xl(2), coo.time.last.getMatlabTime);
                 end
@@ -3100,13 +3102,13 @@ classdef Coordinates < Exportable & handle
             ylim(yl);
             setTimeTicks();
             title(sprintf('%s\\fontsize{5} \n', str_title));
-            
+
             fh_list = [fh_list fh];
             Core_UI.beautifyFig(fh);
             Core_UI.addBeautifyMenu(fh);
             fh.Visible = iif(Core_UI.isHideFig, 'off', 'on'); drawnow;
-        end        
-        
+        end
+
         function fh_list = showFixingRatio_mr(coo_list, n_hours)
             % Simple display of fixing ratio of the solutions
             %
@@ -3115,19 +3117,19 @@ classdef Coordinates < Exportable & handle
             if nargin == 1
                 n_hours = 24*4;
             end
-                        
+
             [fixing_ratio, time_sync] = coo_list.getProcessingFixingRatio(n_hours, true);
             [err_status, ~] = coo_list.getProcessingStatus(n_hours, true);
-            
+
             fixing_ratio = nan2zero(fixing_ratio .* single(err_status == 0));
             time_sync = time_sync.getMatlabTime();
-            
+
             fh = figure('Visible', 'off');
             fh.Name = sprintf('%03d: CooFRMR', fh.Number); fh.NumberTitle = 'off';
             fh_list = fh;
             fig_name = 'Coo_FixRatioMR';
             fh.UserData = struct('fig_name', fig_name);
-            
+
             for r = 1 : size(fixing_ratio, 2)
                 scatter(time_sync, r * ones(size(fixing_ratio(:,r))), 30, double(fixing_ratio(:,r))', 'filled'); hold on;
             end
@@ -3142,9 +3144,9 @@ classdef Coordinates < Exportable & handle
             colorbar;
             title(sprintf('Epoch fixing ratio\\fontsize{5} \n'), 'FontName', 'Open Sans');
             Core_UI.beautifyFig(fh);
-            
+
             Core_UI.addExportMenu(fh);
-            Core_UI.addBeautifyMenu(fh);            
+            Core_UI.addBeautifyMenu(fh);
             fh.Visible = iif(Core_UI.isHideFig, 'off', 'on'); drawnow;
         end
 
@@ -3251,7 +3253,7 @@ classdef Coordinates < Exportable & handle
             %
             % INPUT
             %   mode        'XYZ' , 'ENU'
-            %   coo         coordinate object            
+            %   coo         coordinate object
             %   baricenter  coordinate object of the observations (median?)
             %   coo_ref     coordinate object list of the reference/s
             %
@@ -3263,7 +3265,7 @@ classdef Coordinates < Exportable & handle
             flag_rem_baricenter = ~isempty(baricenter);
             if isempty(coo_ref)
                 rate = coo.getRate;
-                
+
                 if strcmpi(mode, 'XYZ')
                     if flag_rem_baricenter
                         pos_diff = (coo.getXYZ - baricenter.getXYZ) * 1e3;
@@ -3316,7 +3318,7 @@ classdef Coordinates < Exportable & handle
                 end
                 pos_flags = coo.info.flag;
                 t_max = pos_time(end);
-            else % plot baseline                
+            else % plot baseline
                 pos_diff = [];
                 if isa(coo.time, 'GPS_Time') && ~coo.time.isEmpty
                     new_ref_time = coo.time.getEpoch(~isnan(coo.xyz(:,1))).getCopy; % reference could have a different rate
@@ -3335,7 +3337,7 @@ classdef Coordinates < Exportable & handle
                         p_xyz = coo.getXYZ;
                         % Inter (nearest neighbour) the reference to the point of the relative
                         r_xyz_original = coo_ref.getXYZ;
-                        r_xyz = nan(new_ref_time.length, 3); 
+                        r_xyz = nan(new_ref_time.length, 3);
                         for c = 1:3
                             r_xyz(:,c) = interp1(coo_ref.time.getMatlabTime, r_xyz_original(:,c), new_ref_time.getMatlabTime, 'nearest', 'extrap');
                         end
@@ -3344,7 +3346,7 @@ classdef Coordinates < Exportable & handle
                         p_xyz_model = coo.getXYZ('model');
                         if numel(p_xyz_model) == numel(p_xyz) && any(p_xyz_model(:))
                             r_xyz_model_original = coo_ref.getXYZ(model);
-                            r_xyz_model = nan(new_ref_time.length, 3); 
+                            r_xyz_model = nan(new_ref_time.length, 3);
                             for c = 1:3
                                 r_xyz_model(:,c) = interp1(coo_ref.time.getMatlabTime, r_xyz_model_original(:,c), new_ref_time.getMatlabTime, 'nearest', 'extrap');
                             end
@@ -3355,10 +3357,10 @@ classdef Coordinates < Exportable & handle
                         end
                         % Compute formal std of the baseline
                         std1_original = coo_ref.getStdXYZ.^2;
-                        std1 = nan(new_ref_time.length, 3); 
+                        std1 = nan(new_ref_time.length, 3);
                         for c = 1:3
                             std1(:,c) = interp1(coo_ref.time.getMatlabTime, std1_original(:,c), new_ref_time.getMatlabTime, 'nearest', 'extrap');
-                        end                        
+                        end
                         std2 = coo.getStdXYZ.^2;
                         % covariance propagation: cov1 + cov2 + 2 * cross
                         % cross covariance is missing, propagation is incomplete
@@ -3366,20 +3368,20 @@ classdef Coordinates < Exportable & handle
                     elseif strcmpi(mode, 'ENU')
                         p_xyz = coo.getXYZ;
                         r_xyz_original = coo_ref.getXYZ;
-                        r_xyz = nan(new_ref_time.length, 3); 
+                        r_xyz = nan(new_ref_time.length, 3);
                         for c = 1:3
                             if coo_ref.time.length <= 1
                                 r_xyz(:,c) = r_xyz_original(:,c);
                             else
                                 r_xyz(:,c) = interp1(coo_ref.time.getMatlabTime, r_xyz_original(:,c), new_ref_time.getMatlabTime, 'nearest', 'extrap');
                             end
-                        end                        
+                        end
                         pos_diff = Coordinates.cart2local(median(r_xyz,1,'omitnan'),p_xyz(idx2,:) - r_xyz(idx1,:) )*1e3;
 
                         p_xyz_model = coo.getXYZ('model');
                         if numel(p_xyz_model) == numel(p_xyz) && any(p_xyz_model(:))
                             r_xyz_model_original = coo_ref.getXYZ('model');
-                            r_xyz_model = nan(new_ref_time.length, 3); 
+                            r_xyz_model = nan(new_ref_time.length, 3);
                             for c = 1:3
                                 r_xyz_model(:,c) = interp1(coo_ref.time.getMatlabTime, r_xyz_model_original(:,c), new_ref_time.getMatlabTime, 'nearest', 'extrap');
                             end
@@ -3390,15 +3392,15 @@ classdef Coordinates < Exportable & handle
 
                         % Compute formal std of the baseline
                         std1_original = coo_ref.getStdENU.^2;
-                        std1 = nan(new_ref_time.length, 3); 
+                        std1 = nan(new_ref_time.length, 3);
                         for c = 1:3
                             if coo_ref.time.length <= 1
                                 std1(:,c) = std1_original(:,c);
                             else
                                 std1(:,c) = interp1(coo_ref.time.getMatlabTime, std1_original(:,c), new_ref_time.getMatlabTime, 'nearest', 'extrap');
                             end
-                            
-                        end  
+
+                        end
                         std2 = coo.getStdENU.^2;
                         % covariance propagation: cov1 + cov2 + 2 * cross
                         % cross covariance is missing, propagation is incomplete
@@ -3414,7 +3416,7 @@ classdef Coordinates < Exportable & handle
                         pos_std = [];
                         pos_time = pos_time(1:size(pos_diff,1),:);
                         flag_time = false;
-                        pos_flags = coo.info.flag;                    
+                        pos_flags = coo.info.flag;
                     else
                         log.addError(sprintf('No time in coordinates and number off coordinates in ref different from coordinate in the second receiver'))
                     end
@@ -3439,7 +3441,7 @@ classdef Coordinates < Exportable & handle
 
             % Find non linearly sampled coordinates (anomaly)
             rate = median(diff(pos_time(:)));
-            time_ko = abs((mod(pos_time, rate) -  robAdj(mod(pos_time, rate)'))) > rate/100;
+            time_ko = abs((mod(pos_time, rate) -  median(mod(pos_time, rate)', 'omitnan'))) > rate/100;
             if any(time_ko)
                 Core.getLogger.addWarning(sprintf('Coordinate %s object contains %d/%d non regularly sampled values', coo.getNameV3, sum(time_ko), numel(time_ko)));
                 pos_flags(time_ko) = [];
@@ -3457,7 +3459,7 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   this.showCoordinates(coo_list);
-            
+
             if strcmpi(mode, 'XYZ')
                 mode = 'XYZ';
                 axis_label = {'ECEF X', 'ECEF Y', 'ECEF Z'};
@@ -3471,7 +3473,7 @@ classdef Coordinates < Exportable & handle
             end
             if nargin >= 4 && n_obs > 0
                 time_start = coo_ref.getTime.getEpoch(max(1, coo_ref.length() - n_obs));
-                time_start.addIntSeconds(-coo_ref.getTime.getRate());                
+                time_start.addIntSeconds(-coo_ref.getTime.getRate());
                 for c = 1:numel(coo_list)
                     coo_list(c) = coo_list(c).getCopy;
                     coo_list(c).rem(GPS_Time('1970-01-07 00:00:00'), time_start);
@@ -3487,7 +3489,7 @@ classdef Coordinates < Exportable & handle
             thr = iif(numel(coo_list) > 16, 1, 0.8);
             flag_distr = false;
             flag_jump = false;
-            
+
             str_title{2} = sprintf('STD (vs smoothed signal)');
             str_title{3} = sprintf('STD (vs smoothed signal)');
             log = Core.getLogger();
@@ -3497,11 +3499,11 @@ classdef Coordinates < Exportable & handle
                 for i = 1 : numel(coo_list)
                     xyz(i,:) = coo_list(i).getMedianPos().getXYZ;
                 end
-                baricenter = Coordinates.fromXYZ(median(xyz,1,'omitnan')); 
+                baricenter = Coordinates.fromXYZ(median(xyz,1,'omitnan'));
             else
                 baricenter = [];
             end
-            ns = 0;   
+            ns = 0;
             yl = ({[-0 0], [-0 0], [-0 0]});
             xl = {[+inf 0], [+inf 0], [+inf 0]};
             legend_str = {};
@@ -3525,7 +3527,7 @@ classdef Coordinates < Exportable & handle
                         % single coordinates (no baseline)
                         if not(isempty(str_title{1}))
                             old_names = regexp(str_title{1}, '.*Position', 'match', 'once');
-                            old_names = old_names(1:(end-9));   
+                            old_names = old_names(1:(end-9));
                             old_val = regexp(str_title{1}, '(?<=signal\)).*', 'match', 'once');
                         else
                             old_names = '';
@@ -3593,7 +3595,7 @@ classdef Coordinates < Exportable & handle
                         else
                             color_order = Core_UI.getColor(i * [1 1 1], numel(coo_list));
                         end
-                        
+
                         data = {};
                         data_component = {};
                         clear lh;
@@ -3612,7 +3614,7 @@ classdef Coordinates < Exportable & handle
                                 data_component{c} = detrend(data_component{c}, 'omitnan');
                             end
                             setAxis(fh, c);
-                            
+
                             % Plot confidence level
                             if flag_confidence
                                 if any(pos_std(:))
@@ -3624,7 +3626,7 @@ classdef Coordinates < Exportable & handle
                                     yyaxis left;
                                 end
                             end
-                            
+
                             if thr < 1
                                 % If there was no PPP nor NET, consider the data as bad
                                 lid_pro_ok = logical(coo(1).isPPPOk(pos_flags)) | logical(coo(1).isNETOk(pos_flags)) | logical(pos_flags == 0); % this last condition is needed for files imported from text with no flag information
@@ -3657,7 +3659,7 @@ classdef Coordinates < Exportable & handle
                                     [data{c}(not_nan), lid_ko(not_nan), trend(not_nan), data_smooth(not_nan), jump_list] = Coordinates.cooFilter([pos_time(not_nan) data_component{c}(not_nan) pos_var(not_nan)], 0.8, 7);
                                 else
                                     [data{c}(not_nan), lid_ko(not_nan), trend(not_nan), data_smooth(not_nan), jump_list] = Coordinates.cooFilter([pos_time(not_nan) data_component{c}(not_nan)], 0.9, 4);
-                                end                                
+                                end
                                 %DEBUG: figure; plot(data_component{c}); hold on; plot(data{c},'o')
 
                                 % Sum outliers to badly processed data
@@ -3677,7 +3679,7 @@ classdef Coordinates < Exportable & handle
                                     data_smooth = pos_diff_model(:,c);
                                 end
                                 setAxis(fh, c);
-                                
+
                                 % Plot all the data
                                 Core_Utils.plotSep(pos_time, data_component{c}, '.', 'MarkerSize', 7, 'LineWidth', 1.6, 'Color', [0.5 0.5 0.5 0.4]);
                                 if flag_add_status && ~isempty(pos_flags)
@@ -3695,7 +3697,7 @@ classdef Coordinates < Exportable & handle
 
                                 % Plot only supposely good data
                                 Core_Utils.plotSep(pos_time, data{c}, '.-', 'MarkerSize', 6, 'LineWidth', 1.6, 'Color', color_order(c,:));
-                                
+
                                 % Plot smoothed signal
                                 if ~flag_no_interp
                                     if any(data_smooth) && (std(data_smooth, 'omitnan') < 2*std(data{c}, 'omitnan') || std(data_smooth, 'omitnan'))
@@ -3707,7 +3709,7 @@ classdef Coordinates < Exportable & handle
                                         Core.getLogger.addWarning('Coordinate model not displaied, it is too bad');
                                     end
                                 end
-                                
+
                                 ylj = [-30 30]*1e3;
                                 tj = pos_time(not_nan);
                                 if flag_jump
@@ -3715,21 +3717,21 @@ classdef Coordinates < Exportable & handle
                                         plot(tj([jump_list(j) jump_list(j)]) + (rate/2)/86400 , ylj, '-.', 'LineWidth', 2, 'Color', [0 0 0 0.75]); hold on;
                                     end
                                 end
-                                
+
                             else
                                 data{c} = data_component{c};
                                 setAxis(fh, c);
                                 % Plot data
                                 Core_Utils.plotSep(pos_time, data_component{c}, '.-', 'MarkerSize', 8.5, 'LineWidth', 1.6, 'Color', color_order(c,:));
                                 lid_ko = false(numel(pos_time), 1);
-                                
+
                                 if any(pos_diff_model(:))
                                     data_smooth = pos_diff_model(:,c);
                                 else
                                     % Use a simple trend on data as smothed signal
                                     data_smooth = Core_Utils.interp1LS(pos_time(~isnan(pos_diff(:,1))), pos_diff(~isnan(pos_diff(:,c)),c), 1, pos_time);
                                 end
-                            end                            
+                            end
                             setAxis(fh, c);
                             ax(4-c) = gca(fh);
                             if (pos_time(end) > pos_time(1))
@@ -3742,10 +3744,10 @@ classdef Coordinates < Exportable & handle
                             ylim(yl{c});
                             h = ylabel([axis_label{c} ' [mm]']); h.FontWeight = 'bold';
                             grid on;
-                            
+
                             %str_title{c} = sprintf('%s %s%.2f', str_title{c}, iif(i>1, '- ', ''), std((data{c}(~lid_ko) - data_smooth(~lid_ko)), 'omitnan'));
                             %h = title(str_title{c}, 'interpreter', 'none'); h.FontWeight = 'bold';
-                            legend_str{end} = sprintf('%s | %.2f', legend_str{end}, std((data{c}(~lid_ko) - data_smooth(~lid_ko)), 'omitnan'));                            
+                            legend_str{end} = sprintf('%s | %.2f', legend_str{end}, std((data{c}(~lid_ko) - data_smooth(~lid_ko)), 'omitnan'));
                         end
                         % Only lines are legend elements
                         for c = 1 : 3
@@ -3772,44 +3774,44 @@ classdef Coordinates < Exportable & handle
                         end
                         sgtitle(str_title{1});
                         set(lh(2:3), 'Visible','off');
-                        
+
                         if flag_distr
                             for c = 1 : 3
                                 % DISTRIBUTION PLOT ------------------------------------------------------------------------------------------------
-                                
+
                                 subplot(3, 12, c*12 + (-1:0));
                                 %%
                                 % Get distribution of data
-                                
+
                                 [n_res, x] = hist(data{c}, max(round(diff(minMax(data{c}))/1), 20));
                                 rate_x = mean(diff(x));
                                 padding = 1:0.5:10;
                                 x = [-fliplr(padding) * rate_x + min(x),  x, padding * rate_x + max(x)];
                                 n_res = [0*padding n_res 0*padding];
                                 n_res_var = 1./ n_res.^2;
-                                
+
                                 % Normalize to one
                                 n_res = n_res ./ sum(n_res);
-                                
+
                                 % Get distribution limits
                                 lim = minMax(x);
                                 x_out = linspace(lim(1), lim(end), 1000);
-                                
+
                                 [~, ~, ~, y] = splinerMat(x', n_res', max(3*rate_x, 2), 1e-4, x_out);
                                 %x_out = x;
                                 %y = n_res';
-                                
+
                                 ax_tmp = setAxis(fh, c + 3);
                                 patch([max(0,y); 0; 0], [x_out, x_out(end), x_out(1)]', min(1, color_order(c,:) + 0.2), ...
                                     'FaceColor', min(1, color_order(c,:) + 0.2), ...
                                     'EdgeColor', color_order(c,:), ...
                                     'FaceAlpha', 0.2, ...
                                     'EdgeAlpha', 1,  ...
-                                    'HandleVisibility', 'off'); 
+                                    'HandleVisibility', 'off');
                                 ax_tmp.XAxis.TickValues = [];
                                 ylim([min(x(1), yl{c}(1)) max(x(end), yl{c}(2))]);
                                 xlim([-0.01 max(y)+0.1]);
-                                
+
                                 title('Distribution');
                             end
                         end
@@ -3835,13 +3837,13 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function fh = showCoordinatesENU(coo_list, coo_ref, n_obs, rot_angle_cw)
             % Plot East North Up coordinates
             %
             % SYNTAX
             %   this.showCoordinatesENU(coo_list, coo_ref,n_obs);
-            
+
             switch nargin
                 case 1, fh = showCoordinates('ENU', coo_list);
                 case 2, fh = showCoordinates('ENU', coo_list, coo_ref);
@@ -3849,7 +3851,7 @@ classdef Coordinates < Exportable & handle
                 case 4, fh = showCoordinates('ENU', coo_list, coo_ref, n_obs, rot_angle_cw);
             end
         end
-        
+
         function fh = showPositionXYZ(coo_list)
             % Plot X Y Z coordinates
             %
@@ -3857,7 +3859,7 @@ classdef Coordinates < Exportable & handle
             %   this.showPositionXYZ(coo_list);
             fh = showCoordinatesXYZ(coo_list);
         end
-        
+
         function fh = showCoordinatesXYZ(coo_list, coo_ref, n_obs)
             % Plot X Y Z coordinates
             %
@@ -3869,7 +3871,7 @@ classdef Coordinates < Exportable & handle
                 case 3, fh = showCoordinates('XYZ', coo_list, coo_ref, n_obs);
             end
         end
-        
+
         function fh = showPositionPlanarUp(coo_list)
             % Plot East North Up coordinates
             %
@@ -3877,13 +3879,13 @@ classdef Coordinates < Exportable & handle
             %   this.showPositionENU(coo_list);
             fh = showCoordinatesPlanarUp(coo_list);
         end
-        
+
         function fh_list = showCoordinatesPlanarUp(coo_list, id_ref, n_obs)
             % Plot East North Up coordinates
             %
             % SYNTAX
             %   this.showCoordinatesPlanarUp(coo_list);
-            
+
             if (nargin < 2) || isempty(id_ref)
                 id_ref = [];
             else
@@ -3899,7 +3901,7 @@ classdef Coordinates < Exportable & handle
                 end
             end
 
-            coo_ref = coo_list(id_ref);           
+            coo_ref = coo_list(id_ref);
             % Remove baricentric position instead of the median value;
             flag_rem_baricenter = false;
             flag_no_interp = true;
@@ -3917,7 +3919,7 @@ classdef Coordinates < Exportable & handle
             thr = iif(numel(coo_list) > 16, 1, 0.8);
             flag_distr = false;
             flag_jump = false;
-            
+
             log = Core.getLogger();
             fh_list = []; fh = [];
             if flag_rem_baricenter
@@ -3925,7 +3927,7 @@ classdef Coordinates < Exportable & handle
                 for i = 1 : numel(coo_list)
                     xyz(i,:) = coo_list(i).getMedianPos().getXYZ;
                 end
-                baricenter = Coordinates.fromXYZ(median(xyz,1,'omitnan')); 
+                baricenter = Coordinates.fromXYZ(median(xyz,1,'omitnan'));
             else
                 baricenter = [];
             end
@@ -3937,7 +3939,7 @@ classdef Coordinates < Exportable & handle
                 coo = coo_list(i);
 
                 if ~coo.isEmpty && any(coo.xyz(:))
-                    
+
                     if ~isempty(coo_ref)
                         coo_ref = coo_ref.getMergedPos();
                     end
@@ -3952,7 +3954,7 @@ classdef Coordinates < Exportable & handle
                             end
                         end
                     end
-                    
+
                     if size(enu_diff, 1) > 1
                         if isempty(fh)
                             str_title{1} = sprintf('%sPosition detrended planar Up [mm]\nSTD (vs smoothed signal)', iif(flag_multirec, '', [coo.getName ' ']));
@@ -3967,7 +3969,7 @@ classdef Coordinates < Exportable & handle
                             fh.Name = sprintf('%03d: dPUP', fh.Number); fh.NumberTitle = 'off';
                             color_order = Core_UI.getColor(1:3,3);
                         end
-                                                
+
                         % OUTLIER DETECTION ------------------------------
                         trend =  nan(size(pos_time,1),3);
                         for c = 1:3
@@ -3975,7 +3977,7 @@ classdef Coordinates < Exportable & handle
                             flag_var = any(pos_var);
                             pos_var(pos_var == 0) = 100.^2; % 100 meters of std
                             not_nan =  ~isnan(enu_diff(:,c));
-                            data_smooth =  nan(size(pos_time));                            
+                            data_smooth =  nan(size(pos_time));
                             lid_ko = true(size(pos_time));
                             trend_c =  nan(size(pos_time));
                             data{c} = nan(size(enu_diff(:,c)));
@@ -3997,11 +3999,11 @@ classdef Coordinates < Exportable & handle
                                 data_smooth = pos_diff_model(:,c);
                             end
                         end
-                        
+
                         Core_UI.beautifyFig(fh);
                         fh.Visible = iif(Core_UI.isHideFig, 'off', 'on'); drawnow;
                         drawnow
-                        
+
                         % Plot parallel
                         max_e = ceil(max(abs(minMax(data{1})))/5) * 5;
                         max_n = ceil(max(abs(minMax(data{2})))/5) * 5;
@@ -4016,7 +4018,7 @@ classdef Coordinates < Exportable & handle
                             %% Polar plot -------------------------------------
                             fh.Visible = 'off';
                             subplot(3,2,[1 3]);
-                            
+
                             % Plot circles of precision
                             az_l = 0 : pi/200: 2*pi;
                             % dashed
@@ -4039,7 +4041,7 @@ classdef Coordinates < Exportable & handle
                                 plot(x,y,'color',[0.75 0.75 0.75], 'LineWidth', 2); hold on;
                                 str_legend = [str_legend {'', ''}];
                             end
-                            
+
                             plot(data{1} + trend(:,1), data{2} + trend(:,2), 'o', 'MarkerSize', 4, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                             axis equal;
                             h = ylabel('East [mm]'); h.FontWeight = 'bold';
@@ -4047,18 +4049,18 @@ classdef Coordinates < Exportable & handle
                             ylim(max_r * [-1 1]);
                             xlim(max_r * [-1 1]);
                             grid on;
-                            
+
                             str_legend = [str_legend {sprintf('STD ENU %.2f - %.2f - %.2f', std(data{1}, 'omitnan'), std(data{2}, 'omitnan'), std(data{3}, 'omitnan'))}];
                             legend(str_legend);
 
                             h = title(str_title{1}, 'interpreter', 'none'); h.FontWeight = 'bold';
                             h.FontWeight = 'bold';
-                            
+
                             %% Distribution plot ---------------------------
                             subplot(3,2,[2 4]);
                             planar_full = sqrt(enu_diff(:,1).^2 + enu_diff(:,2).^2);
                             planar_filt = sqrt(data{1}.^2 + data{2}.^2);
-                            
+
                             sigma1 = std(planar_filt, 'omitnan');
                             classes = linspace(0,6*sigma1, 600);
                             if flag_multirec
@@ -4095,7 +4097,7 @@ classdef Coordinates < Exportable & handle
                             end
 
                             %% UP plot -------------------------------------
-                            
+
                             set(0, 'CurrentFigure', fh);
                             subplot(3,2,[5 6]);
                             up = data{3};
@@ -4121,7 +4123,7 @@ classdef Coordinates < Exportable & handle
                 fh.Visible = iif(Core_UI.isHideFig, 'off', 'on');
             end
         end
-        
+
         function [fh, mask] = showSkyMask(coo, varargin)
             % Get a predicted sky mask from DTM
             % Warning it does not handle yet areas close to 180 -180 longitudes
@@ -4173,7 +4175,7 @@ classdef Coordinates < Exportable & handle
             %                      default:  marker of coordinates
             %
             %  - ORBITS ---------------------------------------------------
-            %    Note: orbits are computed using final GFZ products 
+            %    Note: orbits are computed using final GFZ products
             %    (or the loaded core if a rec is passed)
             %
             %   'date_start'   first epoch to compute orbits
@@ -4183,16 +4185,16 @@ classdef Coordinates < Exportable & handle
             %   'date_stop'    last epoch to compute orbits
             %                      GPS_Time
             %                      default:  GPS_Time('2021-11-1 23:59:59')
-            % 
+            %
             %   'sys_list'     array of constellation to use
             %                      logical [7x1] || char
             %                      default:  'GRE'
-            %             
+            %
             varargin = [{'show_fig', 'true'}, varargin];
             coo = coo.getMedianPos;
             [mask, fh] = coo.getSkyMask(varargin{:});
         end
-        
+
         function [fh] = showMap(coo, varargin)
             % Display a map of the coordinates
             % Warning it does not handle yet areas close to 180 -180 longitudes
@@ -4326,11 +4328,11 @@ classdef Coordinates < Exportable & handle
             %   'cmap'             RGB colormap for the arrows
             %                      array:    [n_colors x 3]
             %                      default:  Cmap.get('c51'); cmap = flipud(cmap(20:36,:));
-            
+
             coo = coo(not(coo.isEmpty));
             if not(isempty(coo))
                 % Default args --------------------------------------------
-                
+
                 new_fig = true;
                 use_model = false;
                 coo_type = 'obs'; % this is later commanded by use_model, if true this field will be 'model'
@@ -4342,10 +4344,10 @@ classdef Coordinates < Exportable & handle
                 shape = 'none';            % it can be: none / coast / fill / 10m / 30m / 50m
                 contour_lines = false;
                 add_margin = [0 0];
-                
+
                 id_ref = [];
                 N_MAX_POINTS = 50; % Max number of stations to use larger points / labels
-                
+
                 flag_tooltip = true;
                 flag_label = true;
                 flag_label_bg = false;
@@ -4354,7 +4356,7 @@ classdef Coordinates < Exportable & handle
                 label_size = 12;
                 point_size = 10;
                 point_color = Core_UI.LBLUE;
-                
+
                 arrow_type = 'none';       % It can be: none / planar / none
                 use_displacements = false;
                 animate = false;
@@ -4371,7 +4373,7 @@ classdef Coordinates < Exportable & handle
                 fig_handle = [];
 
                 % Parse args ----------------------------------------------
-                
+
                 force_label = false;
                 args = varargin;
                 if iscell(args) && numel(args) > 0
@@ -4477,23 +4479,23 @@ classdef Coordinates < Exportable & handle
                         a = a + 1;
                     end
                 end
-                
+
                 id_ref(id_ref > numel(coo)) = [];
-                
+
                 if animate
                     animate =  animate && not(arrow_type(1) == 'n');
                     use_displacements = true;
                 end
-                
+
                 if use_model
                     coo_type = 'model';
                 end
-                
+
                 if numel(coo) > N_MAX_POINTS && not(force_label)
                     flag_label = false;
                     flag_label_bg = false;
                 end
-                
+
                 show_velocities = (not(isempty(id_ref)) || use_displacements) && not(strcmp(arrow_type, 'none'));
 
                 % Manage point coloring
@@ -4588,7 +4590,7 @@ classdef Coordinates < Exportable & handle
                         Core_UI.beautifyFig(fh, 'light');
                         drawnow
                     end
-                   
+
                     switch bg_type
                         case {'map'}
                             % White labels in Google maps provides enough contrast
@@ -4607,7 +4609,7 @@ classdef Coordinates < Exportable & handle
                                 img_ggl = [];
                                 ax = setAxis(fh);
                                 [~, lon_ggl, lat_ggl, img_ggl] = addMap('ax', ax, 'alpha', 0.95, 'lon_lim', dlon_ext, 'lat_lim', dlat_ext, 'm_map', true);
-                                
+
                                 if contour_lines && max(diff(nwse([3 1])), diff(nwse([2 4]))) < 1 % Add contour
                                     [dtm, lat_dtm, lon_dtm] = Core.getRefDTM(nwse, 'ortho', dtm_resolution);
                                     if numel(dtm) > 100
@@ -4846,7 +4848,7 @@ classdef Coordinates < Exportable & handle
                             arrow_type = 'none';
                             animate = false;
                         end
-                    
+
                     % Set points style --------------------------------------------
 
                         for r = 1 : numel(coo)
@@ -4903,7 +4905,7 @@ classdef Coordinates < Exportable & handle
                                 end
                             end
                         end
-                    end                    
+                    end
 
                     % Draw labels -------------------------------------------------
 
@@ -5029,7 +5031,7 @@ classdef Coordinates < Exportable & handle
                         Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'light');
                         fh.Visible = iif(Core_UI.isHideFig, 'off', 'on'); drawnow;
                     end
-                                        
+
                     if new_fig
                         if ~isempty(fill_val)
                             colormap(p_cmap);
@@ -5158,7 +5160,7 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function [smooth_rh, time_out, err] = getReflectorHeightInterp(coo, spline_base, rate, max_merge)
             % Compute an interpolation of the rreflector height (useful in the cases of raw sample saved)
             %
@@ -5196,7 +5198,7 @@ classdef Coordinates < Exportable & handle
             time_out = (start_time:rate:stop_time)';
             % prepare data
             data_filt = double([rh.value max(0.05, rh.std).^2]);
-            
+
             % compute a mask
             mask_out = false(size(time_out));
             mask_out(round(time_in/rate)+1 - floor(time_in(1)/rate)) = true;
@@ -5217,7 +5219,7 @@ classdef Coordinates < Exportable & handle
 
             % compute interpolation
             m = robAdj(data_filt(:,1)');
-            
+
             % compute splines for regularization
             s = 10*robStd(data_filt(:,1))/2;
             % calibrate them on the biggest gap, min 4 spline_bas, max 1 day
@@ -5238,7 +5240,7 @@ classdef Coordinates < Exportable & handle
 
             % Convert back time_out to GPS_Time
             time_out = GPS_Time(ref_time + time_out(:)/86400);
-            
+
             % check for divergence
             % if the interpolation is less than the min value or higher than the higher value by more the 1/2 of
             % the observation variation, mark it as outlier
@@ -5271,7 +5273,7 @@ classdef Coordinates < Exportable & handle
             raw_value = coo.reflectometry.value;
             [~, ~, h_ell, h_ort] = coo.getGeodetic;
             time_coo = coo.getTime;
-                    
+
             % Adjust original values if flag_height is true
             if flag_height
                 if time_coo.length > 1
@@ -5311,7 +5313,7 @@ classdef Coordinates < Exportable & handle
             % Plot original observations as light gray dots
             t_raw = raw_time.getDateTime();
             plot(t_raw, raw_value, '.', 'Color', ones(1,3)*0.7, 'DisplayName', 'RAW Observations');
-            
+
             % Plot interpolated data
             plot(time_data.getDateTime(), rh_value, '.-', 'LineWidth', 2, 'MarkerSize', 8, 'DisplayName', 'Interpolated Water Level', 'Color', Core_UI.BLUE);
 
@@ -5441,7 +5443,7 @@ classdef Coordinates < Exportable & handle
                     set(ax,'Ydir','reverse')
                 end
                 xlim(minMax(t));
-                
+
                 if flag_info
                     ax3 = subplot(4,1,4);
                     plot(t, coo.reflectometry.n_obs, '.--', 'LineWidth', 2, 'MarkerSize', 5, 'Color', Cmap.getColor(10,100, 'viridis'));
@@ -5459,11 +5461,11 @@ classdef Coordinates < Exportable & handle
             end
         end
     end
-    
+
     % =========================================================================
     %%    STATIC AUXILLIARY
     % =========================================================================
-    
+
     methods (Static, Access = 'private')
         function status = safeSave(out_file_name, coo)
             if ~(exist(out_file_name, 'file') == 2)
@@ -5515,14 +5517,14 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   [ah, max_size, lim_vel] = Coordinates.insertArrowsLegend(fh, v_enu, vel_lim, arrow_type, flag_speed)
-            
+
             if nargin < 5 || isempty(flag_speed)
                 flag_speed = true;
             end
             h_scale = 15;
             ax = setAxis(fh);
             max_v = max(abs(v_enu));
-            
+
             % if there are moving points
             xl = xlim();
             yl = ylim();
@@ -5530,11 +5532,11 @@ classdef Coordinates < Exportable & handle
             ax.Units = 'points';
             scale_x = diff(xlim) / ax.Position(3); % points to X-axis coordinates
             scale_y = diff(ylim) / ax.Position(4); % points to Y-axis coordinates
-            
+
             max_size_x =  ax.Position(3) ./ 5 * scale_x; % 2 / 5 of the map in map size
             max_size_y =  ax.Position(4) ./ 5 * scale_y; % 2 / 5 of the map in map size
             lim_vel_x = 0;
-            
+
             if any(max_v)
                 if (strcmp(arrow_type, 'up'))
                     lim_vel = max(vel_lim(2,2), (min(vel_lim(1,2), max_v(3) * 1e3)));
@@ -5544,9 +5546,9 @@ classdef Coordinates < Exportable & handle
                     lim_vel = max(lim_vel_x, lim_vel_y);
                 end
                 % Draw the arrow "Legend" -----------------------------
-                
+
                 v_legend = max(5,floor((lim_vel / max_size_x * 80 * scale_x)/20)*20);
-                
+
                 hr = rectangle('Position', [xl(1) + 20 * scale_x, yl(1) + 20 * scale_y, 20 * scale_y + v_legend / lim_vel * max_size_x, 30 * scale_y], 'FaceColor', Core_UI.WHITE);
                 if flag_speed
                     ht = text(xl(1) + 30 * scale_x, yl(1) + 40 * scale_y, sprintf('%.1fcm/y', v_legend / 10), 'FontSize', 10);
@@ -5559,24 +5561,24 @@ classdef Coordinates < Exportable & handle
             ax.Units = old_state;
             max_size = [max_size_x max_size_y];
         end
-        
+
         function [ah_list, ph_list] = insertArrows(fh, id_ref, x, y, v_enu, max_size, lim_vel, cvel_lim, cmap, arrow_type, flag_dot)
             % Insert velocity arrows in a map  of stations
             %
             % SYNTAX
             %   [ah_list, ph_list] = Coordinates.insertArrows(fh, id_ref, x, y, v_enu, vel_lim, cvel_lim, cmap, arrow_type, flag_dot)
-            
+
             if nargin < 11 || isempty(flag_dot)
                 flag_dot = false;
             end
             max_size_x = max_size(1);
             max_size_y = max_size(2);
-            
+
             h_scale = 18;
             ax = setAxis(fh);
-            
+
             % Draw the arrows -----------------------------------------
-            
+
             ah_list = cell(length(x),1);
             ph_list = cell(length(x),1);
             for r = 1 : length(x)
@@ -5607,14 +5609,14 @@ classdef Coordinates < Exportable & handle
                             (v_enu(r,1) * 1e3 / lim_vel / sf) * max_size_x, ...
                             (v_enu(r,2) * 1e3 / lim_vel / sf) * max_size_y, ...
                             h_scale, cmap(id_col, :), flag_oversize, flag_dot);
-                        
+
                         ah_list{r} = ah;
                         ph_list{r} = ph;
                     end
                 end
             end
         end
-        
+
         function mouseMove(~, ~, ax, p_pos, ph)
             % Auxilliary function to showMap
             % Display info-boxes on mouse move
@@ -5624,11 +5626,11 @@ classdef Coordinates < Exportable & handle
             %
             % SEE ALSO
             %   showMap
-            
+
             % get x and y position of cursor
             x_pos = ax.CurrentPoint(1,1);
             y_pos = ax.CurrentPoint(1,2);
-            
+
             old_state = ax.Units;
             ax.Units = 'Points';
             if isempty(ax.UserData)
@@ -5682,7 +5684,7 @@ classdef Coordinates < Exportable & handle
             % display distances in textbox (debug)
             % ax.Title.String = "d: "+d+" id min: "+id_min;
         end
-        
+
         function fixLabels(lbl_pos, lbl_handle)
             % Auxilliary function to showMap
             % Reposition Labels trying not to overlap them
@@ -5700,7 +5702,7 @@ classdef Coordinates < Exportable & handle
             %
             % SEE ALSO
             %   showMap
-            
+
             % If I have more than one label
             if size(lbl_pos, 1) > 1
                 lbl_scale = 5e3/max((diff(minMax(lbl_pos(:, 1))) + lbl_pos(1,3)), (diff(minMax(lbl_pos(:, 2))) + lbl_pos(1,3)));
@@ -5709,23 +5711,23 @@ classdef Coordinates < Exportable & handle
                 x2_lbl = (lbl_pos(:,1) + lbl_pos(:,3)) * lbl_scale;
                 y2_lbl = (lbl_pos(:,2) + 1.5 * lbl_pos(:,4)) * lbl_scale;
                 b_area = [min(x0_lbl) min(y0_lbl) max(x2_lbl) max(y2_lbl)];
-                
+
                 x0_lbl = round(x0_lbl - b_area(1)) +1;
                 y0_lbl = round(y0_lbl - b_area(2)) +1;
-                
+
                 x2_lbl = round(x2_lbl - b_area(1)) +1;
                 y2_lbl = round(y2_lbl - b_area(2)) +1;
-                
+
                 w_lbl = (x2_lbl - x0_lbl)/2;
                 h_lbl = (y2_lbl - y0_lbl)/2;
-                
+
                 b_area = round(b_area - [b_area(1:2) b_area(1:2)]) + 1;
                 box = zeros(b_area(4), b_area(3));
                 % DEBUG: final_box = zeros(b_area(4), b_area(3));
                 for i = 1:size(lbl_handle, 1)
                     box(y0_lbl(i):y2_lbl(i), x0_lbl(i):x2_lbl(i)) = box(y0_lbl(i):y2_lbl(i), x0_lbl(i):x2_lbl(i)) + 1;
                 end
-                
+
                 if any(box(:) > 1) % I might have overlap of boxes
                     id_min = 1;
                     missing_lbl = 1 : size(lbl_handle, 1);    % List of labels to fit
@@ -5758,7 +5760,7 @@ classdef Coordinates < Exportable & handle
                             x0_lbl(lbl_id) + w_lbl(lbl_id)/2   y0_lbl(lbl_id); ...
                             x0_lbl(lbl_id)                     y0_lbl(lbl_id) + h_lbl(lbl_id)/2; ...
                             x0_lbl(lbl_id) + w_lbl(lbl_id)/2   y0_lbl(lbl_id) + h_lbl(lbl_id)]);
-                        
+
                         pos_limits = round([pos_limits(:,1), pos_limits(:,2), min(size(box,2), pos_limits(:,1) + w_lbl(lbl_id)), min(size(box,1), pos_limits(:,2)  + h_lbl(lbl_id))]);
                         i = 1;
                         score = 0;
@@ -5777,17 +5779,17 @@ classdef Coordinates < Exportable & handle
                             end
                             i = i + 1;
                         end
-                        
+
                         [score] = max(box_score); % We have found our candidate to position
                         id_pos = find(box_score == score); % multiple candidates
                         [score] = min(box_score_sum(id_pos));
                         id_pos = id_pos(find(box_score_sum(id_pos) == score, 1, 'first')); % Get the first good
-                        
+
                         % Save in the overlap box that some areas are now occupied by a label
                         box(pos_limits(id_pos,2) : pos_limits(id_pos,4), pos_limits(id_pos,1) : pos_limits(id_pos,3)) = 1000;
                         % Save in the final map where the labels are located
                         % DEBUG: final_box(pos_limits(id_pos,2) : pos_limits(id_pos,4), pos_limits(id_pos,1) : pos_limits(id_pos,3)) = final_box(pos_limits(id_pos,2) : pos_limits(id_pos,4), pos_limits(id_pos,1) : pos_limits(id_pos,3)) + 1;
-                        
+
                         % 3 8 4
                         % 7 x 5     x is the location of the node to label
                         % 2 6 1
@@ -5797,7 +5799,7 @@ classdef Coordinates < Exportable & handle
                         y0_tmp = lbl_pos(lbl_id,2) - h_tmp/2;
                         h_margin = h_tmp/4;
                         w_margin = h_tmp/4;
-                        
+
                         switch id_pos
                             case 1, lbl_handle(lbl_id, 1).Position(1:2) = [x0_tmp + w_tmp - w_margin    y0_tmp - h_margin];
                             case 2, lbl_handle(lbl_id, 1).Position(1:2) = [x0_tmp         + w_margin    y0_tmp - h_margin];
@@ -5814,25 +5816,25 @@ classdef Coordinates < Exportable & handle
                         missing_lbl = setdiff(missing_lbl, lbl_id);
                     end
                 end
-                
+
                 % figure; imagesc(final_box);
                 % figure; imagesc(flipud(box)); caxis([0 5]);
             end
         end
     end
-    
+
     % =========================================================================
     %%    PATHS
     % =========================================================================
-    
+
     methods (Access = 'public')
-        
+
         function out_file_path = getOutPath(this, out_file_prefix)
             % Get the path to ag eneriv coordinate file (noextension)
             %
             % SYNTAX
             %   out_file_path = this.getOutPath(<out_file_prefix>)
-            
+
             state = Core.getState();
             if nargin < 2 || isempty(out_file_prefix)
                 out_file_prefix = strrep([state.getPrjName '_'], ' ', '_');
@@ -5844,13 +5846,13 @@ classdef Coordinates < Exportable & handle
             end
             out_file_path = out_file_prefix;
         end
-        
+
         function out_file_name = getMatOutPath(this, out_file_prefix)
             % Get the path to the coordinate file
             %
             % SYNTAX
             %   out_file_path = this.getCooOutPath(<out_file_prefix>)
-            
+
             % if numel(this) == 1
             %     % add the name to the filename
             %     if (nargin == 2)
@@ -5866,59 +5868,59 @@ classdef Coordinates < Exportable & handle
                 end
            % end
         end
-        
+
         function out_file_name = getCooOutPath(this, out_file_prefix)
             % Get the path to the coordinate file
             %
             % SYNTAX
             %   out_file_path = this.getCooOutPath(<out_file_prefix>)
-            
+
             if (nargin == 2)
                 out_file_name = strrep([this.getOutPath(out_file_prefix) this.name '.coo'], ' ', '_');
             else
                 out_file_name = strrep([this.getOutPath() this.name '.coo'], ' ', '_');
             end
         end
-        
+
         function out_file_name = getBernyOutPath(this, out_file_prefix)
             % Get the path to the coordinate file
             %
             % SYNTAX
             %   out_file_path = this.getCooOutPath(<out_file_prefix>)
-            
+
             if (nargin == 2)
                 out_file_name = strrep([this.getOutPath(out_file_prefix) this.name '.brn'], ' ', '_');
             else
                 out_file_name = strrep([this.getOutPath() this.name '.brn'], ' ', '_');
             end
         end
-        
+
         function out_file_name = getReflectorTxtOutPath(this, out_file_prefix)
             % Get the path to the reflector file
             %
             % SYNTAX
             %   out_file_path = this.getReflectorTxtOutPath(<out_file_prefix>)
-            
+
             if (nargin < 2) || isempty(out_file_prefix)
                 out_file_name = strrep([this.getOutPath() this.name '_rfx.txt'], ' ', '_');
             else
                 out_file_name = strrep([this.getOutPath(out_file_prefix) this.name '_rfx.txt'], ' ', '_');
             end
         end
-        
+
         function out_file_name = getPrjReflectorTxtOutPath(this, out_file_prefix)
             % Get the path to the reflector file for the mean value of the project
             %
             % SYNTAX
             %   out_file_path = this.getPrjReflectorTxtOutPath(<out_file_prefix>)
-            
+
             if (nargin == 2)
                 out_file_name = strrep([this.getOutPath(out_file_prefix) 'merged_rfx.txt'], ' ', '_');
             else
                 out_file_name = strrep([this.getOutPath() 'merged_rfx.txt'], ' ', '_');
             end
         end
-        
+
         function out_file_path = exportAsMat(coo_list, out_file_path, flag_rfl_only)
             % Export as coo file (progressive appended file)
             % Any new entry is inserted sorted in the file
@@ -5928,7 +5930,7 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   out_file_path = coo.exportAsMat(<out_file_name>)
-            
+
             if nargin < 2 || isempty(out_file_path)
                 out_file_path = coo_list.getMatOutPath();
             end
@@ -5937,7 +5939,7 @@ classdef Coordinates < Exportable & handle
             end
             log  = Logger.getInstance;
             log.addMarkedMessage(sprintf('Updating coordinates to %s', out_file_path));
-            
+
             [base, fname, fext] = fileparts(out_file_path);
             if ~isempty(base) && not(exist(base, 'dir'))
                 try
@@ -5947,14 +5949,14 @@ classdef Coordinates < Exportable & handle
                 end
             end
             flag_old_coo = false;
-            
+
             try
                 load(out_file_path, 'coo');
                 flag_old_coo = not(all(coo.isEmpty));
             catch
                 % There are no old coordinates
             end
-            
+
             if flag_old_coo
                 % Import old coordinates
                 for r = 1 : numel(coo)
@@ -5977,7 +5979,7 @@ classdef Coordinates < Exportable & handle
             end
             Coordinates.safeSave(out_file_path, coo);
         end
-            
+
         function exportAsCoo(coo_list, out_file_name, flag_latlonup)
             % Export as coo file (progressive appended file)
             % Any new entry is inserted sorted in the file
@@ -5987,7 +5989,7 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   coo.exportAsCoo(<out_file_name>)
-            
+
             for coo = coo_list(:)'
                 now_time = GPS_Time.now();
                 if nargin < 2 || isempty(out_file_name)
@@ -5999,7 +6001,7 @@ classdef Coordinates < Exportable & handle
                 log  = Logger.getInstance;
                 log.addMarkedMessage(sprintf('Updating coordinates to %s', out_file_name));
                 try
-                    
+
                     if exist(out_file_name, 'file') == 2
                         % Read and append
                         [txt, lim] = Core_Utils.readTextFile(out_file_name, 3);
@@ -6015,7 +6017,7 @@ classdef Coordinates < Exportable & handle
                                 log.addWarning(sprintf('"%s" is in an older format', out_file_name));
                             end
                             file_ok = not(isempty(regexp(txt(lim(id_ver, 1):lim(id_ver, 2)), '(?<=FileVersion[ ]*: )1.', 'once')));
-                            
+
                             % Data should be present
                             timestamp = [];
                             if file_ok
@@ -6041,7 +6043,7 @@ classdef Coordinates < Exportable & handle
                             else
                                 data_start = 0;
                             end
-                            
+
                             % Check description field
                             % use the old one for the file
                             if file_ok
@@ -6057,7 +6059,7 @@ classdef Coordinates < Exportable & handle
                         file_ok = false;
                         timestamp = [];
                     end
-                    
+
                     if not(file_ok)
                         str_tmp = sprintf('+Description    : XYZ Position file generated on %s\n', now_time.toString('dd-mmm-yyyy HH:MM'));
                     end
@@ -6104,7 +6106,7 @@ classdef Coordinates < Exportable & handle
                         str_tmp = sprintf('%s -21            : up (ellipsoidal WGS84)\n', str_tmp);
                     end
                     str_tmp = sprintf('%s+DataStart\n', str_tmp);
-                    
+
                     % Append New
                     e = 1; % old epoch
                     [~, id_time] = sort(coo.time.getMatlabTime);
@@ -6167,7 +6169,7 @@ classdef Coordinates < Exportable & handle
                             catch
                                 master_name = coo.getNameV3; % Convert marker_v3
                             end
-                            if flag_latlonup                                
+                            if flag_latlonup
                                 str_tmp = sprintf('%s%s;%s;%.4f;%.4f;%.4f;%.4f;%.4f;%.4f;%.4f;%.4f;%.4f;%d;%d;%.3f;%.4f;%.2f;%d;%c;%s;%.9f;%.9f;%.4f\n', str_tmp, time, now_time.toString('yyyy-mm-dd HH:MM:SS'), ...
                                 xyz(1), xyz(2), xyz(3), ...
                                 cov(1,1), cov(2,2), cov(3,3), cov(1,2), cov(1,3), cov(2,3), ...
@@ -6218,10 +6220,10 @@ classdef Coordinates < Exportable & handle
                     Core_Utils.printEx(ex);
                     log.addError(sprintf('Exporting failed'));
                 end
-		out_file_name = '';
+                out_file_name = '';
             end
         end
-        
+
         function out_file_name = exportAsBerny(this, out_file_name)
             % Export as CRD and OUT file as Bernese does
             %
@@ -6231,7 +6233,7 @@ classdef Coordinates < Exportable & handle
             % SYNTAX
             %   coo.exportAsBerny(<out_file_name>)
             %   coo.exportAsBerny(<out_file_name>, new_ref_name, new_fixed_xyz, keep_orphans)
-            
+
             if ~isempty(this) && ~all(this.isEmpty)
                 now_time = GPS_Time.now();
                 if nargin < 2 || isempty(out_file_name)
@@ -6447,9 +6449,9 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function file_list_path = exportReflectometryTxtInterp(coo_list, out_dir, first_day, last_day, rt_par)
-            
+
             state = Core.getState;
             if nargin < 2 || isempty(out_dir)
                 out_dir = state.getOutDir();
@@ -6472,7 +6474,7 @@ classdef Coordinates < Exportable & handle
             lim_start = first_day.getCopy; lim_start.addIntSeconds(-2*86400); % trim in window of 10 days
             lim_stop = last_day.getCopy; lim_stop.addIntSeconds(+2*86400); % trim in window of 10 days
             coo.keep(lim_start, lim_stop); % cut to avoid too complex computations
-            
+
             [rh, time_data, err] = coo.getReflectorHeightInterp(86400/4, 900);
             [~, ~, ~, h_masl] = coo.getGeodetic;
 
@@ -6568,7 +6570,7 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   coo.exportReflectometryTxt(<out_file_name>)
-            
+
             for coo = coo_list(:)'
                 now_time = GPS_Time.now();
                 if nargin < 2 || isempty(out_file_path)
@@ -6596,7 +6598,7 @@ classdef Coordinates < Exportable & handle
                                 log.addWarning(sprintf('"%s" is in an older format', out_file_path));
                             end
                             file_ok = not(isempty(regexp(txt(lim(id_ver, 1):lim(id_ver, 2)), '(?<=FileVersion[ ]*: )1.', 'once')));
-                            
+
                             % Data should be present
                             timestamp = [];
                             if file_ok
@@ -6622,7 +6624,7 @@ classdef Coordinates < Exportable & handle
                             else
                                 data_start = 0;
                             end
-                            
+
                             % Check description field
                             % use the old one for the file
                             if file_ok
@@ -6638,7 +6640,7 @@ classdef Coordinates < Exportable & handle
                         file_ok = false;
                         timestamp = [];
                     end
-                    
+
                     if not(file_ok)
                         str_tmp = sprintf('+Description    : Approximate reflector height [m] on the geoid WGS84 generated on %s\n', now_time.toString('dd-mmm-yyyy HH:MM'));
                     end
@@ -6666,7 +6668,7 @@ classdef Coordinates < Exportable & handle
                     str_tmp = sprintf('%s -07            : std\n', str_tmp);
 
                     str_tmp = sprintf('%s+DataStart\n', str_tmp);
-                    
+
                     % Append New
                     e = 1; % old epoch
                     time_refl = coo.getReflectometryTime;
@@ -6697,7 +6699,7 @@ classdef Coordinates < Exportable & handle
                                 z = interp1(time_coo.getMatlabTime, coo.xyz(:,3), time_data.getMatlabTime, 'spline');
                                 xyz = [x y z];
                             end
-                            
+
                             n_obs = coo.reflectometry.n_obs(i);
                             std_r = coo.reflectometry.std(i);
                             if ~isnan(value)
@@ -6735,7 +6737,7 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function exportMergedReflectometryTxt(coo_list, out_file_name)
             % Export as Reflector height as Text File
             % Compatibility layer with GeoGuard
@@ -6745,7 +6747,7 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   coo.exportReflectometryTxt(<out_file_name>)
-            
+
             [rh_data, time_data, data_sync, n_obs] = coo_list.getMeanReflectionHeight();
             coo = coo_list(1);
             now_time = GPS_Time.now();
@@ -6774,7 +6776,7 @@ classdef Coordinates < Exportable & handle
                             log.addWarning(sprintf('"%s" is in an older format', out_file_name));
                         end
                         file_ok = not(isempty(regexp(txt(lim(id_ver, 1):lim(id_ver, 2)), '(?<=FileVersion[ ]*: )1.', 'once')));
-                        
+
                         % Data should be present
                         timestamp = [];
                         if file_ok
@@ -6800,7 +6802,7 @@ classdef Coordinates < Exportable & handle
                         else
                             data_start = 0;
                         end
-                        
+
                         % Check description field
                         % use the old one for the file
                         if file_ok
@@ -6816,7 +6818,7 @@ classdef Coordinates < Exportable & handle
                     file_ok = false;
                     timestamp = [];
                 end
-                
+
                 if not(file_ok)
                     str_tmp = sprintf('+Description    : Approximate reflector height [m] on the ellipsoid generated on %s\n', now_time.toString('dd-mmm-yyyy HH:MM'));
                 end
@@ -6853,9 +6855,9 @@ classdef Coordinates < Exportable & handle
                 str_tmp = sprintf('%s -04            : y\n', str_tmp);
                 str_tmp = sprintf('%s -05            : z\n', str_tmp);
                 str_tmp = sprintf('%s -06            : nObs\n', str_tmp);
-                
+
                 str_tmp = sprintf('%s+DataStart\n', str_tmp);
-                
+
                 % Append New
                 e = 1; % old epoch
                 [~, id_time] = sort(time_data.getMatlabTime);
@@ -6902,34 +6904,34 @@ classdef Coordinates < Exportable & handle
             end
         end
     end
-    
+
     % =========================================================================
     %%    OPERATIONS
     % =========================================================================
-    
+
     methods (Access = 'public')
         function this = importCoo(this, file_name)
             this = Coordinates.fromCooFile(file_name);
         end
-        
+
         function res = eq(coo1, coo2)
             %%% DESCRIPTION: check if two coordinates are equal
             d = sqrt(sum((coo1.xyz - coo2.xyz).^2, 2));
             res = d < coo1.precision;
         end
-        
+
         function coo_diff = minus(coo1, coo2)
             coo_diff = struct('time', [], 'enu_diff', [], 'xyz_diff', [], 'xyz_model_diff', []);
             if coo1.time.isEmpty || coo2.time.isEmpty
                 coo_diff.time = GPS_Time;
-                
+
                 id_ok1 = 1 : min(size(coo1.xyz, 1), size(coo2.xyz, 1));
                 id_ok2 = id_ok1;
             else
                 [common_time, id_ok1, id_ok2] = intersect(coo1.time.getNominalTime.getMatlabTime, coo2.time.getNominalTime.getMatlabTime);
                 coo_diff.time = GPS_Time(common_time);
             end
-            
+
             coo_diff.enu_diff = coo1.getElement(id_ok1).getENU - coo2.getElement(id_ok2).getENU;
             coo_diff.xyz_diff = coo1.getElement(id_ok1).xyz - coo2.getElement(id_ok2).xyz;
             try
@@ -6938,7 +6940,7 @@ classdef Coordinates < Exportable & handle
                 coo_diff.xyz_model_diff = [];
             end
         end
-        
+
         function setNewRef(coo_list, new_ref_name, new_fixed_xyz, keep_orphans)
             % Fix a coordinate to a new value
             %
@@ -6959,7 +6961,7 @@ classdef Coordinates < Exportable & handle
                 while (c < numel(coo_list)) && ~ref_found
                     c = c + 1;
                     tmp = coo_list(c).getNameV3;
-                    n_char = min(numel(tmp), numel(new_ref_name)); 
+                    n_char = min(numel(tmp), numel(new_ref_name));
                     if strcmp(new_ref_name(1:n_char), tmp(1:n_char))
                         ref_found = true;
                     end
@@ -6970,7 +6972,7 @@ classdef Coordinates < Exportable & handle
                     new_ref_id = c;
                 end
             end
-            
+
             if ref_found
                 if nargin < 3 || isempty(new_fixed_xyz)
                     try
@@ -6985,9 +6987,9 @@ classdef Coordinates < Exportable & handle
                         new_fixed_xyz = coo_list(new_ref_id).getMedianPos.getXYZ;
                     end
                 end
-                
+
                 [~, new_ref_name] = coo_list(new_ref_id).getNameV3;
-                
+
                 coo_rate = round(coo_list(new_ref_id).getRate, 3);
                 if isempty(coo_rate) || isnan(zero2nan(coo_rate))
                     % try to retrieve rate from the date
@@ -7011,13 +7013,13 @@ classdef Coordinates < Exportable & handle
                     else
                         xyz_corr_model = 0;
                     end
-                    
+
                     % for each non reference coordinate
                     for c = setdiff(1 : numel(coo_list), new_ref_id)
                         if (time_ref.length == 0)
                             idr = 1;
                         else
-                            tid_coo = coo_list(c).time.getRoundedTime(coo_rate).getRefTime(time0)/coo_rate;                        
+                            tid_coo = coo_list(c).time.getRoundedTime(coo_rate).getRefTime(time0)/coo_rate;
                             [~, idc, idr] = intersect(tid_coo, tid_ref);
                         end
 
@@ -7031,7 +7033,7 @@ classdef Coordinates < Exportable & handle
                                 coo_list(c).xyz_model(idc, :) = coo_list(c).xyz_model(idc, :) + xyz_corr_model(idr, :);
                             end
                             % Covariance propagation with missing cross covariance term
-                            
+
                             if max(idr) <= size(coo_list(new_ref_id).Cxx,3)
                                 vcv_ref = coo_list(new_ref_id).Cxx(:, :, idr);
                             else
@@ -7052,7 +7054,7 @@ classdef Coordinates < Exportable & handle
                             end
                             coo_list(c).info.master_name(idc) = new_ref_name;
                             coo_list(c).info.coo_type(idc) = 'G';
-                            
+
                             % remove epochs with no master
                             if nargin > 3 && not(keep_orphans)
                                 id_ko = setdiff((1:coo_list(c).time.length)', idc);
@@ -7060,7 +7062,7 @@ classdef Coordinates < Exportable & handle
                             end
                         end
                     end
-                    
+
                     % Now fix the new reference
                     coo_list(new_ref_id).xyz = repmat(new_fixed_xyz, numel(tid_ref), 1);
                     coo_list(new_ref_id).xyz_model = repmat(new_fixed_xyz, numel(tid_ref), 1);
@@ -7075,7 +7077,7 @@ classdef Coordinates < Exportable & handle
                 end
             end
         end
-        
+
         function computeModel(coo_list, enu_base)
             % Compute the spline model
             %
@@ -7090,7 +7092,7 @@ classdef Coordinates < Exportable & handle
                 coo.toECEF;
             end
         end
-        
+
         function emptyModel(coo_list)
             % Delete the actually stored model
             %
@@ -7100,7 +7102,7 @@ classdef Coordinates < Exportable & handle
                 coo.xyz_model = [];
             end
         end
-        
+
         function [m_data, sync_time, data_sync, n_obs] = getMeanReflectionHeight(coo_list, flag_height, out_thr)
             % Compute mean refllector heigth from a list of coordinnates
             % containing reflector heights
@@ -7116,7 +7118,7 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX
             %   [m_data, sync_time] = coo_list.getMeanReflectionHeight(thr)
-            
+
             % threshold level
             if nargin < 3 || isempty(out_thr)
                 out_thr = 0.2;
@@ -7131,7 +7133,7 @@ classdef Coordinates < Exportable & handle
             for i = 1 : numel(coo_list)
                 tmp(i) = coo_list(i).getReflectometryTime;
             end
-            
+
             % sync times
             [sync_time, id_sync] = tmp.getSyncedTime;
             % init syncd data
@@ -7158,7 +7160,7 @@ classdef Coordinates < Exportable & handle
 
                     % if there is no reflectometry solution this might fail
                     n_obs(~isnan(id_sync(:,i)),i) = coo_list(i).reflectometry.n_obs(noNaN(id_sync(:,i)));
-                    data_sync(n_obs(:,i) < n_min_obs, i) = nan; 
+                    data_sync(n_obs(:,i) < n_min_obs, i) = nan;
                     std_obs(~isnan(id_sync(:,i)),i) = coo_list(i).reflectometry.std(noNaN(id_sync(:,i)));
                 catch
                     % it's ok no reflectometry data
@@ -7166,19 +7168,19 @@ classdef Coordinates < Exportable & handle
             end
             data_sync_bk = data_sync;
             id_sync(isnan(data_sync)) = NaN; % coordinates might exist but without reflectometry
-            
+
             % select the column with more data to compute inter solution biases
             [~, id_best] = min(sum(isnan(id_sync)));
-            
+
             % compute receiver biases (I don't have precise enough heigths to use them)
             biases = median(data_sync - data_sync(:, id_best), 1, 'omitnan');
             id_ok = ~isnan(biases);
             mean_bias = sum(biases(id_ok) .* sum(nan2zero(n_obs(:,id_ok)),1)) / sum(serialize(nan2zero(n_obs(:,id_ok))),1);
             biases = biases - mean_bias;
-            
+
             % remove biases
             data_sync = bsxfun(@minus, data_sync_bk, biases);
-            
+
             % outlier detection
             if sync_time.getRate < 43200
                 w_obs = zero2nan(n_obs); % Estimate the weights on the base of the number of data and std dev
@@ -7187,7 +7189,7 @@ classdef Coordinates < Exportable & handle
             end
             w_obs = nan2zero(w_obs ./ repmat(sum(nan2zero(w_obs),2), 1, size(w_obs,2))); % normalize weigths
             m_data = sum(nan2zero(data_sync) .* nan2zero(w_obs), 2); % compute weighted mean
-            
+
             % outlier detection sensor
             sensor = abs(data_sync - m_data);
             thr = zeros(size(sensor,1),1); % compute a variable thr I always want at least one obs
@@ -7204,16 +7206,16 @@ classdef Coordinates < Exportable & handle
             id_ko = isnan(data_sync) | sensor > 0; % remove what I think are the outliers
             n_obs_new = n_obs;
             n_obs_new(id_ko) = 0;
-            
+
             % Recompute mean without this suspected outliers
             biases = biases + median(data_sync - m_data, 1, 'omitnan');
             id_ok = ~isnan(biases);
             mean_bias = sum(biases(id_ok) .* sum(nan2zero(n_obs_new(:,id_ok)),1)) / sum(serialize(nan2zero(n_obs_new(:,id_ok))),1);
             biases = biases - mean_bias;
-            
+
             % remove biases
             data_sync = bsxfun(@minus, data_sync_bk, biases);
-            
+
             % weight of observations for the suspected outliers are at zero
             w_obs(id_ko) = 0;
             w_obs = nan2zero(w_obs ./ repmat(sum(nan2zero(w_obs),2), 1, size(w_obs,2))); % normalize weigths
@@ -7221,7 +7223,7 @@ classdef Coordinates < Exportable & handle
             sensor = abs(data_sync - m_data);
             id_ko0 = id_ko;
             id_ko = isnan(data_sync) | sensor > out_thr | n_obs < n_min_obs; % remove what you think are the outliers
-            
+
             % if all are considered outliers
             id_all = find(sum(id_ko,2) == size(id_ko, 2));
             id_ko(id_all,:) = id_ko0(id_all,:);
@@ -7239,19 +7241,19 @@ classdef Coordinates < Exportable & handle
             % filter out the outliers
             data_sync(id_ko) = nan;
             n_obs(id_ko) = 0;
-            
+
             % mean weighted by the number of observations used to compute it
             if sync_time.getRate < 43200
                 w_obs = zero2nan(n_obs.^2); % Estimate the weights on the base of the number of data and std dev
             else
                 w_obs = (zero2nan(n_obs.^2) ./ zero2nan(std_obs+1e-3).^2);  % Estimate the weights on the base of the number of data and std dev
-            end            
+            end
             w_obs = nan2zero(w_obs ./ repmat(sum(nan2zero(w_obs),2), 1, size(w_obs,2)));
             m_data = sum(nan2zero(data_sync) .* nan2zero(w_obs), 2);
             m_data(flag_ko | ~any(data_sync,2)) = nan;
             data_sync = data_sync_bk;
         end
-        
+
         function [mask, fh] = getSkyMask(coo, varargin)
             % Get a predicted sky mask from DTM
             % Warning it does not handle yet areas close to 180 -180 longitudes
@@ -7307,7 +7309,7 @@ classdef Coordinates < Exportable & handle
             %                      default:  marker of coordinates
             %
             %  - ORBITS ---------------------------------------------------
-            %    Note: orbits are computed using final GFZ products 
+            %    Note: orbits are computed using final GFZ products
             %    (or the loaded core if a rec is passed)
             %
             %   'date_start'   first epoch to compute orbits
@@ -7317,56 +7319,56 @@ classdef Coordinates < Exportable & handle
             %   'date_stop'    last epoch to compute orbits
             %                      GPS_Time
             %                      default:  GPS_Time('2021-11-1 23:59:59')
-            % 
+            %
             %   'sys_list'     array of constellation to use
             %                      logical [7x1] || char
             %                      default:  'GRE'
-            % 
-            
+            %
+
             % Default args --------------------------------------------
-            
+
             rec = [];
             flag_rec = false;
             flag_linear_interp = true;
-            
+
             % Additional antenna heigth
             h_antenna = 1;
             h_vegetation = 0;
             flag_h_tdm = true;
-            
+
             % flag for displaying the figure;
             flag_fig = false;
             flag_only_sun = false; % show opnly the sun in the terrain
-            
-            % Coordinate name            
+
+            % Coordinate name
             name = coo.getName;
             marker = coo.getNameV3;
-            
+
             % Azimuth resolution
             az_mask = (0:0.5:360)';
-                        
+
             % Satellite system to plot as logical array
             % GPS GLO GLA QZS BDS IRN SBS
             sys_list = [1 1 1 0 0 0 0];
             flag_change_sys = false;
-            
+
             % DTM map margin
             m_x = 0.5;
             m_y = 0.5;
-            
+
             % size of the scatter points
             point_size = 10;
-            
+
             % Orbit date interval
             date_start = [];
             date_stop = [];
-                        
+
             % Fun params ----------------------------------------------
-            
+
             min_el = -7.5;
-            
+
             % Parse args ----------------------------------------------
-            
+
             args = varargin;
             if iscell(args) && numel(args) > 0
                 if iscell(args{1})
@@ -7388,7 +7390,7 @@ classdef Coordinates < Exportable & handle
                                     flag_h_tdm = logical(args{a});
                             case {'only_sun'}
                                     a = a + 1;
-                                    flag_only_sun = logical(args{a});                                   
+                                    flag_only_sun = logical(args{a});
                             case {'h_antenna'}
                                     a = a + 1;
                                     h_antenna = args{a};
@@ -7464,7 +7466,7 @@ classdef Coordinates < Exportable & handle
                     a = a + 1;
                 end
             end
-                        
+
             if isempty(date_start)
                 if not(isempty(rec))
                     try
@@ -7497,14 +7499,14 @@ classdef Coordinates < Exportable & handle
                     date_stop = GPS_Time('2022-04-20 23:59:59');
                 end
             end
-            
+
             log = Core.getLogger;
             coo = coo(not(coo.isEmpty));
             % Init output
             el_mask = zeros(size(az_mask));
             az_mask_out = zeros(size(az_mask));
             fh = [];
-            
+
             if not(isempty(coo))
                 if isempty(rec)
                     [lat, lon, h_ell] = coo.getMedianPos.getGeodetic();
@@ -7513,7 +7515,7 @@ classdef Coordinates < Exportable & handle
                 end
                 lat = lat * 180/pi;
                 lon = lon * 180/pi;
-                
+
                 % Get the DTM
                 log.addMarkedMessage('Get DTM');
                 % res = '1' / '3' / 'maximum' / 'high' / 'medium' / 'low'
@@ -7524,23 +7526,23 @@ classdef Coordinates < Exportable & handle
                 step_lon = median(diff(lon_dtm));
                 step_lat = median(diff(lat_dtm));
                 %dtm = flipud(dtm);
-                
+
                 % Extract pers azimuth profile
                 % [id_x, id_y] id of the center of the DTM map
-                
+
                 [~,idy] = min(abs(lat_dtm - lat));
                 if numel(idy) > 0
                     idy = idy(1); % take only one point
                 end
-                
+
                 [~,idx] = min(abs(lon_dtm - lon));
                 if numel(idx) > 0
                     idx = idx(1); % take only one point
                 end
-                
+
                 % Height of the point on the DTM (nearest neighbour)
                 h0_dtm = nan2zero(double(dtm(idy, idx)));
-                
+
                 % Height of the point on the DTM (interp using close points)
                 sub_idy = idy + [-5:5]; sub_idy(sub_idy < 1 | sub_idy > size(dtm,1)) = [];
                 sub_idx = idx + [-5:5]; sub_idx(sub_idx < 1 | sub_idx > size(dtm,2)) = [];
@@ -7549,7 +7551,7 @@ classdef Coordinates < Exportable & handle
                 [xmg, ymg] = meshgrid(x_grid, y_grid);
                 finterp = scatteredInterpolant(xmg(:), ymg(:), double(serialize(dtm(sub_idy, sub_idx))), 'natural');
                 h0_dtm = finterp(lon, lat) + h_antenna;
-                
+
                 % If a receiver is passed let's use it's coordinates
                 if ~flag_h_tdm
                     h0 = h_ell + h_antenna;
@@ -7558,33 +7560,33 @@ classdef Coordinates < Exportable & handle
                     h0 = h0_dtm + h_antenna;
                     log.addMarkedMessage(sprintf('Considering ellipsoidal point heigth to %.1fm from the DTM, the coordinates say it should be %.1fm', h0, h_ell));
                 end
-                
+
                 % Create the coordinates of the origin point
                 coo_origin = Coordinates.fromGeodetic(lat/180*pi, lon/180*pi, h0);
                 coo_origin.setName(marker);
-                
+
                 if flag_fig
                     % Prepare the figure;
                     fh = figure('Visible', 'off');
                     Core_UI.resizeFig(fh, [1600,900]);
-                    
+
                     ax_map = subplot(4,3,[1 4]); axis;
                     ax_sky = subplot(4,3,[2 5]); axis;
                     ax_sky_tracks = subplot(4,3,[3 6]); axis;
                     ax_terrain = subplot(4,3,[7:12]); axis;
-                    
+
                     % Prepare terrain data
                     az_terrain = [];
                     el_terrain = [];
                     d_terrain = [];
                     size_dot = [];
                 end
-                
+
                 % Prepare elevation mask
                 a = 0;
                 % Compute true distance between the point and the coordinates in the direction of the azimuth
                 log.addMarkedMessage(sprintf('Computing the mask @ %.2f degree of resolution', median(diff(az_mask))));
-                
+
                 % Create DTM gridded interpolant
                 if flag_linear_interp
                     [Y,X] = ndgrid(lat_dtm,lon_dtm);
@@ -7652,7 +7654,7 @@ classdef Coordinates < Exportable & handle
                         lon_line = lon_line(id_ok)';
                         line_val = fdtm(lon_line, lat_line);
 
-                        % coordinates on the line of sight                   
+                        % coordinates on the line of sight
 
                         % reduce to the nuber of point maybe visible
                         h_list = nan(size(line_val));
@@ -7662,10 +7664,10 @@ classdef Coordinates < Exportable & handle
                         end
                         id_ko = (line_val > h0) & [false; diff(h_list) == 0];
                         h_list(line_val <= h0) = line_val(line_val <= h0);
-                        
+
                         h_list(id_ko) = nan;
                         lat_line(id_ko) = nan;
-                        lon_line(id_ko) = nan;                        
+                        lon_line(id_ko) = nan;
                         r1 = h0 + GPS_SS.R_EARTH;
                         r2 = line_val + GPS_SS.R_EARTH;
                     end
@@ -7677,13 +7679,13 @@ classdef Coordinates < Exportable & handle
                         [el, d, true_az] = Coordinates.getSigthElevation(lat, lon, r1, lat_dtm(idy_l), lon_dtm(idx_l), r2 + h_vegetation);
                     end
                     el = max(min_el, el);
-                    
+
                     % Compute elevation mask
                     if ~isempty(el)
                         [el_mask(a), id_max] = max(noNaN(el));
                         az_mask_out(a) = true_az(id_max);
                         %az_mask_out(a) = median(true_az, 'omitnan');
-                        
+
                         if flag_fig
                             % Draw the mountains
                             % Keep for each elevation only the points that can be seen
@@ -7708,13 +7710,13 @@ classdef Coordinates < Exportable & handle
 
                 % Reorder and reallign mask
                 az_mask_out(end) = []; % this is 360 == 0
-                el_mask(end) = [];     % this is 360 == 0                
+                el_mask(end) = [];     % this is 360 == 0
                 [az_sort, ids] = sort(az_mask_out);
                 el_sort = el_mask(ids);
                 el_mask = interp1q([az_sort(end-49:end) - 360; az_sort; az_sort(1:50) + 360], ...
                          [el_sort(end-49:end); el_sort; el_sort(1:50)], ...
-                         az_mask);  
-                
+                         az_mask);
+
                 if flag_fig
                     % Set the mountains color
                     setAxis(fh,4);
@@ -7752,17 +7754,17 @@ classdef Coordinates < Exportable & handle
 
                     time_sun = GPS_Time(datenum('2022-11-21 00:00')+[0:1/288:1]');
                     coo.sunPlot(time_sun, min_el, ax_cartesian, [], true, false);
-                    
+
                     subplot(ax_terrain);
 
                     % Plot terrain -----------------------------------------------------------------------
-                    
+
                     % plot the terrain
                     p = patch([az_mask; fliplr(minMax(az_mask))'], [el_mask; min_el; min_el], cmap(1,:));
                     p.FaceAlpha = 0.6;
 
                     % fh.Visible = 'on'; subplot(ax_terrain); plot(az_mask, el_mask, '-k', 'LineWidth', 2);
-                    
+
                     % set the style of the figure
                     ax_terrain.GridAlpha = 0.11;
                     ax_terrain.Box = 'on';
@@ -7791,18 +7793,18 @@ classdef Coordinates < Exportable & handle
                     ax_terrain.YAxis.TickLength = [0.002 0.0001];
                     ylim([min_el max(90, max(el_mask))]);
                     xlim([0 360]);
-                    
+
                     % plot terrain
                     point_size = min(6,size_dot);
                     point_size = round((max(0,(point_size-1))/max(point_size-1)) * 10)+0.85;
                     hold on; scatter(az_terrain, el_terrain, point_size, min(max(10,perc(d_terrain,0.97)),d_terrain)/1e3, 'filled'); hold on;
-                    
+
                     % Plot horizon -----------------------------------------------------------------------
-                    
-                    plot([0 360], [0 0], '-.', 'LineWidth', 2, 'Color', [0.5 0.5 0.5]); hold on;      
+
+                    plot([0 360], [0 0], '-.', 'LineWidth', 2, 'Color', [0.5 0.5 0.5]); hold on;
                     drawnow
                 end
-                
+
                 % set elevation cut-off to zero, this is done since min_el could be < 0
                 el_mask(a) = max(0, el_mask(a));
                 if flag_fig
@@ -7813,7 +7815,7 @@ classdef Coordinates < Exportable & handle
                         if any(snr_mask(:))
                             [~, id_min] = max(snr_mask); id_min(id_min == 1) = 180; id_min = 90-(id_min/2);
                             az_grid = linspace(0,360,720);
-                            p = polarPatch(az_grid / 180 * pi, (90 - id_min) / 180 * pi, [0.5 0.5 0.5], false); p.FaceAlpha = 0.4; 
+                            p = polarPatch(az_grid / 180 * pi, (90 - id_min) / 180 * pi, [0.5 0.5 0.5], false); p.FaceAlpha = 0.4;
                             hold on;
                         end
                     end
@@ -7835,7 +7837,7 @@ classdef Coordinates < Exportable & handle
                     else
                         ss = GPS_SS;
                     end
-                        
+
                     % Polar mask due to satellite systems orbit inclinations
                     [mn, ms, msk] = ss.getPolarMask(coo(1).lat, coo(1).lon, 0, 0.5);
                     p = polarPatch(az_mask / 180 * pi, (90-el_mask) / 180 * pi, Core_UI.LBLUE, false);
@@ -7857,12 +7859,12 @@ classdef Coordinates < Exportable & handle
                     end
                     title(sprintf('Predicted GNSS satellite visibility\\fontsize{5} \n'));
                 end
-                
+
                 % ORBIT DETERMINANTION
                 if isempty(sys_list)
                     sys_list = [1 1 1 0 0 0 0];
                 end
-                        
+
                 if flag_fig
                     if any(sys_list)
                         log.addMarkedMessage('Orbit determination');
@@ -7966,16 +7968,16 @@ classdef Coordinates < Exportable & handle
                         title('No constellations selected');
                     end
                 end
-                
+
                 if flag_fig
                     log.addMarkedMessage('Add the map of the point');
                     % Add the map
                     setAxis(fh,1);
                     ax = setAxis(fh,1); coo_origin.showMap('new_fig', false, 'bg_type', 'map', 'add_margin', [-0.029 -0.046], 'contour_lines', false);
                     % Move patch down:
-                    patches = false(numel(ax.Children),1); 
+                    patches = false(numel(ax.Children),1);
                     for c = 1:numel(ax.Children)
-                        patches(c) = isa(ax.Children(c), 'matlab.graphics.primitive.Patch'); 
+                        patches(c) = isa(ax.Children(c), 'matlab.graphics.primitive.Patch');
                     end
                     if any(patches)
                         ax.Children(find(patches,1,'first')).Vertices(:,2) = ax.Children(find(patches,1,'first')).Vertices(:,2) - 0.000005;
@@ -7983,12 +7985,12 @@ classdef Coordinates < Exportable & handle
                             ax.Children(i).Position(2) = ax.Children(i).Position(2) - 0.000005;
                         end
                     end
-                    
+
                     % Set figure name
                     fh.Name = sprintf('%03d: Mask %s', fh.Number, strrep(name,' ', '_')); fh.NumberTitle = 'off';
                     fig_name = sprintf('PredictedMask_%s', name);
                     fh.UserData = struct('fig_name', fig_name);
-                    
+
                     % Beautify figure
                     Core_UI.insertLogo(fh);
                     Core_UI.beautifyFig(fh);
@@ -7998,9 +8000,9 @@ classdef Coordinates < Exportable & handle
                 end
                 log.addMarkedMessage('The elevation mask is ready');
             end
-            
+
             mask = [az_mask(:), el_mask(:)];
-        end   
+        end
     end
 
     methods (Access = 'private')
@@ -8015,7 +8017,7 @@ classdef Coordinates < Exportable & handle
             sun_el(id_ko) = nan; sun_az(id_ko) = nan;
             if ~isempty(polar_ax)
                 subplot(polar_ax);
-                hl = polarPlot(mod(sun_az, 360)./180*pi, (90-sun_el)./180*pi, '-', 'LineWidth', 1.4, 'Color', Core_UI.YELLOW); hold on;                
+                hl = polarPlot(mod(sun_az, 360)./180*pi, (90-sun_el)./180*pi, '-', 'LineWidth', 1.4, 'Color', Core_UI.YELLOW); hold on;
             end
             if ~isempty(cartesian_ax)
                 subplot(cartesian_ax);
@@ -8052,21 +8054,21 @@ classdef Coordinates < Exportable & handle
             end
         end
     end
-    
+
     % =========================================================================
     %%    COORDINATES OPERATIONS
     % =========================================================================
-    
+
     methods (Access = 'public', Static)
 
         function distances = vincentyDistance(lat_ref, lon_ref, lat_list, lon_list)
             % Distance on the ellipsoid in km
             %
             % INPUT
-            %   lat_ref     latitude of the reference point
-            %   lon_ref     longitude of the reference point
-            %   lat_list    latitude of a list of point to compute distances with
-            %   lon_ref     longitude of a list of point to compute distances with
+            %   lat_ref     latitude of the reference point [deg]
+            %   lon_ref     longitude of the reference point [deg]
+            %   lat_list    latitude of a list of point to compute distances with [deg]
+            %   lon_ref     longitude of a list of point to compute distances with [deg]
             %
             % OUTPUT
             %   distances   distances in kilometers
@@ -8129,8 +8131,48 @@ classdef Coordinates < Exportable & handle
     % =========================================================================
     %%    COORDINATES TRANSFORMATIONS
     % =========================================================================
-    
+
     methods (Access = 'public', Static)
+
+        function theta_deg = getThetaCwFromVel(vel_enu)
+            % Computes the clockwise angle from North for each velocity vector.
+            %
+            % This function calculates the clockwise rotation angle from North to
+            % the direction of each velocity vector in an array of ENU (East, North, Up)
+            % velocities. The angle is measured in the East-North plane.
+            %
+            % USAGE:
+            %   theta_deg = getThetaCwFromVel(vel_enu);
+            %
+            % INPUT:
+            %   vel_enu = [n x 3] array of velocities in ENU coordinates [East, North, Up components]
+            %
+            % OUTPUT:
+            %   theta_deg = [n x 1] array of angles in degrees, representing the clockwise
+            %               rotation from North to each velocity vector's direction
+            %
+            % EXAMPLE:
+            %   vel_enu = [1, 1, 0; -1, 1, 0]; % Example velocity vectors
+            %   theta_deg = getThetaCwFromVel(vel_enu);
+            %   disp(theta_deg); % Display the computed angles
+            %
+            % This function assumes that the North direction corresponds to 0 degrees and
+            % angles increase clockwise.
+
+            % Extract East and North components from the velocities
+            v_E = vel_enu(:, 1); % East component
+            v_N = vel_enu(:, 2); % North component
+
+            % Calculate the angle in radians using atan2
+            theta_radians = atan2(v_E, v_N);
+
+            % Convert the angles to degrees
+            theta_deg = rad2deg(theta_radians);
+
+            % Normalize angles to be in the range [0, 360] degrees
+            theta_deg = mod(theta_deg, 360);
+        end
+
         function pos_diff = rotateDisplacements(pos_diff, rot_angle_cw)
             % Input:
             %       pos_diff - n x 3 matrix containing the coordinates in ENU format
@@ -8182,27 +8224,27 @@ classdef Coordinates < Exportable & handle
             %
             % DESCRIPTION:
             %   Get the geoid ondulation (orthometric correction)
-            
+
             if (nargin < 3) || isempty(geoid)
                 geoid = Core.getRefGeoid();
             end
-            
+
             if (geoid.grid == 0)
                 core = Core.getInstance(false);
                 core.initGeoid();
                 geoid = core.getRefGeoid();
             end
-            
+
             if (nargin < 4) || isempty(method)
                 method = 'legacy';
             end
-            
+
             if  (geoid.ncols == 0 || geoid.nrows == 0)
                 Core.initGeoid();
                 geoid = Core.getRefGeoid();
             end
             N = zeros(numel(lam), 1);
-            
+
             switch method
                 case 'legacy'
                     for i = 1 : numel(lam)
@@ -8211,19 +8253,19 @@ classdef Coordinates < Exportable & handle
                 case 'grid'
                     x_grid = geoid.Xll + geoid.cellsize * (0 : geoid.ncols - 1);
                     y_grid = fliplr(geoid.Yll + geoid.cellsize * (0 : geoid.nrows - 1));
-                    
+
                     [xmg, ymg] = meshgrid(x_grid, y_grid);
                     N = interp2(xmg, ymg, geoid.grid, lam, phi, 'linear');
                 case 'grid_cubic'
                     x_grid = geoid.Xll + geoid.cellsize * (0 : geoid.ncols - 1);
                     y_grid = fliplr(geoid.Yll + geoid.cellsize * (0 : geoid.nrows - 1));
-                    
+
                     [xmg, ymg] = meshgrid(x_grid, y_grid);
                     N = interp2(xmg, ymg, geoid.grid, lam, phi, 'cubic');
                 case 'grid_akima'
                     x_grid = geoid.Xll + geoid.cellsize * (0 : geoid.ncols - 1);
                     y_grid = fliplr(geoid.Yll + geoid.cellsize * (0 : geoid.nrows - 1));
-                    
+
                     [xmg, ymg] = meshgrid(x_grid, y_grid);
                     N = interp2(xmg, ymg, geoid.grid, lam, phi, 'makima');
                 case 'linear'
@@ -8231,18 +8273,18 @@ classdef Coordinates < Exportable & handle
                     y_grid = fliplr(geoid.Yll + geoid.cellsize * (0 : geoid.nrows - 1));
                     [xmg, ymg] = meshgrid(x_grid, y_grid);
                     finterp = scatteredInterpolant(xmg(:), ymg(:), geoid.grid(:), 'linear');
-                    
+
                     N = finterp(lam, phi);
                 case 'natural'
                     x_grid = geoid.Xll + geoid.cellsize * (0 : geoid.ncols - 1);
                     y_grid = fliplr(geoid.Yll + geoid.cellsize * (0 : geoid.nrows - 1));
-                    
+
                     [xmg, ymg] = meshgrid(x_grid, y_grid);
                     finterp = scatteredInterpolant(xmg(:), ymg(:), geoid.grid(:), 'natural');
                     N = finterp(lam, phi);
             end
         end
-        
+
         function [lat, lon, h, lat_geoc] = cart2geod(xyz, y, z)
             % Get Geodetic coordinates from xyz cartesian coordinates
             %
@@ -8260,60 +8302,60 @@ classdef Coordinates < Exportable & handle
                     y = xyz(:, 2);
                     xyz = xyz(:, 1);
                 end
-                
+
                 a = Coordinates.ELL_A;
                 e = Coordinates.ELL_E;
-                
+
                 % radius computation
                 r = sqrt(xyz.^2 + y.^2 + z.^2);
-                
+
                 % longitude
                 lon = atan2(y,xyz);
-                
+
                 % geocentric latitude
                 lat_geoc = atan(z./sqrt(xyz.^2 + y.^2));
-                
+
                 % Coordinates transformation
                 psi = atan(tan(lat_geoc)/sqrt(1-e^2));
-                
+
                 lat = atan((r.*sin(lat_geoc) + e^2*a/sqrt(1-e^2) * (sin(psi)).^3) ./ ...
                     (r.*cos(lat_geoc) - e^2*a * (cos(psi)).^3));
-                
+
                 if nargout > 2
                     N = a ./ sqrt(1 - e^2 * sin(lat).^2);
-                    
+
                     % height
                     h = r .* cos(lat_geoc)./cos(lat) - N;
                 end
             end
         end
-        
+
         function [lat_geoc, lon, r] = cart2geoc(xyz, y, z)
             % Get Geocentric sphericals coordinates from xyz cartesian coordinates
             %
             % SYNTAX:
             %   [lat_geoc, lon, r] = Coordinates.cart2geoc(xyz)
             %   [lat_geoc, lon, r] = Coordinates.cart2geoc(x, y, z)
-            
+
             if nargin == 1
                 z = xyz(:, 3);
                 y = xyz(:, 2);
                 xyz = xyz(:, 1);
             end
-            
+
             a = Coordinates.ELL_A;
             e = Coordinates.ELL_E;
-            
+
             % radius computation
             r = sqrt(xyz.^2 + y.^2 + z.^2);
-            
+
             % longitude
             lon = atan2(y,xyz);
-            
+
             % geocentric latitude
             lat_geoc = atan(z./sqrt(xyz.^2 + y.^2));
         end
-        
+
         function [east, north, utm_zone] = geod2utm(lat, lon)
             % Conversion from geodetic coordinates to planimetric coordinates (UTM WGS84).
             %
@@ -8329,11 +8371,11 @@ classdef Coordinates < Exportable & handle
             %   north    = north Coordinates [m]
             %   utm_zone = UTM zone
             %
-            
+
             %number of input points
             n = size(lat);
             n = n(1,1);
-            
+
             if (n > 0)
                 % pre-allocation
                 M = zeros(n,1);
@@ -8341,26 +8383,26 @@ classdef Coordinates < Exportable & handle
                 utm_zone(n,:) = '60 X';
                 north = zeros(n,1);
                 east = zeros(n,1);
-                
+
                 % conversion algorithm
                 % UTM parameters
                 EsMc = 500000; % false East
-                
+
                 % WGS84 ellipsoid parameters
                 % semi-major equatorial axis [m]
                 ell_a = Coordinates.ELL_A;
-                
+
                 % squared eccentricity (a^2-b^2)/a^2
                 e2 = Coordinates.E2;
-                
+
                 % contraction factor
                 contr = 0.9996;
-                
+
                 ell_a = ell_a * contr;
                 ecc4 = e2 * e2;
                 ecc6 = ecc4 * e2;
                 ecc8 = ecc6 * e2;
-                
+
                 k0 = ell_a * (e2 / 4 + ecc4 * 3 / 64 + ecc6 * 5 / 256 + ecc8 * 175 / 16384);
                 k = ell_a - k0;
                 k1 = ell_a * (ecc4 * 13 / 96 + ecc6 * 59 / 384 + ecc8 * 1307 / 8192);
@@ -8369,18 +8411,18 @@ classdef Coordinates < Exportable & handle
                 c1 = (e2 * 5 - ecc4) / 6;
                 c2 = (ecc4 * 104 - ecc6 * 45) / 120;
                 c3 = ecc6 * 1237 / 1260;
-                
+
                 % Sines, cosines and latitude powers
                 Elix = [lat lon];
                 latsessadec = lat ./ pi .* 180;
                 lonsessadec = lon ./ pi .* 180;
-                
+
                 fiSin(:,1) = sin(Elix(:,1));
                 fiCos(:,1) = cos(Elix(:,1));
                 fiSin2(:,1) = fiSin .* fiSin;
                 fiSin4(:,1) = fiSin2 .* fiSin2;
                 fiSin6(:,1) = fiSin4 .* fiSin2;
-                
+
                 % UTM zone finding
                 % https://en.wikipedia.org/wiki/Universal_Transverse_Mercator_coordinate_system#/media/File:Universal_Transverse_Mercator_zones.svg
                 M(:, 1) = fix((180 + lonsessadec(:, 1)) / 6) + 1;
@@ -8394,19 +8436,19 @@ classdef Coordinates < Exportable & handle
                 utm_zone(:,1:2) = num2str(nan2zero(M(:,1)), '%02d');
                 utm_zone(letter_id > 0,4) = UTM_LETTERS(min(letter_id(letter_id > 0),20));
                 utm_zone(letter_id == 0, :) = repmat('00 0', sum(letter_id == 0), 1);
-                
+
                 east(letter_id == 0) = nan;
                 north(letter_id == 0) = nan;
                 for i = find(letter_id > 0)'
                     % Longitude of the central meridian
                     LonMeridianoCentrale = -177 + 6 * (M(i, 1) - 1);
-                    
+
                     % Distance of the point from the central meridian
                     % la_sd --> distance in decimal degrees
                     % la    --> distance in radians
                     la_sd = lonsessadec(i, 1) - LonMeridianoCentrale;
                     la = la_sd / 180 * pi;
-                    
+
                     if la == 0
                         laSin = 0;
                         laCos = 1;
@@ -8416,20 +8458,20 @@ classdef Coordinates < Exportable & handle
                         laCos = cos(la);
                         laCot = laCos / laSin ;
                     end
-                    
+
                     % longitude with respect to central meridian
                     laCot2 = laCot * laCot;
-                    
+
                     % psi
                     psi = Elix(i, 1) - e2 * fiSin(i, 1) * fiCos(i, 1) *(1 + c1 * fiSin2(i, 1) + c2 * fiSin4(i, 1) + c3 * fiSin6(i, 1));
                     psiSin = sin(psi);
                     psiCos = cos(psi);
                     psiTan = psiSin / psiCos ;
                     psiSin2 = psiSin * psiSin ;
-                    
+
                     % omega
                     ome = atan(psiTan / laCos);
-                    
+
                     % sigma
                     if laSin ~= 0
                         sigSin =laSin * psiCos;
@@ -8438,21 +8480,21 @@ classdef Coordinates < Exportable & handle
                         sigSin = 0;
                         sig = 0;
                     end
-                    
+
                     sigSin2 = sigSin * sigSin;
                     sigSin4 = sigSin2 * sigSin2;
                     sigCos2 = 1 - sigSin2;
                     sigCos4 = sigCos2 * sigCos2;
-                    
+
                     % chi
                     chi = sig / 2 + pi / 4;
                     chiTan = tan(chi);
                     chiLog = log(chiTan);
-                    
+
                     % constants
                     aa = psiSin * psiCos * laCos * (1 + sigSin2) / sigCos4;
                     bb = sigSin * (sigCos2 - 2 * psiSin2) / sigCos4;
-                    
+
                     if laCot ~= 0
                         a1 = (psiSin2 - sigSin4 * laCot2)/ sigCos4;
                         b1 = 2 * sigSin2 * psiSin * laCot / sigCos4;
@@ -8466,18 +8508,18 @@ classdef Coordinates < Exportable & handle
                     b3 = a1 * b2 + b1 * a2 ;
                     rr = k0 - a1 * k1 + a2 * k2 - a3 * k3;
                     tt = b1 * k1 - b2 * k2 + b3 * k3;
-                    
+
                     % X/Y coordinates
                     xx = k * ome + aa * rr + bb * tt;
                     yy = k * chiLog + bb * rr - aa * tt;
-                    
+
                     % North and East
                     if north_south(i, 1) == 1
                         NoEq = 0;
                     else
                         NoEq = 10000000;
                     end
-                    
+
                     north(i, 1) = NoEq + xx;
                     east(i, 1) = EsMc + yy;
                 end
@@ -8487,7 +8529,7 @@ classdef Coordinates < Exportable & handle
                 east = [];
             end
         end
-        
+
         function [loc,  rot_mat] = cart2local(xyz_ref, xyz_baseline)
             % cart2local: from geocentric cartesian baselines (DX) to local coordinates in X0
             %
@@ -8577,7 +8619,7 @@ classdef Coordinates < Exportable & handle
             lat_m = pi/2 - acos(zp./sqrt(xp.^2+yp.^2+zp.^2));
             lon_m = atan2(yp, xp);
         end
-        
+
         function [xyz, rot_mat] = local2cart(xyz_ref, local_baseline)
             % local2cart: from local coordinates in X0 to geocentric cartesian baselines (DX)
             %
@@ -8587,11 +8629,11 @@ classdef Coordinates < Exportable & handle
             rot_mat = [ -sin(lon) cos(lon) 0; -sin(lat)*cos(lon) -sin(lat)*sin(lon) cos(lat); cos(lat)*cos(lon) cos(lat)*sin(lon) sin(lat)]';
             xyz = (rot_mat * local_baseline')';
         end
-        
+
         function [loc,  rot_mat] = cart2loca(xyz_ref, xyz_baseline)
             [loc, rot_mat] = Coordinates.cart2local(xyz_ref, xyz_baseline); % maybe the function was used with the wrong name
         end
-        
+
         function [xyz_baseline, rot_mat] = loca2cart(xyz_ref, loc)
             % loca2cart: from local coordinates in X0 to geocentric cartesian baselines (DX)
             %
@@ -8618,8 +8660,8 @@ classdef Coordinates < Exportable & handle
             %
             % Outputs:
             %    Lat: Latitude vector.   Degrees.  +ddd.ddddd  WGS84
-            %    Lon: Longitude vector.  Degrees.  +ddd.ddddd  WGS84            
-            
+            %    Lon: Longitude vector.  Degrees.  +ddd.ddddd  WGS84
+
             % Argument checking
             %
             narginchk(3, 3); %3 arguments required
@@ -8677,16 +8719,16 @@ classdef Coordinates < Exportable & handle
             lon = (Delt *(180 / pi)) + S;
             lat = (lat + (1 + e2cuadrada .* (cos(lat).^ 2) - (3 / 2) .* e2cuadrada .* sin(lat) .* cos(lat) .* (TaO - lat)) .* (TaO - lat)) .* (180 / pi);
         end
-        
+
         function fh = showCompareENU(coo_list)
             % Plot East North Up coordinates
             %
             % SYNTAX
             %   fh = Coordinates.showCoordinatesENU(coo_list);
-            
+
             fh = coo_list.showPositionENU();
         end
-        
+
         function bslCompare(coo_list_0, coo_list_1, id_ref, spline_base, outlier_thr, y_lim)
             % Compare two sets of receivers coordinates (e.g. coming from two different execution)
             %
@@ -8707,7 +8749,7 @@ classdef Coordinates < Exportable & handle
             %
             % EXAMPLE
             %   Coordinates.bslCompare(nomp.core.rec, core.rec, 7, 365/4, 2);
-            
+
             if nargin < 3 || isempty(id_ref)
                 id_ref = numel(coo_list_0); % set to the last;
             end
@@ -8718,7 +8760,7 @@ classdef Coordinates < Exportable & handle
             if nargin < 5 || isempty(outlier_thr)
                 outlier_thr = 2;
             end
-            
+
             if isa(coo_list_0, 'Coordinates')
                 coo_ref0 = coo_list_0(id_ref);
             else
@@ -8734,9 +8776,9 @@ classdef Coordinates < Exportable & handle
             elseif spline_base == 0
                 spline_base = -1;
             end
-            
+
             Core.getLogger.addMonoMessage('\nProcessing gain - solution 0 vs 1\n----------------------------------------');
-            
+
             for r = setdiff(1 : numel(coo_list_1), id_ref)
                 if isa(coo_list_0, 'Coordinates')
                     coo0 = coo_list_0(r);
@@ -8748,7 +8790,7 @@ classdef Coordinates < Exportable & handle
                 else
                     coo1 = coo_list_1(r).getPos;
                 end
-                
+
                 % Extract the baselines
                 [t_comm, idx1, idx2] = intersect(round(coo_ref0.time.getRefTime(coo0.time.first.getMatlabTime)),round(coo0.time.getRefTime(coo0.time.first.getMatlabTime)));
                 t0 = coo0.time.first.getMatlabTime + t_comm/86400;
@@ -8756,20 +8798,20 @@ classdef Coordinates < Exportable & handle
                 id_ok = not(any(isnan(enu_diff0), 2)); % discard NaN
                 t0 = t0(id_ok);
                 enu_diff0 = enu_diff0(id_ok,:);
-                
+
                 [t_comm, idx1, idx2] = intersect(round(coo_ref1.time.getRefTime(coo1.time.first.getMatlabTime)),round(coo1.time.getRefTime(coo1.time.first.getMatlabTime)));
                 t1 = coo1.time.first.getMatlabTime + t_comm/86400;
                 enu_diff1 = Coordinates.cart2local(median(coo_ref1.xyz,1,'omitnan'),coo1.xyz(idx2,:) - coo_ref1.xyz(idx1,:) )*1e3;
                 id_ok = not(any(isnan(enu_diff1), 2)); % discard NaN
                 t1 = t1(id_ok);
                 enu_diff1 = enu_diff1(id_ok,:);
-                
+
                 % Sync the baselines
                 [t_comm, idx0, idx1] = intersect(round(t0*86400)/86400,round(t1*86400)/86400, 'stable');
                 enu_diff = enu_diff0(idx0,:) - enu_diff1(idx1,:);
                 enu_diff = bsxfun(@minus, enu_diff, median(enu_diff, 'omitnan'));
                 id_ok = abs(enu_diff - median(enu_diff, 'omitnan')) < outlier_thr;
-                
+
                 fh = figure; Core_UI.beautifyFig(fh); drawnow
                 % Plot the baseline difference ----------------------------------------
                 subplot(3,1,1);
@@ -8796,9 +8838,9 @@ classdef Coordinates < Exportable & handle
                     ref_rec_name = coo_ref1.name;
                 end
                 title(sprintf('Baseline %s - %s\\fontsize{5} \n', strrep(trg_rec_name,'_','\_'), strrep(ref_rec_name,'_','\_')), 'FontSize', 16);
-                
-                
-                
+
+
+
                 % Compute common reduction by spline
                 tmp0 = enu_diff0(idx0,:) - median(enu_diff0(idx0,:), 'omitnan');
                 tmp1 = enu_diff1(idx1,:) - median(enu_diff1(idx1,:), 'omitnan');
@@ -8816,7 +8858,7 @@ classdef Coordinates < Exportable & handle
                     splined = nan2zero(splined);
                 end
                 id_ok = not(lid_ko0 | lid_ko1);
-                
+
                 % Plot the baseline (filtered by spline) of the solution with no MP ---
                 subplot(3,1,2);
                 tmp = enu_diff0(idx0,:) - median(enu_diff0(idx0,:), 'omitnan');
@@ -8828,12 +8870,12 @@ classdef Coordinates < Exportable & handle
                         [~, ~, ~, splined0(:,c)] =       splinerMat(ttmp, splined(id_ok(:,c),c), spline_base, 1e-8, t0);
                     end
                 end
-                
+
                 tmp = tmp - splined; % remove splines
                 tmp0 = tmp0 - splined0; % remove splines
                 tmp0 = bsxfun(@minus, tmp0, [-20 0 20]);
                 plotSep(t0, tmp0, '.-', 'MarkerSize', 8.5, 'LineWidth', 1.6);
-                
+
                 for c = 1 : 3
                     std_enu0(:,c) = std(tmp(id_ok(:,c), c), 'omitnan');
                 end
@@ -8847,7 +8889,7 @@ classdef Coordinates < Exportable & handle
                 ax(2) = gca;
                 ylabel(sprintf('Baseline 0\n(reduced)'));
                 grid minor
-                
+
                 % Plot the baseline (filtered by spline) of the solution with MP ------
                 subplot(3,1,3);
                 tmp = enu_diff1(idx1,:) - median(enu_diff1(idx1,:), 'omitnan');
@@ -8863,7 +8905,7 @@ classdef Coordinates < Exportable & handle
                 tmp1 = tmp1 - splined1; % remove splines
                 tmp1 = bsxfun(@minus, tmp1, [-20 0 20]);
                 plotSep(t1, tmp1, '.-', 'MarkerSize', 8.5, 'LineWidth', 1.6);
-                
+
                 for c = 1 : 3
                     std_enu1(:,c) = std(tmp(id_ok(:,c), c), 'omitnan');
                 end
@@ -8876,17 +8918,17 @@ classdef Coordinates < Exportable & handle
                 ax(3) = gca;
                 ylabel(sprintf('Baseline 1\n(reduced)'));
                 grid minor
-                
+
                 Core_UI.beautifyFig(fh);
                 Core_UI.addBeautifyMenu(fh);
                 Core_UI.addExportMenu(fh);
                 Core_UI.addLineMenu(fh)
                 linkaxes(ax, 'x');
-                
+
                 Core.getLogger.addMonoMessage(sprintf('Baseline %d - %d) %5.2f %% %5.2f %% %5.2f %%', r, id_ref, (100*((std_enu0 - std_enu1) ./ std_enu0))));
             end
         end
-        
+
         function [data, lid_ko, running_mean, spline, jump_list] = cooFilter(data, robustness_perc, n_sigma, spline_base)
             % Returns the data removing outliers (spikes)
             %
@@ -8896,7 +8938,7 @@ classdef Coordinates < Exportable & handle
             %
             % SYNTAX:
             %   [data, id_ko] = Coordinates.cooFilter(data, robustness_perc)
-            
+
             if any(data(:,end))
                 n_data = size(data,1);
                 if nargin < 2
@@ -8924,7 +8966,7 @@ classdef Coordinates < Exportable & handle
                     else
                         flag_var = false;
                     end
-                    
+
                     % Suppose regularly sampled data, fill missing epochs with nan
                     time = round((data(:,1) - data(1))*86400,4);
                     rate = round(median(diff(time)),4);
@@ -8946,14 +8988,14 @@ classdef Coordinates < Exportable & handle
                     idf = 1:numel(data);
                     idr = idf;
                 end
-                
+
                 % Compute a trend "robust" using the robustness_perc of data
                 % [tmp, running_mean] = strongDeTrend(data, robustness_perc, 1-((1-robustness_perc)/2), n_sigma);
-                
+
                 if 86400/rate > 24
                     rate = max(3600, rate * 4); % for sub hourly solution it is better to use smaller windows
                 end
-                
+
                 if flag_var
                     [jump_list, lid_ko, tmp, running_mean] = getJumps([data(idf) data_var(idr)], 86400/rate);
                     if sum(lid_ko)/numel(lid_ko) > 0.75
@@ -8971,8 +9013,8 @@ classdef Coordinates < Exportable & handle
                     dejump(noNaN(zero2nan(jump_list))) = 0;
                     tmp = [0; cumsum(dejump)] + tmp(1);
                     % remove jumps from running mean
-                    dejump = diff(running_mean); 
-                    dejump(noNaN(zero2nan(jump_list))) = 0; 
+                    dejump = diff(running_mean);
+                    dejump(noNaN(zero2nan(jump_list))) = 0;
                     dejump = [0; cumsum(dejump)] + running_mean(1);
                     trend = Core_Utils.interp1LS(idf, dejump, 2);
                     clear dejump;
@@ -8988,17 +9030,17 @@ classdef Coordinates < Exportable & handle
                     jump_reduction = 0;
                     trend = Core_Utils.interp1LS(idf, running_mean, 2);
                     data  = data(idf) - trend;
-                end                
+                end
                 tmp = tmp - trend;
-                
+
                 if any(tmp) && flag_time && (numel(data) > 4)
                     if (numel(tmp) > 11)
                         spline_base = max(1,min(floor(time(end)-time(1)), spline_base)); % minimumum spline => a day
                         warning off;
                         % Perform a bit of outlier detection before computing splines
                         thr = 6 * perc(abs(tmp), 0.8);
-                        
-                        
+
+
                         % Computer long splines (reduce the signal, montly splines)
                         if flag_var
                             % ok values are within thr range with variations less than thr
@@ -9009,21 +9051,21 @@ classdef Coordinates < Exportable & handle
                             lid_ok = not(lid_ko);
                             [~, ~, ~, long_spline] = splinerMat(time(lid_ok), [data(lid_ok) tmp(lid_ok).^2], spline_base(1), 1e-5, time); % long splines
                         end
-                        
+
                         % Keep in tmp the reduced value
-                        
+
                         tmp = data - long_spline(idr);
-                        
+
                         % Compute medium splines (reduce the signal weekly splines)
                         [~, ~, ~, spline] = splinerMat(time(lid_ok), [tmp(lid_ok) abs(tmp(lid_ok))], spline_base(2), 1e-5, time); % medium splines
                         [~, ~, ~, spline] = splinerMat(time(lid_ok), [tmp(lid_ok) abs(tmp(lid_ok) - spline(lid_ok))], spline_base(2), 1e-5, time); % medium splines
-                        
+
                         % These are the medium long frequencies, I reduce the signal so that the interpolation will be more stable
                         long_spline = long_spline + spline;
-                        
+
                         % Keep in tmp the reduced value
                         tmp = data - long_spline(idr);
-                        
+
                         % Remove high frequencies
                         thr = n_sigma * min(strongStd(tmp, robustness_perc), perc(abs(tmp - median(tmp, 'omitnan')), robustness_perc));
                         lid_ok = abs(tmp) < thr;
@@ -9035,7 +9077,7 @@ classdef Coordinates < Exportable & handle
                             end
                         end
                         warning on;
-                        
+
                         spline = spline(idr) + long_spline(idr);
                         tmp = data - spline;
                         spline = spline + trend;
@@ -9047,7 +9089,7 @@ classdef Coordinates < Exportable & handle
                     lid_ok =  true(size(tmp));
                     spline = trend;
                 end
-                
+
                 % Outlier detection based on the interpolation
                 thr = n_sigma * min(strongStd(tmp, robustness_perc), perc(abs(tmp - median(tmp, 'omitnan')), robustness_perc));
                 if flag_var
@@ -9055,27 +9097,27 @@ classdef Coordinates < Exportable & handle
                 else
                     lid_ko = abs(tmp) > thr;
                 end
-                
+
                 data = data + trend;
-                
+
                 %lid_ko = lid_ok | false; % DEBUGG <======================================================
-                
+
                 % figure; plot(data, 'Color', [0.5 0.5 0.5]);
                 data(lid_ko) = nan;
-                
+
                 if n_data > numel(idr)
                     tmp = nan(n_data, 1);
                     tmp(idr) = data;
                     data = tmp;
-                    
+
                     tmp = true(n_data, 1);
                     tmp(idr) = lid_ko;
                     lid_ko = tmp;
-                    
+
                     tmp = nan(n_data, 1);
                     tmp(idr) = running_mean;
                     running_mean = tmp;
-                    
+
                     tmp = nan(n_data, 1);
                     tmp(idr) = spline;
                     spline = tmp;
@@ -9091,13 +9133,13 @@ classdef Coordinates < Exportable & handle
                 running_mean = data;
                 spline = data;
             end
-        end        
+        end
     end
-    
+
     % =========================================================================
     %%    TESTS
     % =========================================================================
-    
+
     methods (Static, Access = 'public')
         function test()
             % Testing function, tests some basic transformations
@@ -9106,11 +9148,11 @@ classdef Coordinates < Exportable & handle
             % SYNTAX
             %   test()
             log = Core.getLogger();
-            
+
             log.addMessage('Testing Class Coordinates');
             tic;
             pos_diff = 0;
-            
+
             if pos0 == pos1
                 log.addStatusOk('Passed');
             else
@@ -9119,11 +9161,11 @@ classdef Coordinates < Exportable & handle
             toc
         end
     end
-    
+
     % =========================================================================
     % %   UTILITIES
     % =========================================================================
-    
+
     methods (Static, Access = 'public')
         function [el, d, az] = getSigthElevation(phi1, lambda1, r1, phi2, lambda2, r2)
             psi = acosd(cosd(phi1) .* cosd(phi2) .* cosd(lambda1 - lambda2) + sind(phi1) .* sind(phi2));

@@ -21,9 +21,7 @@ function [pos] = bancroft(B_pass)
 %                    C.C. Goad 11-24-96
 %                    Mirko Reguzzoni, Eugenio Realini, 2009
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
-%--------------------------------------------------------------------------
-%
-%--------------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
 v_light = Core_Utils.V_LIGHT;
 Omegae_dot = goGNSS.OMEGAE_DOT_GPS;

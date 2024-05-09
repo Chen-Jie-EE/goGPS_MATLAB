@@ -11,7 +11,7 @@
 
 %  Software version 1.0.1
 %-------------------------------------------------------------------------------
-%  Copyright (C) 2024 Geomatics Research & Development srl (GReD) 
+%  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, Giulio Taliaferro, ...
 %
@@ -22,35 +22,35 @@ classdef App_Settings < Settings_Interface
 
     properties (Constant, Access = 'protected')
     end
-    
+
     % Real constant
     properties(Constant, Access = 'private')
         CUR_INI = 'app_settings.ini';
 
         LOG_DEFAULT_MODE = 1; % 0 text mode, 1 graphic mode
         LOG_COLOR_MODE = 1;
-        
+
         GUI_DEFAULT_MODE = 'light';
         GUI_DEFAULT_EXPORT_MODE = 'light';
 
         FLAG_EXPORT_TRANSPARENT = true;
     end
-    
+
     properties (Constant, Access = 'public')
     end
 
     properties (SetAccess = protected, GetAccess = protected)
-        % Location of the current ini file        
+        % Location of the current ini file
         log_default_mode = App_Settings.LOG_DEFAULT_MODE; % 0 text mode, 1 graphic mode
         log_color_mode = App_Settings.LOG_COLOR_MODE;
-        
+
         gui_default_mode = App_Settings.GUI_DEFAULT_MODE;
         gui_default_export_mode = App_Settings.GUI_DEFAULT_EXPORT_MODE;
 
         flag_export_transparent = App_Settings.FLAG_EXPORT_TRANSPARENT;
-        
+
         flag_deployed_slaves = false;
-        bin_path = '../bin/${ARC}/';        
+        bin_path = '../bin/${ARC}/';
     end
 
     properties (SetAccess = public, GetAccess = public)
@@ -65,7 +65,7 @@ classdef App_Settings < Settings_Interface
         % Guard the constructor against external invocation.  We only want
         % to allow a single instance of this class.  See description in
         % Singleton superclass.
-        
+
         function this = App_Settings(ini_settings_file)
             % Creator
             %
@@ -75,11 +75,11 @@ classdef App_Settings < Settings_Interface
             log = Core.getLogger();
             log.addMarkedMessage('Preparing goGPS settings...');
             log.newLine();
-                            
+
             if nargin == 1 && not(isempty(ini_settings_file))
                 this.cur_ini = ini_settings_file;
             end
-            
+
             if (exist(this.cur_ini, 'file') == 2)
                 this.import(this.cur_ini);
             else log.addMarkedMessage('Using default settings');
@@ -111,7 +111,7 @@ classdef App_Settings < Settings_Interface
     % =========================================================================
     %%  SET-UP
     % =========================================================================
-    
+
     methods (Static, Access = 'public')
         function setUpSlaves(slaves_folder)
             % Set the binary folder containing slaves
@@ -156,20 +156,20 @@ classdef App_Settings < Settings_Interface
             end
         end
     end
-    
+
     % =========================================================================
     %%  INTERFACE REQUIREMENTS
     % =========================================================================
     methods (Access = 'public')
-        
+
         function reload(this)
             this.import();
         end
-        
+
         function importIniFile(this, file_name)
             this.import(file_name);
         end
-        
+
         function import(this, file_name)
             % This function import processing settings from another setting object or ini file
             %
@@ -179,27 +179,27 @@ classdef App_Settings < Settings_Interface
             if nargin < 2 || isempty(file_name)
                 file_name = this.cur_ini;
             end
-            
+
             ini = Ini_Manager(file_name);
-            
+
             try this.log_default_mode = ini.getData('LOG', 'default_mode'); catch, log = Core.getLogger; log.addWarning(sprintf('LOG default_mode not found in app_settings')); end
             try this.log_color_mode = ini.getData('LOG', 'color_mode'); catch, log = Core.getLogger; log.addWarning(sprintf('LOG color_mode not found in app_settings')); end
-            
+
             try this.gui_default_mode = ini.getData('GUI', 'default_mode'); catch, log = Core.getLogger; log.addWarning(sprintf('GUI default_mode not found in app_settings')); end
             try this.gui_default_export_mode = ini.getData('GUI', 'default_export_mode'); catch, log = Core.getLogger; log.addWarning(sprintf('GUI default_export_mode not found in app_settings')); end
-            
+
             try this.flag_export_transparent = ini.getData('EXPORT', 'flag_export_transparent'); catch, log = Core.getLogger; log.addWarning(sprintf('EXPORT flag_export_transparent not found in app_settings')); end
-            
+
             try this.flag_deployed_slaves = logical(ini.getData('PARALLELISM', 'use_deployed_slaves')); catch, log = Core.getLogger; log.addWarning(sprintf('PARALLELISM use_deployed_slaves not found in app_settings')); end
             if isempty(this.flag_deployed_slaves)
                 this.flag_deployed_slaves = false;
             end
-            
+
             try this.bin_path = ini.getData('PARALLELISM', 'bin_path'); catch, log = Core.getLogger; log.addWarning(sprintf('PARALLELISM bin_path not found in app_settings')); end
 
-            this.check(); % check after import            
+            this.check(); % check after import
         end
-        
+
         function str_cell = export(this, str_cell)
             % Conversion to string ini format of the minimal information needed to reconstruct the this
             %
@@ -208,7 +208,7 @@ classdef App_Settings < Settings_Interface
 
             log.addMarkedMessage('Export of goGPS settings - to do...');
         end
-        
+
         function toString(this)
             ini = Ini_Manager(this.cur_ini);
             ini.showData;
@@ -254,7 +254,7 @@ classdef App_Settings < Settings_Interface
             %
             % SYNTAX
             %
-            %   this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);            
+            %   this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
             switch nargin
                 case 2, [this.(field_name), is_existing] = this.checkString(field_name, this.(field_name), this.(upper(field_name)));
                 case 3, [this.(field_name), is_existing] = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
@@ -300,9 +300,9 @@ classdef App_Settings < Settings_Interface
                 case 4, this.(field_name) = this.checkNumber(field_name, this.(field_name), this.(upper(field_name)), limits, valid_val);
                 otherwise, error('Settings checkNumericField called with the wrong number of parameters');
             end
-        end        
+        end
     end
-   
+
     % =========================================================================
     %%  TEST PARAMETERS VALIDITY
     % =========================================================================
@@ -316,42 +316,42 @@ classdef App_Settings < Settings_Interface
 
             this.checkNumericField('log_default_mode', [0 1]);
             this.checkLogicalField('log_color_mode');
-            this.checkLogicalField('flag_export_transparent');   
-            
+            this.checkLogicalField('flag_export_transparent');
+
             if isdeployed
                 this.log_color_mode = false;
             end
-        end        
+        end
     end
 
     % =========================================================================
     %%  GETTERS
     % =========================================================================
-    methods  
+    methods
         function out = getLogMode(this)
             out = this.log_default_mode;
         end
-        
+
         function out = isLogColorMode(this)
             out = logical(this.log_color_mode);
         end
-        
+
         function out = getGUIMode(this)
             out = this.gui_default_mode;
         end
-        
+
         function out = getGUIModeExport(this)
             out = this.gui_default_export_mode;
         end
-        
+
         function out = isExportTransparent(this)
             out = logical(this.flag_export_transparent);
         end
-        
+
         function out = useDeployedSlaves(this)
             out = this.flag_deployed_slaves || isdeployed;
         end
-        
+
         function out = getBinDir(this)
             % Get the dir containing binary files
             %
@@ -359,7 +359,7 @@ classdef App_Settings < Settings_Interface
             %   bin_dir = this.getBinDir()
             out = strrep(this.bin_path, '${ARC}',computer('arch'));
         end
-               
+
         function setBinDir(this, bin_path)
             % Set the dir containing binary files
             % Overwrite cur_ini file to save the setting
@@ -384,29 +384,29 @@ classdef App_Settings < Settings_Interface
                 end
             end
         end
-    end  
+    end
     %%  SETTERS
     % =========================================================================
     methods
         function out = setLogMode(this, val)
             this.log_default_mode = val;
         end
-        
+
         function out = setLogColorMode(this, val)
             this.log_color_mode = logical(val);
         end
-        
+
         function out = setModeGUI(this, val)
             this.gui_default_mode = val;
         end
-        
+
         function out = setGUIModeExport(this, val)
             this.gui_default_export_mode = val;
         end
-        
+
         function out = setExportTransparent(this, val)
             this.flag_export_transparent = logical(val);
         end
     end
-    
+
 end

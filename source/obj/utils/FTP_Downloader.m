@@ -55,11 +55,11 @@ classdef FTP_Downloader < handle
         function addr = getAddress(this)
             addr = this.addr;
         end
-        
+
         function addr = getFullAddress(this)
             addr = ['ftp://' this.addr ':' this.port '/' this.remote_dir];
         end
-        
+
         function this = FTP_Downloader(ftp_addr, ftp_port, remote_dir, file_name,  local_dir, user, passwd)
             % Constructor
             % EXAMPLE: FTP_Downloader('')
@@ -102,15 +102,15 @@ classdef FTP_Downloader < handle
                 this.reconnect();
             end
         end
-        
+
         function reconnect(this)
             % Call this funxction to reconnect to an ftp server
-            % 
+            %
             % SYNTAX
             %   this.reconnect();
             try
                 if isempty(this.user)
-                    this.ftp_server = ftp(strcat(this.addr, ':', this.port), 'anonymous', 'info@ogps-project.org');
+                    this.ftp_server = Core_Utils.ftpTimeout(strcat(this.addr, ':', this.port), 5, 'anonymous', 'info@g-red.eu');
                 else
                     this.ftp_server = Core_Utils.ftpTimeout(strcat(this.addr, ':', this.port), 5, this.user, this.passwd);
                 end
@@ -130,12 +130,12 @@ classdef FTP_Downloader < handle
                 this.log.addWarning(['Could not connect to: ' this.addr]);
             end
         end
-        
+
         function delete(this)
             % destructor close the connection with the server
             close(this.ftp_server);
         end
-        
+
         function [status, ext]  = check(this, filepath)
             folder = this.fnp.getPath(filepath);
             f_name = this.fnp.getFileName(filepath);
@@ -188,15 +188,15 @@ classdef FTP_Downloader < handle
                 ext = iif(strcmp(ext, ext_s), '', ext_s);
                 return
             end
-            status = false;            
+            status = false;
         end
-        
+
         function [status]  = downloadUncompress(this, filepath, out_dir)
             path = File_Name_Processor.getPath(filepath);
             fname = File_Name_Processor.getFileName(filepath);
             try
                 cd(this.ftp_server, path);
-                this.log.addMessage(this.log.indent(sprintf('downloading %s ...',fname)));
+                this.log.addMessage(this.log.indent(sprintf('downloading with MATLAB %s ...',fname)));
                 if ~(7 ==exist(out_dir,'dir'))
                     mkdir(File_Name_Processor.getFullDirPath(out_dir));
                 end
@@ -231,7 +231,7 @@ classdef FTP_Downloader < handle
                             end
                         end
                         retry = 10;
-                        
+
                         if isempty(fpath)
                             status = false;
                             if this.log.isScreenOut; fprintf('\b'); end
@@ -254,7 +254,7 @@ classdef FTP_Downloader < handle
                 status = false;
             end
         end
-       
+
         function [status, compressed] = download(this, remote_dir, file_name, local_dir, force_overwrite)
             % function to download a file (or a list of files) from a ftp a server
             % SYNTAX:
@@ -306,12 +306,12 @@ classdef FTP_Downloader < handle
                         this.log.addWarning('connected with remote FTP has been closed, trying to re-open it');
                         this.reconnect();
                     end
-                    
+
                     warning('off')
                     sf = struct(this.ftp_server);
                     warning('on')
                     sf.jobject.enterLocalPassiveMode();
-                    
+
                     % convert file_name in a cell array
                     if ~iscell(this.file_name)
                         this.file_name = {this.file_name};
@@ -364,7 +364,7 @@ classdef FTP_Downloader < handle
                                         this.reconnect();
                                         if compressed
                                             try
-                                                if (isunix())                                                    
+                                                if (isunix())
                                                     res = system(['uncompress -f ' local_dir filesep file_name]);
                                                     if res ~= 0
                                                         system(['gzip -d -f ' local_dir filesep file_name '&> /dev/null &']);
@@ -430,7 +430,7 @@ classdef FTP_Downloader < handle
                 flag = ~system('ping -c 1 www.fast.com > /dev/null 2>&1');
             end
         end
-        
+
         function [file, status, compressed] = urlRead(ftp_addr, ftp_port, remote_dir, file_name, local_dir)
             % download and read an ftp file
             % SYNTAX: [file, status, compressed] = urlRead(ftp_addr, ftp_port, remote_dir, file_name, local_dir)

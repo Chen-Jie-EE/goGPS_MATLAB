@@ -2,8 +2,8 @@ function [L, iL, Z, iZ] = GLONASS_L(kappa, opt, Dm)
 %
 %        [L, iL, Z, iZ] = GLONASS_L(kappa, opt, Dm);
 %
-% This routine allows you to construct the design matrix of the integer-estimable GLONASS FDMA model (REFS 1, 2). 
-% It computes the GLONASS lower-triangular ambiguity design matrix L and its inverse, and optionally also the 
+% This routine allows you to construct the design matrix of the integer-estimable GLONASS FDMA model (REFS 1, 2).
+% It computes the GLONASS lower-triangular ambiguity design matrix L and its inverse, and optionally also the
 % GLONASS ambiguity-defining Z-transformation and its inverse.
 %
 % INPUT:
@@ -16,7 +16,7 @@ function [L, iL, Z, iZ] = GLONASS_L(kappa, opt, Dm)
 %            opt = 2 ==> also computes supplementary matrices
 %
 %    Dm    : the m x (m-1) between-satellite differencing matrix (optional)
-%            matrix Dm is only applicable for opt = 2 
+%            matrix Dm is only applicable for opt = 2
 %
 %
 % OUTPUT:
@@ -26,15 +26,15 @@ function [L, iL, Z, iZ] = GLONASS_L(kappa, opt, Dm)
 %      iZ  : the m x m inverse-matrix of Z
 %
 %--------------------------------------------------------------------------
-% DATE     : March-2019                                             
-% Authors  : Amir Khodabandeh & Peter J.G. Teunissen                                          
-%            Department of Infrastrucutre Engineering, 
-%            The University of Melbourne, and  
+% DATE     : March-2019
+% Authors  : Amir Khodabandeh & Peter J.G. Teunissen
+%            Department of Infrastrucutre Engineering,
+%            The University of Melbourne, and
 %            Department of Geoscience and Remote Sensing,
 %            Delft University of Technology
 %--------------------------------------------------------------------------
 %
-% REFERENCES: 
+% REFERENCES:
 %
 %  1. Teunissen P.J.G.(2019). A New GLONASS FDMA Model. GPS Solutions, doi:10.1007/s10291-019-0889-0.
 %  2. Teunissen P.J.G. and Khodabandeh A.(2019). GLONASS Ambiguity Resolution. GPS Solutions, doi:10.1007/s10291-019-0890-7.
@@ -51,7 +51,7 @@ function [L, iL, Z, iZ] = GLONASS_L(kappa, opt, Dm)
 %                        0     0     0     1     0
 %                        0     0     0     0     1];
 %--------------------------------------------------------------------
-%              
+%
 % output ==> L = [ 0.0021   -0.0000   -0.0000         0         0
 %                  0.0032    0.5012   -0.0000         0         0
 %                 -0.0004    0.1665    0.3330         0         0
@@ -81,23 +81,23 @@ function [L, iL, Z, iZ] = GLONASS_L(kappa, opt, Dm)
 
 % Copyright (c) 2019, Amir Khodabandeh and Peter J.G. Teunissen
 % All rights reserved.
-% 
+%
 % Redistribution and use in source and binary forms, with or without
 % modification, are permitted provided that the following conditions are
 % met:
-% 
-%     * Proper referencing must be done in any publications which use the 
+%
+%     * Proper referencing must be done in any publications which use the
 % 	  source code and its functionalities:
 % 		1. Teunissen P.J.G.(2019): A New GLONASS FDMA Model. GPS Solutions, doi:10.1007/s10291-019-0889-0.
-% 		2. Teunissen P.J.G. and Khodabandeh A.(2019): GLONASS Ambiguity Resolution. GPS Solutions, doi:10.1007/s10291-019-0890-7.	
-% 		
+% 		2. Teunissen P.J.G. and Khodabandeh A.(2019): GLONASS Ambiguity Resolution. GPS Solutions, doi:10.1007/s10291-019-0890-7.
+%
 %     * Redistributions of the source code must retain the above copyright
 %       notice, this list of conditions and the following disclaimer.
-% 	  
+%
 %     * Redistributions in binary form must reproduce the above copyright
 %       notice, this list of conditions and the following disclaimer in the
-%       documentation and/or other materials provided with the distribution.  
-% 
+%       documentation and/or other materials provided with the distribution.
+%
 % THIS SOFTWARE ROUTINE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 % AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 % IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -112,7 +112,7 @@ function [L, iL, Z, iZ] = GLONASS_L(kappa, opt, Dm)
 
 %%============================BEGIN PROGRAM==============================%%
 
-%---------------------initialization------------------------------  
+%---------------------initialization------------------------------
 ze  = 2848;
 a   = ze + kappa;
 m   = length(kappa);
@@ -146,46 +146,46 @@ end
 
 g  = a(1);
 switch opt
-    
+
     case 1     %default (option 1)
-        Z  = []; 
-        iZ = [];     
+        Z  = [];
+        iZ = [];
         L  = zeros(m-1);
         for i = 1:m-1
-        
+
             %--computing the GCDs and Bezout coefficients alpha & beta
             [g(i+1),alpha] = gcd(a(i+1),g(i));
             alpha = -alpha;
-            
+
             L(i,i) = g(i+1)/(g(i)*a(i+1));
-            
+
             for j = i+1:m-1
-                                                            
+
                 L(j,i) = -(alpha*(a(j+1)-a(1)))/(g(i)*a(j+1));
-                
+
             end
-            
+
         end
-        L  = ze*L; 
-        iL = L\eye(m-1); 
-        
+        L  = ze*L;
+        iL = L\eye(m-1);
+
     case 2     %option 2: also delivering the admissible integer transformations Z and iZ
-        
-        Z  = 1; 
-        iZ = 1;      
+
+        Z  = 1;
+        iZ = 1;
         for i = 1:m-1
-        
+
             %--computing the GCDs and Bezout coefficients alpha & beta
             [g(i+1),alpha, beta] = gcd(a(i+1),g(i));
             alpha = -alpha;
-            
+
             %--computing the Z-matrix recursively
             hm  = (g(i)/g(i+1))*Z(:,end);
-            aux = zeros(1,i); aux(end) = beta-(g(1)/g(i)); 
+            aux = zeros(1,i); aux(end) = beta-(g(1)/g(i));
             wm  = Z(1,:) + aux;
             Zt  = Z * blkdiag(eye(i-1),alpha);
-            Z   = [[Zt, hm];[wm, a(i+1)/g(i+1)]]; 
-            
+            Z   = [[Zt, hm];[wm, a(i+1)/g(i+1)]];
+
             %--computing the INVERSE of Z-matrix recursively
             v1    = zeros(i,1); v1(1)   = 1;
             vm    = zeros(i,1); vm(end) = 1;
@@ -195,14 +195,14 @@ switch opt
             aux   = (g(i+1)+alpha*(a(i+1)-a(1)))/g(i);
             iwm   = alpha*v1' + aux*iZ(end,:);
             iZ    = [[iZt, ihm];[iwm,-alpha]];
-            
+
         end
         iA       = diag(1./a);
         L        = ze*Dm'*iA*Z;
         L(:,end) = [];
               iL = L\eye(m-1);
-    
-        
+
+
 end
 
 

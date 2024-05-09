@@ -24,8 +24,6 @@ function [Az, El, D] = topocent(XR, XS)
 %                    Mirko Reguzzoni, Eugenio Realini, 2009
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
-%
-%--------------------------------------------------------------------------
 
 %conversion from geocentric cartesian to geodetic coordinates
 [phi, lam] = cart2geod(XR(1), XR(2), XR(3));

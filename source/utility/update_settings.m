@@ -13,7 +13,7 @@ function [out] = update_settings(settings_dir_path, field, value)
 %   out = update outcome
 %
 % DESCRIPTION:
-%   Utility to update goGPS settings file.
+%   Utility to update App settings file.
 
 %  Software version 1.0.1
 %-------------------------------------------------------------------------------

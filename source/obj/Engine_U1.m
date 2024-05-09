@@ -13,7 +13,7 @@
 
 %  Software version 1.0.1
 %-------------------------------------------------------------------------------
-%  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2024 Geomatics Research & Development srl (GReD) Giulio Tagliaferro, Andrea Gatti, Eugenio Realini
 %  Written by:        Giulio Tagliaferro
 %  Contributors:      Giulio Tagliaferro, Andrea Gatti
 %
@@ -21,11 +21,11 @@
 %-------------------------------------------------------------------------------
 
 classdef Engine_U1 < Exportable
-    
+
     % ==================================================================================================================================================
     %% Parameter columns id (order)
     % ==================================================================================================================================================
-    
+
     properties (Constant)
         PAR_X = 1;
         PAR_Y = 2;
@@ -44,7 +44,7 @@ classdef Engine_U1 < Exportable
         PAR_ANT_MP = 14;
         CLASS_NAME = {'X', 'Y', 'Z', 'ISB', 'AMB', 'REC_CLK', 'TROPO', 'TROPO_N', 'TROPO_E', 'PCO_X', 'PCO_Y', 'PCO_Z', 'SAT_CLK', 'ANT_MP'};
     end
-    
+
     properties
         A_ep         % Stacked epoch-wise design matrices [n_obs x n_param_per_epoch]
         A_idx        % index of the paramter [n_obs x n_param_per_epoch]
@@ -78,45 +78,45 @@ classdef Engine_U1 < Exportable
         rate                % rate of the true epoch
         sat_go_id           % go id of the sat indexes
         receiver_id         % id of the receiver, in case of differenced observations two columns are used
-        
-        
+
+
         wl_amb              % wide-lane ambuiguity
         wl_fixed            % is wide-lane fixed
-        
+
         amb_set_jmp         % cell containing for each receiver the jmps on all ambiguity
-        
+
         network_solution = false;
-        
+
         sat_jmp_idx         % satellite jmp index
-        
+
         pos_indexs_tc = {}  % to which index of the sampled time the progessive index correspond
         central_coo         % index of the central coordinate
-        
+
         apriori_info % previous knowledge about the state to be estimated (for now only ambiguity)
         x_float
         Cxx_amb
-        
+
         is_tropo_decorrel % are tropo paramter decorrelated enough
         is_coo_decorrel % are coo paramter decorrelated enough
-                
+
         dist_matr = [];
         distance_regularization = [];
-        
+
     end
-    
+
     properties (Access = private)
         Ncc         % part of the normal matrix with costant paramters
         Nee         % diagonal part of the normal matrix with epoch wise or multi epoch wise paramters
         Nce         % cross element between constant and epoch varying paramters
-        
+
         rf          % reference frame
-        
+
         state       % link to the current settings
         cc          % link to the current constellation collector
-        
+
         log         % link to the logger
     end
-    
+
     methods
         function this = Engine_U1(cc)
             % Creator Brahma
@@ -126,7 +126,7 @@ classdef Engine_U1 < Exportable
             end
             this.cc = cc;
         end
-        
+
         function init(this)
             % Init the singletons (create links)
             %
@@ -136,12 +136,12 @@ classdef Engine_U1 < Exportable
             this.rf = Core.getReferenceFrame();
             this.log = Core.getLogger();
         end
-        
-        function id_sync = setUpPPP(this, rec, sys_list, id_sync,  cut_off, dynamic, pos_idx, tropo_idx_vec)
+
+        function id_sync = setUpPPP(this, rec, sys_list, id_sync,  cut_off, dynamic, mp_type, pos_idx, tropo_idx_vec)
             % Init the object for the phase stand alone positioning
             %
             % SYNTAX
-            %   id_sync = this.setUpPPP(rec, sys_list, id_sync,  <cut_off>, <dynamic>, <pos_idx>)                  
+            %   id_sync = this.setUpPPP(rec, sys_list, id_sync,  <cut_off>, <dynamic>, mp_type, <pos_idx>)
 
             if nargin < 5
                 cut_off = [];
@@ -150,14 +150,17 @@ classdef Engine_U1 < Exportable
                 dynamic = false;
             end
             if nargin < 7
-                pos_idx = [];
+                mp_type = [];
             end
             if nargin < 8
+                pos_idx = [];
+            end
+            if nargin < 9
                 tropo_idx_vec = [];
             end
-            id_sync = this.setUpSA(rec, sys_list, id_sync, 'L', cut_off, '', dynamic, pos_idx,tropo_idx_vec);
+            id_sync = this.setUpSA(rec, sys_list, id_sync, 'L', cut_off, '', dynamic, mp_type, pos_idx,tropo_idx_vec);
         end
-        
+
         function id_sync = setUpCodeStatic(this, rec, sys_list, id_sync, cut_off)
             % Init the object for the code static positioning
             %
@@ -168,15 +171,15 @@ classdef Engine_U1 < Exportable
             end
             id_sync = this.setUpSA(rec, sys_list, id_sync, 'C', cut_off);
         end
-        
+
         function id_sync = setUpCodeDynamic(this, rec, sys_list, id_sync, cut_off)
             if nargin < 5
                 cut_off = [];
             end
             id_sync = this.setUpSA(rec, sys_list, id_sync, 'C', cut_off, '', true);
         end
-        
-        function id_sync_out = setUpSA(this, rec, sys_list, id_sync_in, obs_type, cut_off, custom_obs_set, dynamic, pos_idx_vec, tropo_rate)
+
+        function id_sync_out = setUpSA(this, rec, sys_list, id_sync_in, obs_type, cut_off, custom_obs_set, dynamic, mp_type, pos_idx_vec, tropo_rate)
             % Init the object for static positioning
             % return the id_sync of the epochs to be computed
             %
@@ -188,21 +191,24 @@ classdef Engine_U1 < Exportable
             %    cut_off : cut off angle [optional]
             %
             % SYNTAX
-            %   id_sync_out = this.setUpSA(rec, sys_list, id_sync_in, obs_type('C'/'L'/'CL'), cut_off, custom_obs_set, <dynamic>, <pos_idx_vec>, <tropo_rate>)
+            %   id_sync_out = this.setUpSA(rec, sys_list, id_sync_in, obs_type('C'/'L'/'CL'), cut_off, custom_obs_set, <dynamic>, <mp_type> <pos_idx_vec>, <tropo_rate>)
 
             if isempty(sys_list)
                 sys_list = rec.getActiveSys;
             end
-            if nargin < 10
+            if nargin < 11
                 tropo_rate = [];
             end
-            if nargin < 9
+            if nargin < 10
                 pos_idx_vec = [];
+            end
+            if nargin < 9
+                mp_type = 0;
             end
             if nargin < 8
                 dynamic = false;
-            end   
-                        
+            end
+
             % Extract the observations to be used for the solution
             phase_present = instr(obs_type, 'L');
             if phase_present && isempty(rec.findObservableByFlag('L'))
@@ -213,8 +219,8 @@ classdef Engine_U1 < Exportable
                 if nargin < 7 || isempty(custom_obs_set)
                     obs_set = Observation_Set();
                     if rec.isMultiFreq() && ~rec.state.isIonoExtModel %% case multi frequency
-                        
-                        % Using smoothed iono from geometry free                        
+
+                        % Using smoothed iono from geometry free
                         for sys_c = sys_list
                             for i = 1 : length(obs_type)
                                 if this.state.isIonoFree || ~phase_present
@@ -226,13 +232,13 @@ classdef Engine_U1 < Exportable
                                 end
                             end
                         end
-                        
+
                         if flag_amb_fix && phase_present
                             [this.wl_amb, this.wl_fixed, wsb_rec]  = rec.getWidelaneAmbEst();
                             f_vec = GPS_SS.F_VEC;
                             l_vec = GPS_SS.L_VEC;
                             obs_set.obs = nan2zero(obs_set.obs - (this.wl_amb(:,obs_set.go_id))*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2));
-                            obs_set.wl = ones(size(obs_set.wl))*Core_Utils.V_LIGHT / (f_vec(1) + f_vec(2)); % <- set wavelength as narrow lane   
+                            obs_set.wl = ones(size(obs_set.wl))*Core_Utils.V_LIGHT / (f_vec(1) + f_vec(2)); % <- set wavelength as narrow lane
                         end
                     else
                         % Using the best combination available
@@ -257,7 +263,7 @@ classdef Engine_U1 < Exportable
                 if not(phase_present)
                     obs_set.wl(:) = -1;
                 end
-                
+
                 if phase_present
                     cc = Core.getState.getConstellationCollector;
                     n_sat = cc.getMaxNumSat();
@@ -297,32 +303,32 @@ classdef Engine_U1 < Exportable
                         obs_set.snr = simpleFill1D(obs_set.snr, snr_to_fill);
                     end
                 end
-                
+
                 % remove epochs based on desired sampling
                 if nargin > 3
                     obs_set.keepEpochs(id_sync_in);
                 end
-                
+
                 % re-apply cut off if requested
                 if nargin > 5 && ~isempty(cut_off) && sum(sum(obs_set.el)) ~= 0
                     obs_set.remUnderCutOff(cut_off);
                 end
-                                              
+
                 % remove not valid empty epoch or with only one satellite (probably too bad conditioned)
                 idx_valid_ep_l = sum(obs_set.obs ~= 0, 2) > 0;
                 obs_set.setZeroEpochs(~idx_valid_ep_l);
-                
+
                 %remove too shortArc
-                
+
                 % Compute the number of ambiguities that must be estimated
                 cycle_slip = obs_set.cycle_slip;
                 min_arc = iif(phase_present, this.state.getMinArc(obs_set.time.getRate), 0);
                 if phase_present && min_arc > 1
                     amb_idx = obs_set.getAmbIdx();
                     % amb_idx = n_coo + n_iob + amb_idx;
-                    
+
                     % remove short arcs
-                    
+
                     % ambiguity number for each satellite
                     amb_obs_count = histcounts(serialize(amb_idx), 'Normalization', 'count', 'BinMethod', 'integers');
                     if any(amb_idx(:) == 0)
@@ -336,19 +342,19 @@ classdef Engine_U1 < Exportable
                         id_ko = amb_idx == ko_amb;
                         obs_set.remObs(id_ko, false)
                     end
-                    
+
                 end
-                
+
                 % Remove all the observables for an epoch with less than this.state.getMinNSat()
                 epoch_ko = sum(obs_set.obs ~= 0, 2) < this.state.getMinNSat() & sum(obs_set.obs ~= 0, 2) > 0;
                 obs_set.obs(epoch_ko, :) = 0;
-                
+
                 idx_valid_ep_l = sum(obs_set.obs ~= 0, 2) > 0;
                 obs_set.setZeroEpochs(~idx_valid_ep_l);
-                
+
                 obs_set.remEmptyColumns();
                 % if phase observations are present check if the computation of troposphere parameters is required
-                
+
                 if phase_present
                     tropo = this.state.flag_ztd_ppp;
                     tropo_g = this.state.flag_grad_ppp;
@@ -356,12 +362,12 @@ classdef Engine_U1 < Exportable
                     tropo = false;
                     tropo_g = false;
                 end
-                                
+
                 % get reference observations and satellite positions
                 [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
                 xs_loc = zero2nan(xs_loc);
                 diff_obs = nan2zero(zero2nan(obs_set.obs) - zero2nan(synt_obs));
-                                
+
                 % Sometime code observations may contain unreasonable values -> remove them
                 if obs_type == 'C'
                     % very coarse outlier detection based on diff obs
@@ -455,7 +461,7 @@ classdef Engine_U1 < Exportable
                 end
             end
         end
-                
+
         function changePosIdx(this, r_id, pos_idx)
             % Change the index of the position in the design matrix
             %
@@ -465,12 +471,12 @@ classdef Engine_U1 < Exportable
             idx_rec = this.receiver_id == r_id;
             o_max_idx = max(this.A_idx(idx_rec, 1)) - min(this.A_idx(idx_rec, 1)) +1;
             pos_idx_coo = [pos_idx pos_idx+max_idx pos_idx+max_idx*2];
-            
+
             this.A_idx(idx_rec, 1:3) = pos_idx_coo(this.epoch(idx_rec), :);
             this.A_idx(idx_rec, 4:end) = this.A_idx(idx_rec, 4:end) + 3*(max_idx-o_max_idx);
         end
-        
-        
+
+
         function [A, A_idx, ep, sat, p_flag, p_class, y, variance, amb_set_jmp, id_sync_out] = getObsEq(this, rec, obs_set, pos_idx_vec, tropo_rate)
             % get reference observations and satellite positions
             if nargin < 5
@@ -480,34 +486,34 @@ classdef Engine_U1 < Exportable
             tropo_g = rec.state.flag_grad_ppp  && obs_set.hasPhase();
             dynamic = rec.state.rec_dyn_mode;
             phase_present =  obs_set.hasPhase();
-            
+
             [synt_obs, xs_loc] = rec.getSyntTwin(obs_set);
             xs_loc = zero2nan(xs_loc);
             diff_obs = nan2zero(zero2nan(obs_set.obs) - zero2nan(synt_obs));
             % diff_obs = nan2zero(zero2nan(diff_obs) - cumsum(median(Core_Utils.diffAndPred(zero2nan(diff_obs)), 2, 'omitnan'))); % for DEBUGGING: remove receiver clock
-            
+
             if obs_set.hasPhase()
                 amb_idx = obs_set.getAmbIdx();
                 n_amb = double(max(max(amb_idx)));
-                
+
                 amb_flag = 1;
             else
                 n_amb = 0;
                 amb_flag = 0;
             end
-            
+
             id_sync_out = obs_set.getTimeIdx(rec.time.first, rec.getRate);
-            
+
             % set up requested number of parametrs
             n_epochs = size(obs_set.obs, 1);
             n_stream = size(diff_obs, 2); % number of satellites
             n_clocks = n_epochs; % number of clock errors
             n_tropo = n_clocks; % number of epoch for ZTD estimation
             ep_p_idx = 1 : n_clocks; % indexes of epochs starting from 1 to n_epochs
-            
+
             is_fixed = rec.isFixed() || (rec.hasGoodApriori && ~phase_present);
             n_coo_par =  ~is_fixed * 3; % number of coordinates
-            
+
             if dynamic
                 n_coo = n_coo_par * n_epochs;
             else
@@ -520,7 +526,7 @@ classdef Engine_U1 < Exportable
                     n_coo =  n_pos*3;
                 end
             end
-            
+
             % get the list  of observation codes used
             u_obs_code = cell2mat(unique(cellstr(obs_set.obs_code)));
             n_u_obs_code = size(u_obs_code, 1);
@@ -534,7 +540,7 @@ classdef Engine_U1 < Exportable
             iob_p_idx = iob_idx + n_coo; % progressive index start for iob
             n_iob = size(u_obs_code, 1) - 1;
             iob_flag = double(n_iob > 0);
-            
+
             % separte antenna phase centers
             apc_flag = false;
             n_apc = 3 * n_iob * apc_flag;
@@ -551,7 +557,7 @@ classdef Engine_U1 < Exportable
             end
             % total number of observations
             n_obs = sum(sum(diff_obs ~= 0));
-            
+
             % Building Design matrix
             if this.state.tparam_ztd_ppp == 2
                 order_tropo = 1;
@@ -561,7 +567,7 @@ classdef Engine_U1 < Exportable
                 order_tropo = 0;
                 tropo_rate(1) = 0;
             end
-               
+
             if this.state.tparam_grad_ppp == 2
                 order_tropo_g = 1;
             elseif this.state.tparam_grad_ppp == 3
@@ -570,12 +576,12 @@ classdef Engine_U1 < Exportable
                 order_tropo_g = 0;
                 tropo_rate(2) = 0;
             end
-            tropo_v_g = false && obs_set.hasPhase(); 
+            tropo_v_g = false && obs_set.hasPhase();
             n_par = n_coo_par + iob_flag + 3 * apc_flag + amb_flag + 1 + double(tropo) + double(order_tropo > 0 & tropo)*(order_tropo) + 2 * double(tropo_g) + 2*double(order_tropo_g > 0&tropo_g)*(order_tropo_g) + double(tropo_v_g); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             A = zeros(n_obs, n_par); % three coordinates, 1 clock, 1 inter obs bias(can be zero), 1 amb, 3 tropo paramters
             obs = zeros(n_obs, 1);
             sat = zeros(n_obs, 1);
-            
+
             A_idx = zeros(n_obs, n_par);
             if ~is_fixed
                 if isempty(pos_idx_vec)
@@ -585,7 +591,7 @@ classdef Engine_U1 < Exportable
             y = zeros(n_obs, 1);
             variance = zeros(n_obs, 1);
             obs_count = 1;
-            
+
             % Getting mapping faction values
             if tropo || tropo_g
                 if tropo_g
@@ -597,7 +603,7 @@ classdef Engine_U1 < Exportable
                 %mfw = mfw(id_sync_out,:); % getting only the desampled values
             end
             phase_s = find(obs_set.wl ~=  -1);
-            
+
             if ~isempty(tropo_rate) && sum(abs(tropo_rate)) ~= 0
                 if isempty(this.tropo_time_start)
                     delta_tropo_time_sart = 0;
@@ -605,18 +611,18 @@ classdef Engine_U1 < Exportable
                     delta_tropo_time_sart = round((obs_set.time.first  - this.tropo_time_start)/rec.time.getRate)*rec.time.getRate; % network case make the spline coherent between recievers
                 end
             end
-            
+
             if isempty(tropo_rate) || tropo_rate (1) == 0
                 n_tropo = n_clocks;
-                
+
             else
-                
+
                 %get_tropo_indexes
                 edges = 0:tropo_rate(1)/rec.time.getRate:rec.time.length;
                 if edges(end) ~= rec.time.length
                     edges = [edges rec.time.length];
                 end
-                
+
                 tropo_idx = discretize(id_sync_out-1+delta_tropo_time_sart,edges);
                 if isempty(this.tropo_time_start)
                     tropo_idx = tropo_idx - tropo_idx(1) +1;
@@ -642,12 +648,12 @@ classdef Engine_U1 < Exportable
                 n_tropo_g = max(tropo_g_idx) + order_tropo_g;
                 tropo_g_dt = rem(id_sync_out-1 + delta_tropo_time_sart,tropo_rate(2)/rec.time.getRate)/(tropo_rate(2)/rec.time.getRate);
             end
-            
+
             state = Core.getCurrentSettings;
 
             for s = 1 : n_stream
                 id_ok_stream = diff_obs(:, s) ~= 0; % check observation existence -> logical array for a "s" stream
-                
+
                 obs_stream = diff_obs(id_ok_stream, s);
                 % snr_stream = obs_set.snr(id_ok_stream, s); % SNR is not currently used
                 el_stream = obs_set.el(id_ok_stream, s) / 180 * pi;
@@ -660,10 +666,10 @@ classdef Engine_U1 < Exportable
                 end
                 xs_loc_stream = permute(xs_loc(id_ok_stream, s, :), [1, 3, 2]);
                 los_stream = rowNormalize(xs_loc_stream);
-                
+
                 n_obs_stream = length(obs_stream);
                 lines_stream = obs_count + (0:(n_obs_stream - 1));
-                
+
                 %--- Observation related vectors------------
                 obs(lines_stream) = ep_p_idx(id_ok_stream);
                 sat(lines_stream) = s;
@@ -720,7 +726,7 @@ classdef Engine_U1 < Exportable
                 if phase_present
                     prog_p_col = prog_p_col + 1;
                     if sum(phase_s == s) > 0
-                        
+
 %                         if this.state.flag_ppp_amb_fix
 %                             A(lines_stream, prog_p_col) = 1;
 %                         else
@@ -738,7 +744,7 @@ classdef Engine_U1 < Exportable
                 A_idx(lines_stream, prog_p_col) = n_coo + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                 % ----------- ZTD ------------------
                 if tropo
-                    
+
                     if isempty(tropo_rate)  || tropo_rate(1) == 0
                         prog_p_col = prog_p_col + 1;
                         A(lines_stream, prog_p_col) = mfw_stream;
@@ -755,7 +761,7 @@ classdef Engine_U1 < Exportable
                 % ----------- ZTD gradients ------------------
                 if tropo_g
                     % The cotan term is computed in grad_term
-                    
+
                     if isempty(tropo_rate) || tropo_rate(2) == 0
                         prog_p_col = prog_p_col + 1;
                         A(lines_stream, prog_p_col) = cos(az_stream) .* grad_stream; % north gradient
@@ -776,21 +782,21 @@ classdef Engine_U1 < Exportable
                             A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + n_tropo_g + n_iob + n_apc + n_amb  + tropo_g_idx(id_ok_stream) + o -1;
                         end
                     end
-                    
+
                 end
                 if tropo_v_g
                     prog_p_col = prog_p_col + 1;
                     A(lines_stream, prog_p_col) = mfw_stream*rec.h_ellips;
                     A_idx(lines_stream, prog_p_col) =n_coo + n_clocks + n_tropo + 2*n_tropo_g + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                 end
-                
+
                 obs_count = obs_count + n_obs_stream;
             end
             % ---- Suppress weighting until solution is more stable/tested
             %w(:) = 1;%0.005;%this.state.std_phase;
             %---------------------
-            
-            
+
+
             ep = obs;
             e_spline_mat_t = ones(1,double(tropo)*(order_tropo+1));
             e_spline_mat_tg = ones(1,double(tropo_g)*(order_tropo_g+1));
@@ -799,7 +805,7 @@ classdef Engine_U1 < Exportable
             else
                 p_flag = [zeros(1,n_coo_par) -ones(iob_flag), -repmat(ones(apc_flag),1,3), -ones(amb_flag), 1, (1 -2 * double(order_tropo > 0))*e_spline_mat_t, (1 -2 * double(order_tropo_g > 0))*e_spline_mat_tg, (1 -2 * double(order_tropo_g > 0))*e_spline_mat_tg,];
             end
-            
+
             p_class = [this.PAR_X*ones(~is_fixed) , this.PAR_Y*ones(~is_fixed), this.PAR_Z*ones(~is_fixed), this.PAR_ISB * ones(iob_flag), this.PAR_PCO_X * ones(apc_flag), this.PAR_PCO_Y * ones(apc_flag), this.PAR_PCO_Z * ones(apc_flag),...
                 this.PAR_AMB*ones(amb_flag), this.PAR_REC_CLK, this.PAR_TROPO*e_spline_mat_t, this.PAR_TROPO_N*e_spline_mat_tg, this.PAR_TROPO_E*e_spline_mat_tg , this.PAR_TROPO_V * ones(tropo_v_g) ];
             if obs_set.hasPhase()
@@ -807,11 +813,11 @@ classdef Engine_U1 < Exportable
             else
                 amb_set_jmp = [];
             end
-            
+
             % Save obs_code
             this.obs_code = obs_set.obs_code;
         end
-        
+
         function setTimeRegularization(this, param_class, time_variability)
             idx_param = this.time_regularization == param_class;
             if sum(idx_param) > 0
@@ -820,7 +826,7 @@ classdef Engine_U1 < Exportable
                 this.time_regularization = [this.time_regularization; [param_class, time_variability]];
             end
         end
-        
+
         function setMeanRegularization(this, param_class, var)
             idx_param = this.time_regularization == param_class;
             if sum(idx_param) > 0
@@ -829,7 +835,7 @@ classdef Engine_U1 < Exportable
                 this.mean_regularization = [this.mean_regularization; [param_class, var]];
             end
         end
-        
+
         function remShortArc(this)
             % Remove ambiguities having too few observations for their
             % estimation
@@ -840,13 +846,13 @@ classdef Engine_U1 < Exportable
             n_amb_obs = hist(amb_id, min(amb_id):max(amb_id));
             amb_out = find(n_amb_obs <= Core.getCurrentSettings.getMinArc(this.rate)) + min(amb_id) - 1;
             this.remObs(find(ismember(amb_id, amb_out)));
-            
+
             % After removing short arcs check min obs per epoch
             n_obs = hist(this.epoch, min(this.epoch) : max(this.epoch)) + min(this.epoch) - 1;
             ep_out = find(n_obs < Core.getCurrentSettings.getMinNSat);
-            this.remObs(find(ismember(this.epoch, ep_out)));            
+            this.remObs(find(ismember(this.epoch, ep_out)));
         end
-        
+
         function Astack2Nstack(this)
             %DESCRIPTION: generate N stack A'*A
             n_obs = size(this.A_ep, 1);
@@ -856,12 +862,12 @@ classdef Engine_U1 < Exportable
             end
             for i = 1 : n_obs
                 A_l = this.A_ep(i, :);
-                
+
                 w = 1 / this.variance(i) * this.rw(i);
                 this.N_ep(:, :, i) = A_l' * w * A_l;
             end
         end
-        
+
         function [res, av_res] = getResiduals(this, x)
             %res_l = zeros(size(this.y));
             %for o = 1 : size(this.A_ep, 1)
@@ -876,7 +882,7 @@ classdef Engine_U1 < Exportable
             aidx_temp = this.A_idx;
             aidx_temp(aidx_temp == 0) = 1;
             res_l = this.y - sum(this.A_ep .* reshape(x(aidx_temp), size(this.A_idx,1), size(this.A_idx,2)),2);
-            
+
             this.res = res_l;
             res_l(this.rw == 0) = 0;
             n_epochs = max(this.true_epoch);
@@ -901,8 +907,8 @@ classdef Engine_U1 < Exportable
                     end
                 end
                 av_res = sum(res, 3, 'omitnan') ./  sum(logical(res),3);
-                
-                
+
+
                 res = res - repmat(av_res,1,1,n_rec);
                 this.res(idx_tot) = res(~isnan(res));
                 res = nan2zero(res);
@@ -926,9 +932,9 @@ classdef Engine_U1 < Exportable
                     sat_err = nan(this.n_epochs, max(this.sat_go_id));
                     sat_err(this.epoch + (this.sat_go_id(this.sat) - 1) * this.n_epochs) = res_n;
                     ssat_err = Receiver_Commons.smoothSatData([],[],sat_err, [], 'spline', 30, 10);
-                    
+
                     idx_ko = Core_Utils.snoopGatt(ssat_err, thr, thr_propagate);
-                    
+
                     % Check derivate for big fluctuation 2 * local std + 5 mm
                     % sensor = Core_Utils.diffAndPred(movmedian(sat_err * s0, 5));
                     % for f = 1 : size(sensor,2)
@@ -936,12 +942,12 @@ classdef Engine_U1 < Exportable
                     %    tmp_ko = flagExpand(abs(sensor(:,f)) > 2 * movstd(sensor(:,f),13) + 0.005, 1);
                     %    idx_ko(tmp_ko, f) = true;
                     % end
-                    
+
                     % Use derivate
                     x = movmedian(Core_Utils.diffAndPred(sat_err),5, 'omitnan');
                     y = sat_err;
                     % remove already flagged data
-                    x(idx_ko) = nan; y(idx_ko) = nan; 
+                    x(idx_ko) = nan; y(idx_ko) = nan;
                     % normalize values
                     x = x(:) ./ std(x(x < thr_propagate),'omitnan');
                     y = y(:) ./ std(y(x < thr_propagate),'omitnan');
@@ -959,21 +965,21 @@ classdef Engine_U1 < Exportable
                     % DEBUG: figure; plot(sat_err, '.');
                     % DEBUG: x = repmat((1:size(idx_ko,1))', 1 ,size(idx_ko,2));
                     % DEBUG: hold on; plot(x(idx_ko), sat_err(idx_ko), '.', 'MarkerSize', 10, 'Color', 0.1*[0.9 0.9 0.9]);
-                    
+
                     idx_rw = idx_ko(this.epoch + (this.sat_go_id(this.sat) - 1) * this.n_epochs);
-                    
+
                     if nargin > 4 && flag_clean_margin
                         % Find begin and end of an arc, if it's out of thr flag it till comes down under threshold --------------------------------------------
                         ot = abs(ssat_err) > thr_propagate;
                         for s = 1 : size(sat_err, 2)
-                            
+
                             % Beginning of the arc
                             tmp = ot(:, s) + ~isnan(sat_err(:, s));
-                            
+
                             id_start_bad = find(diff([0; tmp]) == 2);
                             for i = 1 : numel(id_start_bad)
                                 id_stop_bad = find(ot(id_start_bad(i) : end, s) == 0, 1, 'first'); % find when the arc is now under thr
-                                
+
                                 % rem over threshold elements
                                 if isempty(id_stop_bad)
                                     idx_ko(id_start_bad(i) : end, s) = true;
@@ -981,26 +987,26 @@ classdef Engine_U1 < Exportable
                                     idx_ko(id_start_bad(i) + (0 : (id_stop_bad - 1)), s) = true;
                                 end
                             end
-                            
+
                             % End of the arc (flip method)
                             ot(:, s) = flipud(ot(:, s));
                             tmp = ot(:, s) + flipud(~isnan(sat_err(:, s)));
-                            
+
                             id_start_bad = find(diff([0; tmp]) == 2);
                             for i = 1 : numel(id_start_bad)
                                 id_stop_bad = find(ot(id_start_bad(i) : end, s) == 0, 1, 'first'); % find when the arc is now under thr
-                                
+
                                 % rem over threshold elements
                                 if isempty(id_stop_bad)
                                     idx_ko(size(idx_ko, 1) + 1 - (id_start_bad(i) : size(idx_ko, 1)), s) = true;
                                 else
                                     idx_ko(size(idx_ko, 1) + 1 - (id_start_bad(i) + (0 : (id_stop_bad - 1))), s) = true;
                                 end
-                            end                                                        
-                        end % ---------------------------------------------------------------------------------------------------------------------------------                     
+                            end
+                        end % ---------------------------------------------------------------------------------------------------------------------------------
                         idx_rw = idx_rw | idx_ko(this.epoch + (this.sat_go_id(this.sat) - 1) * this.n_epochs);
                     end
-                    
+
                     % Listen to the settings remove epochs with not enough satellites
                     idx_ko(sum(not(isnan(ssat_err)) & not(idx_ko),2) < state.getMinNSat, :) = true;
                     idx_ko = idx_ko & not(isnan(ssat_err));
@@ -1018,7 +1024,7 @@ classdef Engine_U1 < Exportable
                 this.remObs(this.rw < 1e-3);
             end
         end
-        
+
         function flag_recompute = remOverThr(this, thr)
             % Remove all the observations with residuals over a certain threshold
             %
@@ -1035,45 +1041,45 @@ classdef Engine_U1 < Exportable
                 flag_recompute = true;
                 this.remObs(this.rw < 1e-3);
             end
-        end        
-        
+        end
+
         function reweightHuber(this)
             threshold = 2;
             wfun = @(x) threshold ./ abs(x);
             this.weightOnResidual(wfun, threshold);
         end
-        
+
         function reweightDanish(this)
             threshold = 2;
             wfun = @(x)  exp(-x.^2 ./threshold.^2);
             this.weightOnResidual(wfun, threshold);
         end
-        
+
         function reweightDanishWM(this)
             threshold = 2;
             wfun = @(x)  max(0.5,exp(-x.^2 ./threshold.^2));
             this.weightOnResidual(wfun, threshold);
         end
-        
+
         function reweightHubNoThr(this)
             wfun = @(x) 1 ./ abs(x);
             this.weightOnResidual(wfun);
         end
-        
+
         function reweightTukey(this)
             threshold = 2;
             wfun = @(x) (1 - (x ./threshold).^2).^2;
             this.weightOnResidual(wfun, threshold);
         end
-        
+
         function snooping(this)
             threshold = 2.5;
             wfun = @(x) 0;
             this.weightOnResidual(wfun, threshold);
-        end       
-        
+        end
+
         function flag_recompute = snoopingGatt(this, thr)
-            % Outlier detection on first tredshold + remove till under second threshold 
+            % Outlier detection on first tredshold + remove till under second threshold
             % that is threshold_propagate = 2 sigma
             %
             % SYNTAX:
@@ -1085,7 +1091,7 @@ classdef Engine_U1 < Exportable
             wfun = @(x) 0;
             flag_recompute = this.weightOnResidual(wfun, thr, threshold_propagate);
         end
-        
+
         function flag_recompute = snoopingGatt2(this, thr)
             % Outlier detection on first tredshold + remove till under second threshold
             % + remove beginnin and end of arcs over threshold_propagate (2 sigma)
@@ -1098,9 +1104,9 @@ classdef Engine_U1 < Exportable
             wfun = @(x) 0;
             flag_recompute = this.weightOnResidual(wfun, thr, threshold_propagate, true);
         end
-        
+
         %------------------------------------------------------------------------
-        
+
         function [x, res, s0, Cxx, l_fixed, av_res] = solve(this, direct_solve)
             if nargin < 2
                 direct_solve = false;
@@ -1145,7 +1151,7 @@ classdef Engine_U1 < Exportable
                     if isempty(n_ep_wise)
                         n_ep_wise = 0;
                     end
-                    
+
                     n_epochs = this.n_epochs(r);
                     if  is_network
                         u_ep = unique(this.epoch(this.receiver_id == r)); % <- consider not using unique
@@ -1169,7 +1175,7 @@ classdef Engine_U1 < Exportable
                     N2A_idx = [a_idx_const; a_idx_ep_wise];
                     A2N_idx = zeros(size(N2A_idx));
                     A2N_idx(N2A_idx) = 1:(n_constant + n_ep_wise);
-                    
+
                     for i = idx_r'
                         p_idx = this.A_idx(i, ~idx_rec_common_l);
                         p_idx(p_idx == 0) = 1;  % does not matter since terms are zeros
@@ -1185,13 +1191,13 @@ classdef Engine_U1 < Exportable
                         p_c_idx = A2N_idx(p_c_idx);
                         p_e_idx = A2N_idx(p_e_idx) - n_constant;
                         p_idx = A2N_idx(p_idx);
-                        
+
                         % fill Ncc
                         Ncc(p_c_idx, p_c_idx) = Ncc(p_c_idx, p_c_idx) + N_ep(idx_constant, idx_constant);
                         % fill Nce
                         Nce(p_e_idx, p_c_idx) = Nce(p_e_idx, p_c_idx) + N_ep(idx_non_constant, idx_constant);
                         %fill Ndiags
-                        
+
                         Ndiags(:, :, e) = Ndiags(:, :, e) + N_ep(idx_non_constant, idx_non_constant);
                         %fill B
                         B_rec(p_idx) = B_rec(p_idx) + A_ep' * (1 ./ variance) * rw * y;
@@ -1223,12 +1229,12 @@ classdef Engine_U1 < Exportable
                             Ncc_reg = spdiags(diag_cc1,-1,Ncc_reg);
                             Ncc = Ncc + Ncc_reg;
                         end
-                        
+
                     end
-                    
+
                     Nee = [];
                     class_ep_wise = this.param_class(idx_non_constant);
-                    
+
                     diff_reg = 1./double(diff(this.true_epoch(u_ep)));
                     reg_diag0 = [diff_reg; 0 ] + [0; diff_reg];
                     reg_diag1 = -diff_reg ;
@@ -1261,7 +1267,7 @@ classdef Engine_U1 < Exportable
                                         diag0 = diag0 + tik_reg * w;
                                     end
                                 end
-                                
+
                             end
                             N_el = spdiags(diag0, 0, N_el);
                             N_col = [N_col; N_el];
@@ -1279,29 +1285,29 @@ classdef Engine_U1 < Exportable
                     A2N_idx_tot = [A2N_idx_tot; A2N_idx];
                     x_rec = [x_rec; r*ones(size(N_rec,1),1)];
                 end
-                
+
                 if is_network
                     n_obs = size(this.A_idx,1);
                     % create the part of the normal that considers common parameters
-                    
+
                     a_idx_const = unique(this.A_idx(this.receiver_id == 1, idx_constant_l));
                     a_idx_const(a_idx_const == 0) = [];
                     a_idx_ep_wise = unique(this.A_idx(this.receiver_id == 1, idx_ep_wise));
                     a_idx_ep_wise(a_idx_ep_wise == 0) = [];
-                    
+
                     N2A_idx = [ a_idx_const; a_idx_ep_wise];
                     %mix the receiver indexes
                     par_rec_id = ones(max(max(this.A_idx(this.receiver_id == 1,:))),1);
                     A_idx_not_mix = this.A_idx;
-                    
+
                     idx_net_comm = find(this.param_class == this.PAR_TROPO_V);
-                    
+
                     for j = 2 : n_rec
                         rec_idx = this.receiver_id == j;
                         % update the indexes
                         par_rec_id = [par_rec_id ; j*ones(max(max(this.A_idx(this.receiver_id == j,:))),1)];
                         this.A_idx(rec_idx,this.param_class ~= this.PAR_TROPO_V) = this.A_idx(this.receiver_id == j, this.param_class ~= this.PAR_TROPO_V) + max(max(this.A_idx(this.receiver_id == j-1,this.param_class ~= this.PAR_TROPO_V)));
-                        
+
                         a_idx_const =unique(this.A_idx(rec_idx, idx_constant_l));
                         a_idx_const(a_idx_const == 0) = [];
                         if ~isempty(idx_net_comm)
@@ -1310,7 +1316,7 @@ classdef Engine_U1 < Exportable
                             a_idx_ep_wise = unique(this.A_idx(rec_idx, idx_ep_wise));
                         end
                         a_idx_ep_wise(a_idx_ep_wise == 0) = [];
-                        
+
                         N2A_idx = [N2A_idx; a_idx_const; a_idx_ep_wise];
                     end
                     if ~isempty(idx_net_comm)
@@ -1321,11 +1327,11 @@ classdef Engine_U1 < Exportable
                             N = GReD_Utility.regularizeGradientsDist(this,N,u_ep,x_rec, this.dist_matr,this.distance_regularization.fun_gradients);
                         end
                     end
-                    
-                    
-                    
-                    
-                    
+
+
+
+
+
                     % get the oidx for the common parameters
                     common_idx = zeros(n_obs,1);
                     u_sat = unique(this.sat); % <- very lazy, once it work it has to be oprimized
@@ -1338,14 +1344,14 @@ classdef Engine_U1 < Exportable
                         common_idx(sat_idx) = idx_ep + p_idx;
                         p_idx = p_idx + max(idx_ep);
                     end
-                    
+
                     n_common  = max(common_idx);
                     B_comm    = zeros(n_common,1);
                     diag_comm = zeros(n_common,1);
                     n_s_r_p = size(this.A_idx,2); % number single receiver parameters
                     N_stack_comm = zeros(n_common, n_rec * n_s_r_p);
                     N_stack_idx  = zeros(n_common, n_rec * n_s_r_p);
-                    
+
                     for i = 1 : n_obs
                         idx_common = common_idx(i);
                         variance = this.variance(i);
@@ -1370,16 +1376,16 @@ classdef Engine_U1 < Exportable
                     i_diag_comm = 1 ./ diag_comm;
                     i_diag_comm = spdiags(i_diag_comm,0, n_common,n_common);
                     rNcomm = Nreccom'*i_diag_comm;
-                    
+
                     N = N - rNcomm*Nreccom; % N11r = N11 - N21 * inv(N22) * N12
-                    
+
                     B = B - rNcomm*B_comm;  % B1r = N1 - N21 * inv(N22) * B2
-                    
+
                     % resolve the rank deficency
                     % ALL paramters has a rank deficency because the entrance of the image matrixes are very similar and we also estimated the clock of the satellite
                     % 2) remove coordinates and tropo paramters of the first receiver
                     % we can do that because tropo paramters are slightly constarined in time so evan if they are non present for the first receiver the rank deficecny is avoided
-                    
+
                     idx_rec_isb = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_ISB));
                     idx_rec_t = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO));
                     idx_rec_tn = unique(this.A_idx(this.receiver_id == 1,this.param_class == this.PAR_TROPO_N));
@@ -1417,7 +1423,7 @@ classdef Engine_U1 < Exportable
                                 N(idx_rec_ztmp,idx_rec_ztmp) = N(idx_rec_ztmp,idx_rec_ztmp) + 10*ones(length(idx_rec_ztmp));
                             end
                         end
-                        
+
                     end
                     if ~this.is_tropo_decorrel
                         idx_rm = [idx_rm ; idx_rec_t; idx_rec_tn; idx_rec_te];
@@ -1436,7 +1442,7 @@ classdef Engine_U1 < Exportable
                         idx_clk_to_rm(idx_rec_clk_ep(idx_to_rm)) = false;
                         i = i+1;
                     end
-                    
+
                     idx_amb_rm = [];
                     prev_info = ~isempty(this.apriori_info);
                     % remove the ambiguity that are not connected
@@ -1453,9 +1459,9 @@ classdef Engine_U1 < Exportable
                         end
                         this.removeAprInfo(~conn_amb);
                     end
-                    
-                    
-                    
+
+
+
                     % 4)remove one ambiguity per satellite form the firs receiver
                     if true
                         %n_jmp_sat
@@ -1502,14 +1508,14 @@ classdef Engine_U1 < Exportable
                                 jmps = [1 jmps];
                             end
                             for j = 1 : length(jmps)
-                                
+
                                 jmp = jmps(j);
                                 jmp2 = jmps(min(j+1,length(jmps)));
                                 if jmp == jmp2
                                     jmp2 = Inf;
                                 end
-                                
-                                
+
+
                                 idx_clock_rec = this.A_idx(this.receiver_id == i & this.epoch >= jmp & this.epoch < jmp2,this.param_class == this.PAR_REC_CLK);
                                 %if isempty(intersect(idx_rm,idx_clock_rec))  % chekc i clck has been removed for the receiver in that ambiguity set
                                 idx_space = this.receiver_id == i & this.epoch >= jmp & this.epoch < jmp2;
@@ -1525,8 +1531,8 @@ classdef Engine_U1 < Exportable
                                 %                         end
                                 %idx_amb_rec = Core_Utils.remBFromA(idx_amb_rec,idx_amb_rm);
                                 if ~isempty(idx_amb_rec)
-                                    
-                                    
+
+
                                     if sum(this.param_class == this.PAR_ISB) > 0
                                         idx_amb_rect = idx_amb_rec;
                                         idx_amb_rec = [];
@@ -1579,7 +1585,7 @@ classdef Engine_U1 < Exportable
                                     end
                                 end
                             end
-                            
+
                         end
                         % add the float with their vcv
                         par_ids_float = par_ids(valid_float);
@@ -1604,11 +1610,11 @@ classdef Engine_U1 < Exportable
                     N =  [[N, G']; [G, zeros(size(G,1))]];
                     B = [B; this.D];
                 end
-                
+
                 warning off
                 x = N \ B;
                 warning on
-                
+
                 x_class = zeros(size(x));
                 for c = 1:length(this.param_class)
                     idx_pars = this.A_idx(:, c);
@@ -1620,7 +1626,7 @@ classdef Engine_U1 < Exportable
                     idx_est(idx_rm) = false;
                     x_tot(idx_est) = x;
                     x = x_tot;
-                    
+
                     idx_amb_par = find(x_class(idx_est) == this.PAR_AMB);
                     n_amb = length(idx_amb_par);
                     %                 x_rec = ones(size(x,1),1);
@@ -1631,7 +1637,7 @@ classdef Engine_U1 < Exportable
                     %                 end
                 end
                 %[x, flag] =  pcg(N,B,1e-9, 10000);
-                
+
                 cxx_comp = false;
                 if is_network && this.state.flag_amb_pass
                     % getting tht VCV matrix for the ambiuities
@@ -1667,13 +1673,13 @@ classdef Engine_U1 < Exportable
                         end
                         n_ep_wl(i) = length(idx);
                         amb_n1(i) = amb(i); %(amb(i)- 0*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2)* wl_amb);  % Blewitt 1989 eq(23)
-                        
+
                     end
-                    
+
                     weight = min(n_ep_wl(amb_wl_fixed),100); % <- downweight too short arc
                     weight = weight / sum(weight);
-                    
-                    
+
+
                     idx_amb = find(x_class == this.PAR_AMB);
                     % get thc cxx of the ambiguities
                     n_amb  = length(idx_amb);
@@ -1688,41 +1694,41 @@ classdef Engine_U1 < Exportable
                     amb_fixed = zeros(size(amb_n1,1),1);
                     % ILS shrinking, method 1
                     [af, is_fixed,lf] = Fixer.fix(amb_n1(~idx_constarined), Cxx_amb(~idx_constarined,~idx_constarined), 'sequential_best_integer_equivariant');
-                    
+
                     if is_fixed
                         amb_fixed(~idx_constarined,:) = af;
                         l_fixed(~idx_constarined,:) = lf;
                         % FIXED!!!!
                         idx_est = true(size(x,1),1);
                         amb_fix = amb_fixed(:, 1);
-                        
+
                         for i = 1 : n_amb
                             Ni = N(:, idx_amb(i));
                             if l_fixed(i)
                                 B = B - Ni * amb_fix(i);
                             end
                         end
-                        
+
                         % remove fixed ambiguity from B and N
                         B(idx_amb(l_fixed(:,1))) = [];
                         N(idx_amb(l_fixed(:,1)), :) = [];
                         N(:, idx_amb(l_fixed(:,1))) = [];
-                        
+
                         % recompute the solution
                         idx_nf = true(sum(idx_est,1),1);
                         idx_nf(idx_amb(l_fixed(:,1))) = false;
                         xf = zeros(size(idx_nf));
-                        
+
                         xf(idx_nf) = N \ B;
                         xf(~idx_nf) = amb_fix(l_fixed(:,1));
-                        
+
                         x(idx_est) = xf;
                     else
                         this.log.addWarning('The ambiguities cannot be fixed!!!');
                     end
-                    
+
                 end
-                
+
                 if nargout > 1
                     x_res = zeros(size(x));
                     if not(isempty(x_res))
@@ -1735,7 +1741,7 @@ classdef Engine_U1 < Exportable
                         res = [];
                         s0 = Inf;
                     end
-                    
+
                 end
                 x = [x, x_class];
                 % restore old Idx
@@ -1747,7 +1753,7 @@ classdef Engine_U1 < Exportable
             else
                 n_obs = size(this.A_ep, 1);
                 n_par = max(max(this.A_idx));
-                
+
                 rows = repmat((1:n_obs)',1,size(this.A_ep,2));
                 if isempty(this.rw)
                     this.rw = ones(size(this.variance));
@@ -1778,7 +1784,7 @@ classdef Engine_U1 < Exportable
                 end
             end
         end
-        
+
         function [x, res, s0, Cxx, l_fixed, av_res] = solvePPP(this)
             av_res = [];
             l_fixed = 0;
@@ -1816,7 +1822,7 @@ classdef Engine_U1 < Exportable
                 if isempty(n_ep_wise)
                     n_ep_wise = 0;
                 end
-                
+
                 n_epochs = this.n_epochs(r);
                 if  is_network
                     u_ep = unique(this.epoch(this.receiver_id == r)); % <- consider not using unique
@@ -1839,17 +1845,17 @@ classdef Engine_U1 < Exportable
                 N2A_idx = [a_idx_const; a_idx_ep_wise];
                 A2N_idx = zeros(size(N2A_idx));
                 A2N_idx(N2A_idx) = 1:(n_constant + n_ep_wise);
-                
+
                 for i = idx_r'
                     p_c_idx = A2N_idx(this.A_idx(i, idx_constant_l));
                     p_e_idx = A2N_idx(max(1, this.A_idx(i, ~idx_constant_l))) - n_constant;
-                    
+
                     % fill Ncc
                     Ncc(p_c_idx, p_c_idx) = Ncc(p_c_idx, p_c_idx) + this.N_ep(idx_constant, idx_constant, i);
                     % fill Nce
                     Nce(p_e_idx, p_c_idx) = Nce(p_e_idx, p_c_idx) + this.N_ep(idx_non_constant, idx_constant, i);
                     %fill Ndiags
-                    
+
                     Ndiags(:, :, r2p_ep(this.epoch(i))) = Ndiags(:, :, r2p_ep(this.epoch(i))) + this.N_ep(idx_non_constant, idx_non_constant, i);
                     %fill B
                     b_id = A2N_idx(this.A_idx(i,:));
@@ -1882,12 +1888,12 @@ classdef Engine_U1 < Exportable
                         Ncc_reg = spdiags(diag_cc1,-1,Ncc_reg);
                         Ncc = Ncc + Ncc_reg;
                     end
-                    
+
                 end
-                
+
                 Nee = [];
                 class_ep_wise = this.param_class(idx_non_constant);
-                
+
                 diff_reg = 1./double(diff(this.true_epoch(u_ep)));
                 reg_diag0 = [diff_reg; 0 ] + [0; diff_reg];
                 reg_diag1 = -diff_reg ;
@@ -1920,7 +1926,7 @@ classdef Engine_U1 < Exportable
                                     diag0 = diag0 + tik_reg * w;
                                 end
                             end
-                            
+
                         end
                         N_el = spdiags(diag0, 0, N_el);
                         N_col = [N_col; N_el];
@@ -1938,7 +1944,7 @@ classdef Engine_U1 < Exportable
                 A2N_idx_tot = [A2N_idx_tot; A2N_idx];
                 x_rec = [x_rec; r*ones(size(N_rec,1),1)];
             end
-                        
+
             if ~isempty(this.G)
                 if ~is_network
                     G = this.G(:,N2A_idx);
@@ -1948,7 +1954,7 @@ classdef Engine_U1 < Exportable
                 N =  [[N, G']; [G, zeros(size(G,1))]];
                 B = [B; this.D];
             end
-            
+
             warning off
             if (size(N, 1) > 1e5)
                 log = Core.getLogger();
@@ -1960,14 +1966,14 @@ classdef Engine_U1 < Exportable
                 toc(ts)
             end
             warning on
-            
+
             x_class = zeros(size(x));
             for c = 1:length(this.param_class)
                 idx_pars = this.A_idx(:, c);
                 idx_p = A2N_idx_tot(idx_pars(idx_pars~=0));
                 x_class(idx_p) = this.param_class(c);
             end
-            
+
             % Ambiguity fixing
             if (this.state.getAmbFixPPP && ~isempty(x(x_class == this.PAR_AMB,1)))
                 amb = x(x_class == this.PAR_AMB,1);
@@ -1991,13 +1997,13 @@ classdef Engine_U1 < Exportable
                     end
                     n_ep_wl(i) = length(idx);
                     amb_n1(i) = amb(i); %(amb(i)- 0*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2)* wl_amb);  % Blewitt 1989 eq(23)
-                    
+
                 end
-                
+
                 weight = min(n_ep_wl(amb_wl_fixed),100); % <- downweight too short arc
                 weight = weight / sum(weight);
-                
-                
+
+
                 idx_amb = find(x_class == this.PAR_AMB);
                 % get thc cxx of the ambiguities
                 n_amb  = length(idx_amb);
@@ -2012,40 +2018,40 @@ classdef Engine_U1 < Exportable
                 amb_fixed = zeros(size(amb_n1,1),1);
                 % ILS shrinking, method 1
                 [af, is_fixed,lf] = Fixer.fix(amb_n1(~idx_constarined), Cxx_amb(~idx_constarined,~idx_constarined), 'sequential_best_integer_equivariant');
-                
+
                 if is_fixed
                     amb_fixed(~idx_constarined,:) = af;
                     l_fixed(~idx_constarined,:) = lf;
                     % FIXED!!!!
                     idx_est = true(size(x,1),1);
                     amb_fix = amb_fixed(:, 1);
-                    
+
                     for i = 1 : n_amb
                         Ni = N(:, idx_amb(i));
                         if l_fixed(i)
                             B = B - Ni * amb_fix(i);
                         end
                     end
-                    
+
                     % remove fixed ambiguity from B and N
                     B(idx_amb(l_fixed(:,1))) = [];
                     N(idx_amb(l_fixed(:,1)), :) = [];
                     N(:, idx_amb(l_fixed(:,1))) = [];
-                    
+
                     % recompute the solution
                     idx_nf = true(sum(idx_est,1),1);
                     idx_nf(idx_amb(l_fixed(:,1))) = false;
                     xf = zeros(size(idx_nf));
-                    
+
                     xf(idx_nf) = N \ B;
                     xf(~idx_nf) = amb_fix(l_fixed(:,1));
-                    
+
                     x(idx_est) = xf;
                 else
                     this.log.addWarning('The ambiguities cannot be fixed!!!');
                 end
             end
-            
+
             if nargout > 1
                 x_res = zeros(size(x));
                 if not(isempty(x_res))
@@ -2058,11 +2064,11 @@ classdef Engine_U1 < Exportable
                     res = [];
                     s0 = Inf;
                 end
-                
+
             end
-            x = [x, x_class];            
+            x = [x, x_class];
         end
-        
+
         function reduceNormalEquation(this, keep_param)
             % reduce number of parmeters (STUB)
             N = this.N;
@@ -2077,7 +2083,7 @@ classdef Engine_U1 < Exportable
             B2 = B(rd_idx);
             this.B = B1 - RD * B2;
         end
-        
+
         function [A_full, col_type, epoch, A_small, col_type_small, epoch_small] = getDesignMatrix(this, max_ep)
             % Get the full Design matrix for debug purposes
             %
@@ -2095,7 +2101,7 @@ classdef Engine_U1 < Exportable
             col_type = this.param_class(col_type);
             epoch = this.epoch;
             toc
-            
+
             if nargin == 2
                 id_ok = epoch < max_ep;
                 epoch_small = this.epoch(id_ok);
@@ -2104,7 +2110,7 @@ classdef Engine_U1 < Exportable
                 A_small = A_full(id_ok, col_ok > 0);
             end
         end
-        
+
         function pos_idx = getCommonPosIdx(this)
             % get the unique position idx fro all receiver
             pos_idx = [];
@@ -2115,13 +2121,13 @@ classdef Engine_U1 < Exportable
                 pos_idx = 1;
             end
         end
-        
+
         function remAmb(this, p_idx, r_id, amb_value)
             % remove an ambiguity from the system
             %
             % SYNTAX:
             % this.remAmb(p_idx, r_id, amb_value)
-            
+
             rc_idx = this.receiver_id == r_id;
             p_amb = this.param_class == this.PAR_AMB;
             o_idx = rc_idx & this.A_idx(:,p_amb)== p_idx;
@@ -2133,9 +2139,9 @@ classdef Engine_U1 < Exportable
             rd_idx = repmat(rec_idx,1,size(this.A_idx,2)) & this.A_id > p_idx;
             this.A_idx(rd_idx) = this.A_idx(rd_idx) - 1;
             this.obs(o_idx) = this.obs(o_idx) + amb_value * wl;
-            
+
         end
-        
+
         function remObs(this, idx_obs)
             % remove observations from the system
             %
@@ -2143,13 +2149,13 @@ classdef Engine_U1 < Exportable
             %   this.remObs(idx_obs)
             param_to_el = unique(this.A_idx(idx_obs,:));
             epoch_to_el = unique(this.epoch(idx_obs));
-            
+
             if sum(this.param_class == this.PAR_AMB) > 0
                 inearInd = sub2ind(size(this.amb_idx), this.epoch(idx_obs), this.sat(idx_obs));
                 amb_to_el = unique(this.amb_idx(inearInd));
                 this.amb_idx(inearInd) = 0;
             end
-            
+
             % remove lines from the design matrix
             this.A_idx(idx_obs,:) = [];
             this.A_ep(idx_obs,:) = [];
@@ -2167,7 +2173,7 @@ classdef Engine_U1 < Exportable
                 this.res(idx_obs) = [];
             end
             this.y(idx_obs) = [];
-                        
+
             param_actual = unique(this.A_idx);
             %change paramter indexes
             el_count = 0;
@@ -2196,7 +2202,7 @@ classdef Engine_U1 < Exportable
             end
             this.n_epochs = length(unique(this.epoch));
             % If I have ambiguities in the receiver
-            if sum(this.param_class == this.PAR_AMB) > 0                
+            if sum(this.param_class == this.PAR_AMB) > 0
                 amb_actual = unique(this.amb_idx);
                 %change paramter indexes
                 for i = 1: length(amb_to_el)
@@ -2209,7 +2215,7 @@ classdef Engine_U1 < Exportable
                 end
             end
         end
-        
+
         function removeAprInfo(this,idx)
             % remove ambigutiy form apriori info
             %
@@ -2223,22 +2229,22 @@ classdef Engine_U1 < Exportable
             this.apriori_info.Cambamb(idx_f,:) = [];
             this.apriori_info.Cambamb(:,idx_f) = [];
             this.apriori_info.fixed(idx) = [];
-            
+
         end
     end
-    
+
     methods (Static)
         function [resulting_gps_time, idxes, sat_jmp_idx] = intersectObsSet(obs_set_lst)
             % get the times common to at leas 2 receiver between observation set and return the index of each observation set
             %
             % SYNTAX:
             % [resulting_gps_time, idxes] = intersectObsSet(obs_set_lst)
-            
+
             % OUTPUT:
             % resulting_gps_time = common time in gpstime (double)
             % idxe = double [n_time, n_obs_set] indx to which the commontimes correnspond in each ob_set_time
             % sat_jmp_idx = [n_time, n_sat] index of all satellite jumping
-            
+
             % get min time, max time, and min common rate
             n_rec = length(obs_set_lst);
             min_gps_time = Inf;
@@ -2277,19 +2283,19 @@ classdef Engine_U1 < Exportable
             for i = 1 : n_rec
                 [idx_is, idx_pos] = ismembertol(obs_set_lst(i).time.getNominalTime().getGpsTime(),resulting_gps_time); % tolleranc to 1 ms double check cause is already nominal rtime
                 idx_pos = idx_pos(idx_pos > 0);
-                
+
                 obs_set_lst(i).keepEpochs(idx_is)
                 pos_vec = 1 : obs_set_lst(i).time.length;
                 idxes(idx_pos,i) = pos_vec;
-                
+
                 for j = 1 : n_sat
                     presence_idx = obs_set_lst(i).obs(idx_is,obs_set_lst(i).go_id == j) ~= 0;
                     presence_idx = idx_pos(presence_idx);
                     presence_mat(presence_idx,j) = presence_mat(presence_idx,j) + 1;
                 end
-                
+
             end
-            
+
             % remove not useful observations
             for i = 1 : n_rec
                 idx_rm = false(size(obs_set_lst(i).obs));
@@ -2309,13 +2315,13 @@ classdef Engine_U1 < Exportable
                 obs_set_lst(i).remObs(idx_rm, false);
                 %obs_set_lst(i).remShortArc();
             end
-            
-            
+
+
             % -- removing epoch for which no satellite is seen by at least two receivers
             idx_rem = sum(presence_mat > 1, 2) == 0;
             idxes(idx_rem,:) = [];
             resulting_gps_time(idx_rem) = [];
-            
+
             % --- for each satellite checks epochs for which all receiver-satellite observation continuity is broken
             sat_jmp_idx =  true(length(resulting_gps_time),n_sat);
             for i = 1 : n_sat
@@ -2330,7 +2336,7 @@ classdef Engine_U1 < Exportable
                 end
             end
         end
-        
+
         function [pos_idx_nh, pos_idx_tc] = getPosIdx(time, st_time, coo_rate)
             % given a time and the sampling rate return the position index referring to the given sampling rate, the first index is prgressive, the seocond id time consistent
             sec_from_sod = time.getRefTime(st_time.getMatlabTime);

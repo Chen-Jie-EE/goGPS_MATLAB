@@ -14,14 +14,8 @@
 % SEE ALSO
 %   plot
 
-%--------------------------------------------------------------------------
-%               ___ ___ ___
-%     __ _ ___ / __| _ | __|
-%    / _` / _ \ (_ |  _|__ \
-%    \__, \___/\___|_| |___/
-%    |___/                    v 1.0 beta 5
-%
-%--------------------------------------------------------------------------
+%  Software version 1.0.1
+%-------------------------------------------------------------------------------
 %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
 %  Written by:       Andrea Gatti
 %  Contributors:     ...
@@ -29,7 +23,7 @@
 %  The licence of this file can be found in source/licence.md
 %-------------------------------------------------------------------------------
 
-        
+
 function lh = plotSep(t, data, varargin)
     if not(isempty(data))
         if isa(t, 'handle')
@@ -91,7 +85,7 @@ function [t, data_set] = insertNan4Plots(t, data_set)
     %
     % SYNTAX
     %   [t, data] = Core_Utils.insertNan4Plots(t, data)
-    
+
     t = t(:);
     if size(t, 1) ~= size(data_set, 1)
         % data should be a column array

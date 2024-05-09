@@ -13,8 +13,8 @@
 %  Software version 1.0.1
 %-------------------------------------------------------------------------------
 %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
-%  Written by:       Andrea Gatti
-%  Contributors:     Andrea Gatti, ...
+%  Written by:        Andrea Gatti
+%  Contributors:      Andrea Gatti
 %
 %  The licence of this file can be found in source/licence.md
 %-------------------------------------------------------------------------------
@@ -28,7 +28,7 @@ function line_fit = logFit(x, y, x_out)
 
     % RANSAC fit
     [bestParams, ~] = ransacLogFit(x, y, 1000, threshold);
-    
+
     % Predict using the best parameters from RANSAC
     line_fit = bestParams(1) * log(bestParams(2) * x_out + 1) + bestParams(3);
 end
@@ -43,17 +43,17 @@ function [bestParams, bestInliers] = ransacLogFit(x, y, iterNum, threshold)
         indices = randperm(length(x), 3);  % 3 is the minimum number of points to fit this model
         subsetX = x(indices);
         subsetY = y(indices);
-        
+
         % Fit the model to this subset
         params = fitLogModel(subsetX, subsetY);
-        
+
         % Calculate the errors for the entire dataset
         predictedY = params(1) * log(params(2) * x + 1) + params(3);
         errors = abs(predictedY - y);
-        
+
         % Find inliers
         inliers = find(errors < threshold);
-        
+
         % Check if this model is better than previous best
         if length(inliers) > maxInliers
             maxInliers = length(inliers);
@@ -72,7 +72,7 @@ function params = fitLogModel(x, y)
     B_init = 1 / max(x);
     C_init = min(y);
     initial_params = [A_init, B_init, C_init];
-    
+
     % Bounds (to ensure positive values for a and b and no bounds for c)
     lb = [0, 0, -Inf];
     ub = [Inf, Inf, Inf];
@@ -98,20 +98,20 @@ function params = lsqcurvefit(fun, x0, xdata, ydata, lb, ub)
     for iter = 1:maxIter
         % Compute Jacobian
         J = jacobian(fun, params, xdata, ydata);
-        
+
         while true
             % Adjust and solve the normal equations
             delta = (J' * J + lambda * I) \ (J' * r);
-            
+
             % Test update
             new_params = params + delta';
             new_params = max(new_params, lb);
             new_params = min(new_params, ub);
-            
+
             % Compute new residuals
             new_r = ydata - fun(new_params, xdata);
             new_cost = new_r' * new_r;
-            
+
             if new_cost < prev_cost
                 % If cost reduction, accept the step and reduce lambda
                 params = new_params;
@@ -126,7 +126,7 @@ function params = lsqcurvefit(fun, x0, xdata, ydata, lb, ub)
                 end
             end
         end
-        
+
         % Gradient-based stopping criterion
         grad = J' * r;
         if max(abs(grad)) < tol
@@ -141,16 +141,16 @@ function J = jacobian(fun, params, xdata, ydata)
     eps = 1e-4; % A small value
     f0 = fun(params, xdata);
     J = zeros(length(f0), length(params));
-    
+
     for i = 1:length(params)
         params1 = params;
         params2 = params;
         params1(i) = params1(i) - eps;
         params2(i) = params2(i) + eps;
-        
+
         f1 = fun(params1, xdata);
         f2 = fun(params2, xdata);
-        
+
         J(:, i) = (f2 - f1) / (2 * eps);
     end
 end

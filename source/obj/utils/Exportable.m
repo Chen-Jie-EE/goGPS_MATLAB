@@ -56,10 +56,10 @@ classdef Exportable < handle
                 end
                 prp = fieldnames(tmp);
                 out(i) = tmp;
-                
+
                 for p = 1 : numel(prp)
                     if isobject(out(i).(prp{p}))
-                        % Manage goGPS singletons
+                        % Manage app singletons
                         try
                             out(i).(prp{p}) = this(i).(prp{p}).toStruct;
                         catch ex
@@ -73,7 +73,7 @@ classdef Exportable < handle
             warning on
             log.setColorMode(cm);
         end
-        
+
         function importFromStruct(this, struct_in, flag_ignore_err)
             % Import from struct
             %

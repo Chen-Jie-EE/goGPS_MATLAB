@@ -25,12 +25,12 @@ classdef Logger < handle
         DEFAULT_VERBOSITY_LEV   = 9;  % Default verbosity level
         WARNING_VERBOSITY_LEV   = 3;  % Warning verbosity level
         ERROR_VERBOSITY_LEV     = 1;  % Error verbosity level
-        
+
         STD_OUT        = 1;     % Output: text only   001 (first bit set)
-        STD_FILE       = 2;     % Output: file only   010 (second bit set)    
-        STD_OUT_N_FILE = 3;     % Output: file + text 011 (first and second bit set)        
+        STD_FILE       = 2;     % Output: file only   010 (second bit set)
+        STD_OUT_N_FILE = 3;     % Output: file + text 011 (first and second bit set)
         STD_GUI        = 4;     % Output: GUI only    100 (third bit set)
-        
+
         ORANGE = [1 0.65 0];
         ERROR_ON_CONSOLE = true;
         MAX_AGE = 10;
@@ -40,12 +40,12 @@ classdef Logger < handle
         color_mode = true;                        % Flag for coloured output messages (if true requires cprintf)
         verbosity = Logger.DEFAULT_VERBOSITY_LEV; % Verbosity level
         std_out = Logger.STD_OUT;                 % Define the standard output of the logger
-        
+
         out_file_path                             % Path to the logging file
         file_out_mode = 'w+';                     % log to file in (w/a) mode (w+ = new file, a+ = append)
         fid                                       % File handler
         win
-        
+
         creation_time = GPS_Time(now);
     end
 
@@ -105,15 +105,15 @@ classdef Logger < handle
             fprintf('----------------------------------------------------------------------------------\n')
             this.log.newLine();
         end
-        
+
         % Out status ------------------------------------------------------
-        
+
         function is_active = isScreenOut(this)
             % Return show log on screen status
             %
             % SYNTAX
             %   is_active = isScreenOut(this)
-            
+
             % get first bit
             is_active = bitand(this.std_out, 1, 'uint8') > 0;
         end
@@ -123,87 +123,87 @@ classdef Logger < handle
             %
             % SYNTAX
             %   is_active = isFileOut(this)
-            
+
             % get second bit
             is_active =  bitand(this.std_out, 2, 'uint8') > 0;
         end
-        
+
         function is_active = isGUIOut(this)
             % Return show log on GUI window
             %
             % SYNTAX
             %   is_active = isGUIOut(this)
-            
+
             % get second bit
             is_active =  bitand(this.std_out, 4, 'uint8') > 0;
         end
-        
+
         function disableScreenOut(this)
             % Disable logging on screen (MATLAB console)
             %
             % SYNTAX
             %   log.disableScreenOut()
-            
+
             while this.isScreenOut
                 this.setOutMode(false, [], []);
             end
         end
-        
+
         function enableScreenOut(this)
             % Enable logging on screen (MATLAB console)
             %
             % SYNTAX
             %   log.enableScreenOut()
-            
+
             while ~this.isScreenOut
                 this.setOutMode(true, [], []);
             end
         end
-        
+
         function disableFileOut(this)
             % Disable logging on file
             %
             % SYNTAX
             %   log.disableFileOut()
-            
+
             while this.isFileOut
                 this.setOutMode([], false, []);
             end
         end
-        
+
         function enableFileOut(this)
             % Enable logging on file
             %
             % SYNTAX
             %   log.enableFileOut()
-            
+
             while ~this.isFileOut
                 this.setOutMode([], true, []);
             end
         end
-        
+
         function disableGUIOut(this)
             % Disable logging on file
             %
             % SYNTAX
             %   log.disableFileOut()
-            
+
             while this.isGUIOut
                 this.setOutMode([], [], false);
             end
         end
-        
+
         function enableGUIOut(this)
             % Disable logging on file
             %
             % SYNTAX
             %   log.enableGUIOut()
-            
+
             while ~this.isGUIOut
                 this.setOutMode([], [], true);
             end
         end
-        
+
         function setOutMode(this, screen_out, file_out, gui_out)
             % Enable and disable various output mode
             % Inputs are boolean or empty
@@ -211,7 +211,7 @@ classdef Logger < handle
             % SYNTAX
             %   this.setOutMode(<screen_out>, <file_out>, <gui_out>)
             %
-            
+
             if nargin == 2 && isnumeric(screen_out)
                 this.std_out = screen_out;
             else
@@ -223,7 +223,7 @@ classdef Logger < handle
                         this.std_out = bitand(this.std_out, 6, 'uint8');
                     end
                 end
-                
+
                 if (nargin > 2) && ~isempty(file_out)
                     % set second bit
                     if file_out
@@ -232,7 +232,7 @@ classdef Logger < handle
                         this.std_out = bitand(this.std_out, 5, 'uint8');
                     end
                 end
-                
+
                 if (nargin > 3) && ~isempty(gui_out)
                     % set third bit
                     if gui_out
@@ -243,7 +243,7 @@ classdef Logger < handle
                 end
             end
         end
-        
+
         % Set read status mode --------------------------------------------
         function setColorMode(this, bool)
             % Set useage of colors in text output
@@ -265,13 +265,13 @@ classdef Logger < handle
             % Get level of verbosity
             verbosity = this.verbosity;
         end
-                    
+
         function [std_out, file_out_mode] = getOutMode(this)
             % Get output mode
             std_out = this.std_out;
             file_out_mode = this.file_out_mode;
         end
-        
+
         % Set file of log  ------------------------------------------------
         function setOutFile(this, out_file_path, file_out_mode)
             % Set the output logging file path
@@ -326,29 +326,29 @@ classdef Logger < handle
                 this.out_file_path = out_file_path;
             end
         end
-        
+
         function closeFile(this)
             % Close the log file
             %
             % SYNTAX
             %   log.closeFile()
-            
+
             try fclose(this.fid); catch; end % if is not open do nothing
         end
-        
+
         function out_file_path = getFilePath(this)
             % Get the file path of the output file
             %
             % SYNTAX:
             %   out_file_path = log.getFilePath();
-            
+
             out_file_path = this.out_file_path;
         end
 
         function fid = getOutFId(this)
             % Get the handler of the output file
             try
-                resp = ftell(this.fid); % Test if the file is open    
+                resp = ftell(this.fid); % Test if the file is open
                 if resp == -1
                      throw(MException('FileNotOpen', 'The log file is not open'));
                 end
@@ -365,10 +365,10 @@ classdef Logger < handle
                     try
                         mkdir(f_dir); % create the missing folder
                     catch ex
-                        path_ok = false;                    
+                        path_ok = false;
                     end
                 end
-                
+
                 %% try fclose(this.fid); catch; end % if is not open do nothing
                 try file_open = fopen(this.fid); catch; file_open = false; end
                 isopen = ~isempty(file_open);
@@ -424,7 +424,7 @@ classdef Logger < handle
                     fprintf('\n');
                 end
                 if this.isFileOut % File
-                    fid = this.getOutFId;                   
+                    fid = this.getOutFId;
                     fprintf(fid, '\n');
                 end
             end
@@ -440,7 +440,7 @@ classdef Logger < handle
                     msg = Core.getMsgGUI();
                     msg.addHTML(['<font color=gray face="Courier">' repmat('&mdash;', 1, 56) ' </font>']);
                 end
-                
+
                 if this.isScreenOut % Screen
                     if this.color_mode && ~(nargin < 3 || isempty(color))
                         cprintf(color, '----------------------------------------------------------------------------');
@@ -452,22 +452,22 @@ classdef Logger < handle
                 if this.isFileOut % File
                     fprintf(this.getOutFId, '------------------------------------------------------------------------\n');
                 end
-                
+
             end
         end
-        
+
         function starSeparator(this, verbosity_level, color)
             % Send a message through the standard interface
             if (nargin < 2) || isempty(verbosity_level)
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
-            end            
-            
+            end
+
             if (verbosity_level <= this.verbosity)
                 if this.isGUIOut % GUI
                     msg = Core.getMsgGUI();
                     msg.addHTML('<span color=gray>****************************************************************</span>');
                 end
-                
+
                 if this.isScreenOut % Screen
                     if this.color_mode && ~(nargin < 3 || isempty(color))
                         cprintf(color, '  **********************************************************************');
@@ -481,7 +481,7 @@ classdef Logger < handle
                 end
             end
         end
-                
+
         function smallSeparator(this, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 2)
@@ -500,7 +500,7 @@ classdef Logger < handle
                 end
             end
         end
-        
+
         function addMarkedMessage(this, text, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 3)
@@ -510,11 +510,11 @@ classdef Logger < handle
                 if this.isGUIOut % file
                     gui_text = strrep(text, char(10), '<br>');
                     gui_text = strrep(gui_text, '\n', '<br>');
-                    
+
                     msg = Core.getMsgGUI();
                     msg.addMessage(gui_text, 'm');
                 end
-                
+
                 text = strrep(text, char(10), char([10, 32 * ones(1,7)]));
                 text = strrep(text, '\n', char([10, 32 * ones(1,7)]));
                 if this.isScreenOut % Screen
@@ -556,7 +556,7 @@ classdef Logger < handle
                 end
             end
         end
-        
+
         function addMonoMessage(this, text, verbosity_level)
             % Send a message through the standard interface
             % using monospaced font if supported
@@ -568,7 +568,7 @@ classdef Logger < handle
                     gui_text = strrep(text, char(10), '<br>');
                     gui_text = strrep(gui_text, '\n', '<br>');
                     gui_text = strrep(gui_text, ' ', '&nbsp;');
-                    
+
                     msg = Core.getMsgGUI();
                     if not(ismac)
                         msg.addHTML(['<font face="Monospaced,Courier" style="font-size:10px">' gui_text '</font>']);
@@ -585,10 +585,10 @@ classdef Logger < handle
                     if (this.getOutFId > 0)
                         fprintf(this.getOutFId, ' %s\n', text);
                     end
-                end                
+                end
             end
         end
-        
+
         function addMessage(this, text, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 3)
@@ -598,10 +598,10 @@ classdef Logger < handle
                 if this.isGUIOut % file
                     gui_text = strrep(text, char(10), '<br>');
                     gui_text = strrep(gui_text, '\\n', '<br>');
-                    
+
                     % Backspacess are not acceptable here :-(
                     gui_text = strrep(gui_text, char(8), '');
-                    
+
                     msg = Core.getMsgGUI();
                     msg.addMessage(gui_text);
                 end
@@ -614,7 +614,7 @@ classdef Logger < handle
                     if (this.getOutFId > 0)
                         fprintf(this.getOutFId, ' %s\n', text);
                     end
-                end                
+                end
             end
         end
 
@@ -630,11 +630,11 @@ classdef Logger < handle
                 if this.isGUIOut % file
                     gui_text = strrep(text, char(10), '<br>');
                     gui_text = strrep(gui_text, '\\n', '<br>');
-                    
+
                     msg = Core.getMsgGUI();
                     msg.addMessage(gui_text, 'v');
                 end
-                
+
                 this.printStatusOk(text);
             end
         end
@@ -651,14 +651,14 @@ classdef Logger < handle
                 if this.isGUIOut % file
                     gui_text = strrep(text, char(10), '<br>');
                     gui_text = strrep(gui_text, '\\n', '<br>');
-                    
+
                     msg = Core.getMsgGUI();
                     msg.addMessage(gui_text, '-');
                 end
                 this.printStatusDisabled(text);
             end
         end
-        
+
         function addWarning(this, text, verbosity_level)
             % Send a warning through the standard interface
             if (nargin < 3)
@@ -668,11 +668,11 @@ classdef Logger < handle
                 if this.isGUIOut % file
                     gui_text = strrep(text, char(10), '<br>');
                     gui_text = strrep(gui_text, '\n', '<br>');
-                    
+
                     msg = Core.getMsgGUI();
                     msg.addMessage(gui_text, 'w');
                 end
-                
+
                 this.printWarning(text);
             end
         end
@@ -686,7 +686,7 @@ classdef Logger < handle
                 if this.isGUIOut % file
                     gui_text = strrep(text, char(10), '<br>');
                     gui_text = strrep(gui_text, '\n', '<br>');
-                    
+
                     msg = Core.getMsgGUI();
                     msg.addMessage(gui_text, 'e');
                 end
@@ -724,7 +724,7 @@ classdef Logger < handle
             end
 
             this.opStatus(0, color_mode);
-            
+
             if this.isScreenOut % Screen
                 if (color_mode)
                     cprintf('text', [text '\n']);
@@ -738,7 +738,7 @@ classdef Logger < handle
                 end
             end
         end
-        
+
         function printStatusDisabled(this, text, color_mode)
             % Display Warnings
             if (nargin == 2)
@@ -754,7 +754,7 @@ classdef Logger < handle
                 text = strrep(text, '\n', char([10, 32]));
                 text = strrep(text, '\', '\\');
             end
-            
+
             if this.isScreenOut % Screen
                 if (color_mode)
                     cprintf('text', [text '\n']);
@@ -778,7 +778,7 @@ classdef Logger < handle
             text = strrep(text, char(10), char([10, 32 * ones(1,17)]));
             text = strrep(text, '\n', char([10, 32 * ones(1,17)]));
             text = strrep(text, '\', '\\');
-            
+
             if this.isScreenOut % Screen
                 if (color_mode)
                     cprintf(Logger.ORANGE, 'Warning: ');
@@ -791,7 +791,7 @@ classdef Logger < handle
                 if (this.getOutFId ~= 0)
                     fprintf(this.getOutFId, ['WARNING: ' text '\n']);
                 end
-            end                        
+            end
         end
 
         function printError(this, text, color_mode)
@@ -803,7 +803,7 @@ classdef Logger < handle
             text = strrep(text, char(10), char([10, 32 * ones(1,15)]));
             text = strrep(text, '\n', char([10, 32 * ones(1,15)]));
             text = strrep(text, '\', '\\');
-            
+
             if this.isScreenOut || this.ERROR_ON_CONSOLE % Screen
                 if (color_mode)
                     cprintf('err', 'Error: ');
@@ -824,7 +824,7 @@ classdef Logger < handle
             if (nargin == 1)
                 color_mode = true;
             end
-            
+
             if this.isScreenOut % Screen
                 if color_mode
                     cprintf('blue',' [ ');
@@ -853,7 +853,7 @@ classdef Logger < handle
     %    DISPLAY UTILITIES
     % =========================================================================
 
-    methods(Static, Access = 'public')        
+    methods(Static, Access = 'public')
         function str = indent(str, n_spaces)
             % Add n_spaces at the beginning of each line
             % SYNTAX: str = indent(str, n_spaces)
@@ -861,7 +861,7 @@ classdef Logger < handle
                 n_spaces = 7;
             end
             str = strrep([char(ones(1,n_spaces) * 32) str], char(10), char([10 ones(1, n_spaces) * 32]));
-        end        
+        end
     end
 
 end

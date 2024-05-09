@@ -3,80 +3,58 @@
 %
 % DESCRIPTION
 %   Class to manage the download and comparison of Radiosondes around the World
-%   This class currently uses data collected from the University of Wyoming at 
+%   This class currently uses data collected from the University of Wyoming at
 %   - http://weather.uwyo.edu/upperair/sounding.html
-%   
+%
 %   It could be useful in a future to use/add the NOAA raob archives, bigger but every file contains the entire history of the soundings
 %   - https://www.ncdc.noaa.gov/data-access/weather-balloon/integrated-global-radiosonde-archive
 %
 %
 % FOR A LIST OF CONSTANTs and METHODS use doc Radiosonde
 
-classdef Radiosonde < handle
+%  Software version 1.0.1
+%-------------------------------------------------------------------------------
+%  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
+%  Written by:        Andrea Gatti, Alice Bonfiglio, Stefano Barindelli
+%  Contributors:      Andrea Gatti, Alice Bonfiglio, Stefano Barindelli, Alessandra Mascitelli
+%
+%  The licence of this file can be found in source/licence.md
+%-------------------------------------------------------------------------------
 
-    %--- * --. --- --. .--. ... * ---------------------------------------------
-    %               ___ ___ ___
-    %     __ _ ___ / __| _ | __|
-    %    / _` / _ \ (_ |  _|__ \
-    %    \__, \___/\___|_| |___/
-    %    |___/                    v 1.0
-    %
-    %--------------------------------------------------------------------------
-    %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
-    %  Written by:        Andrea Gatti, Alice Bonfiglio, Stefano Barindelli
-    %  Contributors:      Andrea Gatti, Alice Bonfiglio, Stefano Barindelli, Alessandra Mascitelli
-    %  A list of all the historical goGPS contributors is in CREDITS.nfo
-    %--------------------------------------------------------------------------
-    %
-    %   This program is free software: you can redistribute it and/or modify
-    %   it under the terms of the GNU General Public License as published by
-    %   the Free Software Foundation, either version 3 of the License, or
-    %   (at your option) any later version.
-    %
-    %   This program is distributed in the hope that it will be useful,
-    %   but WITHOUT ANY WARRANTY; without even the implied warranty of
-    %   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    %   GNU General Public License for more details.
-    %
-    %   You should have received a copy of the GNU General Public License
-    %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    %
-    %--------------------------------------------------------------------------
-    % 01100111 01101111 01000111 01010000 01010011
-    %--------------------------------------------------------------------------
-    
+classdef Radiosonde < Exportable
+
     properties
         name            % station name
         sta_num         % station number
-        
+
         lat             % latitude  [rad]
         lon             % logitude  [rad]
         elevation       % orthometric height [m]
-        
+
         data_time       % time as datetime                  datetime [n_records x 1]
         pressure        % pressure [hPa]                    double   [n_records x 1]
         height          % height [m]                        double   [n_records x 1]
         temperature     % temperature [ÿC]                  double   [n_records x 1]
         rel_humidity    % relatibe humidity [%]             double   [n_records x 1]
-        
+
         ref_time        % launch epoch;
         pwv             % precipitable water vapor [mm]     double   [n_launches x 1]
         ztd             % zenith tropospheric delay
     end
-    
+
     properties (Constant)
         MAX_DIST = 100;  % Maximum distance in Km from a station to consider it valid
-        
+
         JAPAN_STATION = {'47401', '47418', '47412', '47580', '47582', '47600', '47646', '47681', '47678', '47741', '47778', '47807', '47827', '47909', '47945', '47918'};
         ITALY_STATION = {'16045', '16064', '16113', '16245', '16320', '16429', '16546'};
         ITALY_NOVARA = '16064';
     end
-    
+
     methods (Static)
         % Creator
         function this = Radiosonde(region, sta_num, date_start, date_stop) %valid for one station for one month
             % Core object creator
-            
+
             log = Logger.getInstance();
             this.reset();
             if nargin == 0
@@ -87,11 +65,11 @@ classdef Radiosonde < handle
                 else
                     log.addMessage(log.indent(sprintf(' - downloading files for %s-%s', region, sta_num)));
                 end
-                
+
                 this.download(region, sta_num, date_start, date_stop);
             end
         end
-        
+
         function rds_list = fromList(sta_num, date_start, date_stop)
             % Get a list of radiosondes objects downloading data from
             %  - http://weather.uwyo.edu/upperair/sounding.html
@@ -101,13 +79,13 @@ classdef Radiosonde < handle
             %
             % EXAMPLE
             %   rds_list = Radiosonde.fromList(Radiosonde.JAPAN_STATION, date_start, date_stop)
-            
+
             % http://weather.uwyo.edu/cgi-bin/sounding?region=seasia&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=05&FROM=0600&TO=0600&STNM=32150
             if ~iscell(sta_num)
                 sta_num = {sta_num};
             end
             region = 'europe'; % it is not really necessary
-            
+
             % Init out
             rds_list(numel(sta_num)) = Radiosonde();
             for s = 1 : numel(sta_num)
@@ -120,7 +98,7 @@ classdef Radiosonde < handle
                 end
             end
         end
-        
+
         function rds_list = fromJapan(date_start, date_stop)
             % http://weather.uwyo.edu/cgi-bin/sounding?region=seasia&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=05&FROM=0600&TO=0600&STNM=32150
             region = 'seasia';
@@ -155,37 +133,37 @@ classdef Radiosonde < handle
             end
         end
     end
-    
+
     % =========================================================================
     %  METHODS
     % =========================================================================
-    
+
     methods % Public Access
         function reset(this)
             this.name = '';
             this.sta_num = 0;
-            
+
             this.lat = 0;
             this.lon = 0;
             this.elevation = 0;
-            
+
             this.data_time = [];
             this.pressure  = [];
             this.height  = [];
             this.temperature  = [];
             this.rel_humidity  = [];
-            
+
             this.ref_time = [];
             this.pwv  = [];
             this.ztd = [];
         end
-                
+
         function rds_pwv = download(this, region, sta_num, date_start, date_stop)
             date_list = datevec(floor(date_start.getMatlabTime() * 2)/2 : 0.5 : floor(date_stop.getMatlabTime() * 2)/2);
             [~, id_unique] = unique(date_list(:,1)*1e5 + date_list(:,2));
             year = date_list(id_unique, 1);
             month = date_list(id_unique, 2);
-            
+
             % sta_num_cell=cellstr(sta_num);
             j = 1;
             for e = 1 : size(month, 1)
@@ -205,10 +183,10 @@ classdef Radiosonde < handle
                             to = '2812';
                     end
                 end
-                
+
                 [sta_path, sta_dir] = getLocalFilePath(sta_num, year(e), month(e,:), from, to);
                 flag_download = false;
-                if exist(sta_path, 'file')                    
+                if exist(sta_path, 'file')
                     try
                         fid = fopen(sta_path, 'rt');
                         char_array = fread(fid, '*char')';
@@ -227,7 +205,7 @@ classdef Radiosonde < handle
                     end
                     flag_download = true;
                 end
-                   
+
                 if flag_download
                     options = weboptions;
                     options.Timeout = 10;
@@ -258,9 +236,9 @@ classdef Radiosonde < handle
                             %Core_Utils.printEx(ex);
                         end
                     end
-                    
+
                     % Try to save the file
-                    
+
                     try
                         if ~isempty(char_array)
                             fid = fopen(sta_path, 'wb');
@@ -296,18 +274,18 @@ classdef Radiosonde < handle
                             pw_vec(i,:) = char_array(1, str_idx_pw(i)+length(str_pw)+1 : str_idx_pw(i)+length(str_pw)+5);
                             pw_vec_d(i,:) = str2double(pw_vec(i,:));
                         end
-                        
+
                         %time
                         str_obs_time = 'Observation time:';
-                        str_idx_time = strfind(char_array, str_obs_time);                        
+                        str_idx_time = strfind(char_array, str_obs_time);
                         if isempty(str_idx_time)
                             Core.getLogger.addWarning(sprintf('no data available in "%s" :-(', sta_path));
-                        else                            
+                        else
                             for i=1:length(str_idx_time)
                                 time_vec(i,:)=[char_array(1,str_idx_time(i)+length(str_obs_time)+1:str_idx_time(i)+length(str_obs_time)+7) char_array(1,str_idx_time(i)+length(str_obs_time)+8:str_idx_time(i)+length(str_obs_time)+11) '00'];
                             end
                             datetime_vec = datetime(time_vec,'InputFormat','yyMMdd/HHmmSS');
-                            
+
                             str_idx_header = strfind(char_array,'-----------------------------------------------------------------------------');
                             str_idx_header = str_idx_header(2:2:end);
                             str_idx_header_fin = strfind(char_array,'Station information and sounding indices');
@@ -337,7 +315,7 @@ classdef Radiosonde < handle
                                     relh = str2double(data{1,i}(:,5));
                                     %radiosonde(i,1).name=sta_num(s,:);
                                     date_time = datetime_vec(i,:);
-                                    
+
                                     if max(pres) < 800 % this is an outlier!!!!
                                         log = Logger.getInstance();
                                         log.addError(sprintf('The radiosonde "%s" launched at %s have a maximum invalid pressure (%.f mbar)', sta_num, datestr(date_time, 'yyyy-mmm-dd HH:MM'), max(pres)));
@@ -348,7 +326,7 @@ classdef Radiosonde < handle
                                         this.temperature = [this.temperature; temp];
                                         this.rel_humidity = [this.rel_humidity; relh];
                                         [ ztd, err_code] = Radiosonde.rad2ztd(this.temperature(id_1:end), this.rel_humidity(id_1:end), this.pressure(id_1:end), this.height(id_1:end), this.lat);
-                                        
+
                                         if err_code
                                             log = Logger.getInstance();
                                             log.addError(sprintf('The radiosonde "%s" launched at %s did not collected enough data\nthe minimum valid altitude logging all the data needs to be 8900m (99/100 of water vapour)', sta_num, datestr(date_time, 'yyyy-mmm-dd HH:MM')));
@@ -358,7 +336,7 @@ classdef Radiosonde < handle
                                     end
                                 end
                             end
-                            
+
                             rds_pwv(1,j).pwv = pw_vec_d;
                             rds_pwv(1,j).datetime = datetime_vec;
                             rds_pwv(1,j).sta_numer = sta_num(:,:);
@@ -369,20 +347,20 @@ classdef Radiosonde < handle
                 end
                 j = j + 1;
             end
-            
+
             function [sta_path, sta_dir] = getLocalFilePath(sta_num, year, month, from, to)
                 % Get the RAOB local path
                 %
                 % SYNTAX
                 %   [sta_path, sta_dir] = getLocalFilePath(sta_num, year, month, from, to)
-                data_dir = fullfile(Core.getInstallDir, '..' , 'data');
+                data_dir = fullfile(Core.getInstallDir(true), '..' , 'data');
                 fnp = File_Name_Processor;
                 sta_dir = fullfile(sprintf('%s/station/RAOB/%s/', data_dir, sta_num));
                 sta_path = fullfile(sta_dir, sprintf('%s_%04d_%02d_%s_%s.raob', sta_num, year, month, from, to));
-            end            
+            end
         end
     end
-    
+
     methods % Public Access
         function coo = getPos(this)
             % Get coordinate of the radiosonde launch site
@@ -390,27 +368,27 @@ classdef Radiosonde < handle
             % INPUT
             %   this    single radiosonde object
             %
-            % OUTPUT 
+            % OUTPUT
             %   coo     Coordinate object
             %
             % SYNTAX
             %   coo = this.getPos()
-            
+
             coo = Coordinates.fromGeodetic(this.lat, this.lon, [], this.elevation, GPS_Time(this.ref_time));
         end
-        
+
         function height = getHeight(rds_list)
             % Get launch site orthometric height
             %
             % INPUT
             %   rds_list    radiosonde list
             %
-            % OUTPUT 
+            % OUTPUT
             %   height      orthometric height [m]
             %
             % SYNTAX
             %   height = rds_list.getLat()
-            
+
             height = [rds_list.elevation]';
         end
 
@@ -420,12 +398,12 @@ classdef Radiosonde < handle
             % INPUT
             %   rds_list    radiosonde list
             %
-            % OUTPUT 
+            % OUTPUT
             %   lat         latitude [deg]
             %
             % SYNTAX
             %   lat = rds_list.getLat()
-            
+
             lat = [rds_list.lat]';
         end
 
@@ -435,30 +413,30 @@ classdef Radiosonde < handle
             % INPUT
             %   rds_list    radiosonde list
             %
-            % OUTPUT 
+            % OUTPUT
             %   lon         longitude [deg]
             %
             % SYNTAX
             %   lon = rds_list.getLon()
-                        
+
             lon = [rds_list.lon]';
         end
-        
+
         function height = getLaunchHeight(rds_list)
             % Get height (orthometric height)
             %
             % INPUT
             %   rds_list    radiosonde list
             %
-            % OUTPUT 
+            % OUTPUT
             %   height      orthometric height [deg]
             %
             % SYNTAX
             %   heigth = rds_list.getLaunchHeight()
-            
+
             height = [rds_list.elevation]';
         end
-        
+
         function [ztd, time] = getZtd(this)
             % Get the zenit total delay computed from sounding
             %
@@ -467,7 +445,7 @@ classdef Radiosonde < handle
             ztd = this.ztd * 1e2;
             time = GPS_Time(datenum(this.ref_time)');
         end
-        
+
         function name = getName(sta_list)
             name = {};
             for s = 1 : numel(sta_list)
@@ -482,7 +460,7 @@ classdef Radiosonde < handle
             end
         end
     end
-    
+
     methods (Static)
         function [ztd, err_status] = rad2ztd(temperature, relative_humidity, pressure, height, lat)
             % Compute ZTD from RAOB (no saastamoinen)
@@ -495,32 +473,32 @@ classdef Radiosonde < handle
             %
             % SYNTAX
             %  [ztd, err] = Radiosonde.rad2ztd(temperature, relative_humidity, pressure, height, lat)
-            
+
             err_status = 0;
-            
+
             celsius_to_kelvin = 273.16; %tempearture conversion
             R = 8.31432;  %universal gas constant for air
             dry_molar_mass = 0.02896; % molar mass of dry air [kg mole-1]
             % wet_molar_mass = 0.0180153; % molar mass of H2o [kg mole-1]
             g = 9.80665; % Gravitational acceleration [m]
-            
+
             if isnan(temperature(end)) && isnan(height(end)) && isnan(relative_humidity(end))
                 temperature = temperature(1 : end - 1);
                 relative_humidity = relative_humidity(1 : end - 1);
                 pressure = pressure(1 : end - 1);
                 height = height(1 : end - 1);
             end
-            
+
             nan_T = (isnan(temperature));
             nan_RH = (isnan(relative_humidity));
             nan_P = (isnan(pressure));
             nan_height = (isnan(height));
-            
+
             % find the last valid epoch
             lid_nan = nan_T | nan_RH | nan_P | nan_height;
             first_ok = find(~lid_nan, 1, 'first');
             last_ok = find(~lid_nan, 1, 'last');
-            
+
             %"analyzing the radiosonde accumulated water vapor as a function of altitude a threshold value was determined; 99% of the total accumulated water vapor
             %was reached at an altitude between 8 and 9 km. A conservative threshold value of 10 km was thus chosen for tests in order to make a precise comparison
             %between radiosonde- and GPS-derived PWV."
@@ -528,7 +506,7 @@ classdef Radiosonde < handle
             % A high-resolution, precipitable water vapor monitoring system using a dense network of GNSS receivers.
             % cit. https://www.fujipress.jp/jdr/dr/dsstr000800010037/
             %In this case a threshold value of 8.9 km was set in order to consider empirical evidences
-            
+
             if isempty(last_ok) || height(last_ok) < 8900
                 err_status = 1;
                 [ztd] = deal(nan);
@@ -539,28 +517,28 @@ classdef Radiosonde < handle
                     relative_humidity = relative_humidity(first_ok : last_ok);
                     pressure = pressure(first_ok : last_ok);
                     height = height(first_ok : last_ok);
-                    
+
                     nan_T = nan_T(first_ok : last_ok);
                     nan_RH = nan_RH(first_ok : last_ok);
                     nan_P = nan_P(first_ok : last_ok);
                     nan_height = nan_height(first_ok : last_ok);
                 end
-                
+
                 if sum(nan_T)
                     flag_interval_ref = getFlagsLimits(nan_T);
                     temperature = simpleFill1D(temperature, uint32(flag_interval_ref), 0 );
                 end
-                
+
                 if sum(nan_RH)
                     flag_interval_ref = getFlagsLimits(nan_RH);
                     relative_humidity = simpleFill1D(relative_humidity, uint32(flag_interval_ref), 0 );
                 end
-                
+
                 if sum(nan_P)
                     flag_interval_ref = getFlagsLimits(nan_P);
                     pressure = simpleFill1D(pressure, uint32(flag_interval_ref), 0 );
                 end
-                
+
                 if sum(nan_height)
                     %barometric formula for finding h
                     p0 = 101325; %Pa -> Sea level standard atmospheric pressure
@@ -580,8 +558,8 @@ classdef Radiosonde < handle
                 RH = (relative_humidity(1:end-1)+relative_humidity(2:end))/2;
                 P = (pressure(1:end-1)+pressure(2:end))/2;
                 % delta_h = double(height(2:end)-height(1:end-1));
-                
-                
+
+
                 %https://www.eol.ucar.edu/projects/ceop/dm/documents/refdata_report/eqns.html(bolton,1980)
                 %From Bevis et al. 1994 k1,k2,k3
                 k1 = 7.76 * 10^-1; %[K/Pa] % from Vedel,2001
@@ -590,11 +568,11 @@ classdef Radiosonde < handle
                 %http://glossary.ametsoc.org/wiki/Gas_constant
                 % R_w = 461.5; %[J Kg^-1 K^-1]% Realini,2014
                 R_d = 287; %[J Kg^-1 K^-1]% Realini,2014
-                
+
                 %eps is the ratio of the molecular weight of water vapour to that of dry air
                 eps=18/28.94;
-                
-                
+
+
                 % Saturation vapor pressure (e_s)
                 e_s = 6.1078*exp((17.27*T)./(237.3+T));
                 % The partial pressure of water vapor (e)
@@ -607,9 +585,9 @@ classdef Radiosonde < handle
                 rho_w = rho_d.*r;
                 %specific humidity (q)
                 q = ((rho_w)./(rho_w+rho_d));
-                
+
                 %see Vedel et al. 2000 Conversion of WGS84 geometric heights to NWP model HIRLAM geopotential heights, Danish Meteorological Institute.
-                
+
                 delta_P = double(pressure(1:end-1)-pressure(2:end));
                 g_e = 9.780356; %[m/s^2] %vedel et al. 2000
                 a1 = 5.2885 * 10^-3; %vedel et al. 2000
@@ -622,9 +600,9 @@ classdef Radiosonde < handle
                 R_s = R_e / sqrt((R_e/R_p)^2*sin(lat)^2+cos(lat)^2); %distance to the center of the earth from that point of the geoid surface
                 %height_g = (height(1:end-1)+height(2:end))/2;
                 g = g_s * (R_s./(R_s+(height)*(10^-3))).^2; %variation of g with height
-                
+
                 g_fin = (g(1:end-1)+g(2:end))/2;
-                
+
                 % cit: Calculation of zenith delays from meteorological
                 % data, comparison of NWP model, radiosonde and GPS delays
                 % Vedel et al. 2001
@@ -632,10 +610,10 @@ classdef Radiosonde < handle
                 % ZTD in meters
                 ztd = ((10^-6)*sum((k1*(R_d./g_fin).*delta_P))+(10^-6)*sum(((R_d./(g_fin*eps)).*q.*((k2-(k1*eps))+(k3./(T+celsius_to_kelvin)))).*delta_P)) * 1e2;
                 ztd = (ztd + (10^-4)*(k1*R_d*P(end)/g_s(end))*(1+2*(R_d*(T(end)+celsius_to_kelvin))/(R_s(end)*10^3*g_s(end))+2*((R_d*(T(end)+celsius_to_kelvin))/(R_s(end)*10^3*g_s(end)))^2));
-                
+
             end
         end
-        
+
         function fh_list = showMap(sta_list, new_fig, flag_labels, flag_polar)
             % Show Map of the stations
             % downloading the DTM and showing it
@@ -654,7 +632,7 @@ classdef Radiosonde < handle
             %
             % EXAMPLE
             %   Radiosonde.showMap(Radiosonde.getRaobList())
-            
+
             if nargin < 3 || isempty(flag_labels)
                 flag_labels = false;
             end
@@ -666,7 +644,7 @@ classdef Radiosonde < handle
             large_point_size = iif(flag_polar, 50, 25);
             point_color = [14, 25, 41]/256;
             resolution = 'high';
-            
+
             if nargin < 2 || isempty(new_fig)
                 new_fig = true;
             end
@@ -676,28 +654,28 @@ classdef Radiosonde < handle
                 f = gcf;
                 hold on;
             end
-            
+
             fh_list = f;
             fig_name = sprintf('RaobMapDtm');
             f.UserData = struct('fig_name', fig_name);
-            
+
             Logger.getInstance.addMarkedMessage('Preparing map, please wait...');
-            
+
             maximizeFig(f);
             f.Color = [1 1 1];
-            
+
             if isa(sta_list, 'Radiosonde')
                 lat = sta_list.getLat();
                 lon = sta_list.getLon();
                 id_ko = isnan(lat);
                 lat(id_ko) = [];
                 lon(id_ko) = [];
-                
+
                 name = sta_list(~id_ko).getName;
                 if ~iscell(name)
                     name = {name};
                 end
-                
+
                 % set map limits
                 if numel(sta_list) == 1
                     lon_lim = minMax(lon) + [-0.05 0.05];
@@ -714,18 +692,18 @@ classdef Radiosonde < handle
                 name = {tmp.name};
                 clear tmp;
             end
-            
+
             lon_lim = max(-179.999, min(179.999, lon_lim));
             lat_lim = max(-89.999, min(89.999, lat_lim));
-            
+
             nwse = [lat_lim(2), lon_lim(1), lat_lim(1), lon_lim(2)];
             clon = nwse([2 4]) + [-0.02 0.02];
             clat = nwse([3 1]) + [-0.02 0.02];
             clon = max(-180, min(180, clon));
             clat = max(-90, min(90, clat));
-            
+
             if (flag_polar)
-                if flag_polar == 'S'                    
+                if flag_polar == 'S'
                     m_proj('stereographic','lat',-90,'long',0,'radius', 25);
                     id_ko = lat > -65;
                 else
@@ -742,10 +720,10 @@ classdef Radiosonde < handle
                     m_proj('miller', 'lon', clon, 'lat', clat);   % Projection
                 end
             end
-            
+
             axes
             cmap = flipud(gray(1000)); colormap(cmap(150: end, :));
-            
+
             % retrieve external DTM
             if flag_polar
                 % use ETOPO instead
@@ -766,18 +744,18 @@ classdef Radiosonde < handle
                     if any(id_pole)
                         dtm(1 : id_pole, :) = repmat(dtm(id_pole + 1, : ), id_pole, 1);
                     end
-                    
+
                     % comment the following line to have bathimetry
                     dtm(dtm < 0) = nan; % - 1/3 * max(dtm(:));
-                    
+
                     % uncomment the following line to have colors
                     %colormap(gca, Cmap.adaptiveTerrain(minMax(dtm(:))));
                     drawnow;
-                    
+
                     [shaded_dtm, x, y] = m_shadedrelief(lon_dtm, lat_dtm, dtm, 'nan', [0.98, 0.98, 1]);
                     %h_dtm = m_pcolor(lon_dtm, lat_dtm, dtm);
                     %h_dtm.CData = shaded_dtm;
-                    
+
                     m_image(lon_dtm, lat_dtm, shaded_dtm);
                 catch ex
                     % use ETOPO1 instead
@@ -785,7 +763,7 @@ classdef Radiosonde < handle
                     m_etopo2('shadedrelief','gradient', 3);
                 end
             end
-            
+
             % read shapefile
             shape = 'none';
             if (~strcmp(shape,'none'))
@@ -818,9 +796,9 @@ classdef Radiosonde < handle
                     end
                 end
             end
-            
+
             hold on;
-            
+
             if (flag_polar)
                 if flag_polar == 'S'
                     m_grid('XaxisLocation', 'top', 'tickdir','in', 'fontsize', 16);
@@ -839,7 +817,7 @@ classdef Radiosonde < handle
                 end
             end
             [x, y] = m_ll2xy(lon, lat);
-            
+
             %point_color = Cmap.get('viridis', numel(x));
             %point_size = 25;
             if size(point_color, 1) > 1
@@ -859,7 +837,7 @@ classdef Radiosonde < handle
                         'HorizontalAlignment','left');
                 end
             end
-            
+
             if flag_large_points
                 plot(x(:), y(:), 'ko', 'MarkerSize', large_point_size/3, 'LineWidth', 1 + 1 * logical(flag_polar));
                 for r = 1 : numel(x)
@@ -867,7 +845,7 @@ classdef Radiosonde < handle
                 end
                 plot(x(:), y(:), '.k', 'MarkerSize', large_point_size/7);
             end
-            
+
             if flag_labels
                 for r = 1 : numel(x)
                     tmp = name{r};
@@ -890,7 +868,7 @@ classdef Radiosonde < handle
             ax = gca; ax.FontSize = 16;
             Logger.getInstance.addStatusOk('The map is ready ^_^');
         end
-        
+
         function [name, raob_code] = getRaobName(sta_num)
             all_raob = {'16429  Trapani/Birgi (LICT)';
                 '16546  Decimomannu (LIED)';
@@ -1859,9 +1837,9 @@ classdef Radiosonde < handle
                 '94998  Macquarie Island';
                 '78016  Bermuda Nvl Stn Kindley (TXKF)';
                 '91938  Tahiti-Faaa (NTAA)'};
-            
+
             all_raob = sort(unique(all_raob));
-            
+
             sta_id = find(contains(all_raob, sta_num), 1);
             name = sta_num;
             raob_code = sta_num;
@@ -1870,7 +1848,7 @@ classdef Radiosonde < handle
                 raob_code = all_raob{sta_id}(1:5);
             end
         end
-        
+
         function raob_list = getRaobList()
             % Get a static manually inserted struct of all the Radiosondes sites available
             %
@@ -1882,7 +1860,7 @@ classdef Radiosonde < handle
             raob_list.s01415 = struct('lat',   58.87, 'lon',    5.67, 'name', 'ENZV Stavanger');
             raob_list.s03005 = struct('lat',   60.13, 'lon',   -1.18, 'name', 'Lerwick');
             raob_list.s03238 = struct('lat',   55.01, 'lon',   -1.52, 'name', 'Albermarle');
-            raob_list.s03354 = struct('lat',   53.00, 'lon',   -1.25, 'name', 'Nottingham');            
+            raob_list.s03354 = struct('lat',   53.00, 'lon',   -1.25, 'name', 'Nottingham');
             raob_list.s03882 = struct('lat',   50.90, 'lon',    0.32, 'name', 'Herstmonceux');
             raob_list.s03808 = struct('lat',   50.22, 'lon',   -5.32, 'name', 'Camborne');
             raob_list.s03953 = struct('lat',   51.93, 'lon',  -10.25, 'name', 'Valentia Observatory');
@@ -2498,7 +2476,7 @@ classdef Radiosonde < handle
             raob_list.s98747 = struct('lat',    8.41, 'lon',  124.61, 'name', 'Cagayan De Oro');
             raob_list.s98753 = struct('lat',    7.11, 'lon',  125.65, 'name', 'RPMD Davao Airport');
         end
-        
+
         function [sta_list, lat_sta, lon_sta] = getCloseStations(lat, lon, n_stations)
             % Get the sta id of the radiosondes in a certain area,
             % or close to a point
@@ -2510,7 +2488,7 @@ classdef Radiosonde < handle
             % EXAMPLE
             %   [sta_list, lat_sta, lon_sta] = Radiosonde.getCloseStations([43 46], [5 10]);
             %   [sta_list, lat_sta, lon_sta] = Radiosonde.getCloseStations(44, 7, n_stations)
-            
+
             raob_list = Radiosonde.getRaobList;
             sta_list = fieldnames(raob_list);
             raob_list = struct2array(raob_list);
@@ -2519,15 +2497,15 @@ classdef Radiosonde < handle
             end
             lat_sta = [raob_list.lat]';
             lon_sta = [raob_list.lon]';
-            
+
             if numel(lat) > 1
                 % Use a box % it does not work at longitute 180
                 % ToDo: manage it
-                
+
                 % lat is a limit
                 lat = sort(lat);
                 lon = sort(lon);
-                
+
                 id_ok = (lat_sta >= lat(1)) & (lat_sta <= lat(2)) & ...
                     (lon_sta >= lon(1)) & (lon_sta <= lon(2));
                 lat_sta = lat_sta(id_ok);
@@ -2541,18 +2519,18 @@ classdef Radiosonde < handle
                 lon_sta = lon_sta(ids);
                 sta_list = sta_list(ids);
             end
-            
+
             if nargin == 3 && ~isempty(n_stations)
                 lat_sta = lat_sta(1 : n_stations);
                 lon_sta = lon_sta(1 : n_stations);
                 sta_list = sta_list(1 : n_stations);
             end
-            
+
             for s = 1 : numel(sta_list)
                 sta_list{s} = sta_list{s}(2 : end);
-            end            
+            end
         end
-        
+
         % RESERVED
         function rds = getAllStations()
             % RESERVED FUNCTION
@@ -2561,7 +2539,7 @@ classdef Radiosonde < handle
             %
             % SYNTAX
             %   Radiosonde.getAllStations()
-            
+
             %% page = 'http://weather.uwyo.edu/upperair/sounding.html';
             raob_code = {'16429'; '16546'; '16754'; '17196'; '17220'; '17240'; '17281'; '17351'; '40179'; '40265'; '40373'; '40375'; '40394'; '40417'; '40430';
                 '40437'; '40706'; '40745'; '40754'; '40766'; '40800'; '40848'; '40856'; '40948'; '41024'; '41112'; '41217'; '41256'; '41316'; '41624'; '41715';
@@ -2624,7 +2602,7 @@ classdef Radiosonde < handle
                 '16546'; '16716'; '17030'; '17064'; '17130'; '17196'; '17220'; '17240'; '17351'; '17516'; '22820'; '22845'; '26075'; '26298'; '26702'; '26781';
                 '27038'; '27199'; '27459'; '27594'; '27713'; '27707'; '27730'; '27962'; '27995'; '33317'; '33345'; '34009'; '34122'; '34172'; '34247'; '34467';
                 '34731'; '37011'; '01004'; '94998'; '78016'; '91938'};
-            
+
             raob_code = sort(unique(raob_code));
             clear rds;
             for i = 1 : numel(raob_code)
@@ -2632,7 +2610,7 @@ classdef Radiosonde < handle
                 rds(i) = Radiosonde.fromList(raob_code{i}, GPS_Time.now.addIntSeconds(-86400), GPS_Time.now.addIntSeconds(-43200));
                 %rds(i) = Radiosonde.fromList(raob_code{i}, GPS_Time('2019-01-01'), GPS_Time('2019-01-02'));
             end
-            
+
             clc
             fprintf('raob_list = struct();\n');
             for i = 1 : numel(raob_code)

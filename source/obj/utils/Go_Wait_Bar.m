@@ -80,7 +80,10 @@ classdef Go_Wait_Bar < Exportable
         function getNewBar(this, title)
             % Build a new graphic bar
             if ~any(([0 1 5] - this.type) == 0)
-                this.type = 0;
+                this.type = double(isdeployed);
+            end
+            if (isdeployed)
+                this.type = iif(this.type > 0, this.type, 1);
             end
             if (this.type == 1) ||  (this.type == 5)
                 if verLessThan('matlab', '8.5') % matlab 2015a
@@ -127,7 +130,7 @@ classdef Go_Wait_Bar < Exportable
                 fprintf('\n');
                 if nargin == 2
                     this.title = title;
-                end                
+                end
                 this.text_bar = this.getTextBar();
                 txt = sprintf(' %s\n%s\n', this.msg, this.text_bar);
                 fprintf('%s', txt);
@@ -140,7 +143,7 @@ classdef Go_Wait_Bar < Exportable
             persistent last_perc;
             persistent last_perc2;
             persistent old_bar;
-            
+
             perc = round(this.last_step / this.n_steps * 100);
             last = round(this.last_step / this.n_steps * this.MAX_BAR_LEN);
             if isempty(last_perc) || last_perc ~= perc || last_perc2 ~= last
@@ -330,12 +333,12 @@ classdef Go_Wait_Bar < Exportable
             end
             % Elapsed time:
             t1= toc(this.t0);
-            
+
             bar_is_changed = false;
             if (this.type == 0) ||  (this.type == 5)
                 [this.text_bar, bar_is_changed] = this.getTextBar();
             end
-            
+
             new_time = false;
             if bar_is_changed || isempty(t1_old) || (toc(t1_old + this.t0) > 0.25)
                 e_hh = floor(t1 / 3600);
@@ -348,12 +351,12 @@ classdef Go_Wait_Bar < Exportable
                 r_mm = floor((t1 - r_hh * 3600) / 60);
                 r_ss = (t1 - r_hh * 3600 - r_mm * 60);
                 %remainingTime = sprintf('%02d:%02d:%04.1f', hh, mm, ss);
-                
+
                 this.msg = sprintf(' Elapsed time                %02d:%02d:%04.1f\n Remaining time            %02d:%02d:%04.1f', e_hh, e_mm, e_ss, r_hh, r_mm, r_ss);
                 t1_old = t1;
                 new_time = true;
             end
-            
+
             % if graphic bar
             if (this.type == 1) ||  (this.type == 5)
                 this.ext_h.progressbar.Value = this.last_step / this.n_steps * this.ext_h.progressbar.Maximum;
@@ -381,12 +384,12 @@ classdef Go_Wait_Bar < Exportable
                 end
             end
         end
-        
+
         % Get the length of the bar
         function bar_len = getBarLen(this)
             bar_len = this.bar_len;
         end
-            
+
         % Set the max value accepted by the bar ( == 100%)
         function setBarLen(this, n_steps)
             % Set the max value accepted by the bar ( == 100%)

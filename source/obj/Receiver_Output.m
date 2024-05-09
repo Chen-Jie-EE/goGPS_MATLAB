@@ -14,33 +14,21 @@
 %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti, Giulio Tagliaferro
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro, ...
-%  A list of all the historical goGPS contributors is in CREDITS.nfo
-%--------------------------------------------------------------------------
 %
-%    This program is free software: you can redistribute it and/or modify
-%    it under the terms of the GNU General Public License as published by
-%    the Free Software Foundation, either version 3 of the License, or
-%    (at your option) any later version.
-%
-%    This program is distributed in the hope that it will be useful,
-%    but WITHOUT ANY WARRANTY; without even the implied warranty of
-%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%    GNU General Public License for more details.
-%
-%    You should have received a copy of the GNU General Public License
-%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-%--------------------------------------------------------------------------
+%  The licence of this file can be found in source/licence.md
+%-------------------------------------------------------------------------------
+
 classdef Receiver_Output < Receiver_Commons
     % ==================================================================================================================================================
     %% PROPERTIES POSITION
     % ==================================================================================================================================================
-    
+
     properties (SetAccess = public, GetAccess = public)
         time_pos % time of the positions
-    end    
+    end
     %% PROPERTIES CELESTIAL INFORMATIONS
     % ==================================================================================================================================================
-    
+
     properties (SetAccess = public, GetAccess = public)
         used_sys_c     % constellatioj used in the computataions
         selected_sys_c % active constellations in the computation
@@ -58,7 +46,7 @@ classdef Receiver_Output < Receiver_Commons
     % ==================================================================================================================================================
     %% PROPERTIES TROPO
     % ==================================================================================================================================================
-    
+
     properties (SetAccess = public, GetAccess = public)
         pressure      % pressure           double   [n_epoch x 1]
         temperature   % temperature           double   [n_epoch x 1]
@@ -67,9 +55,9 @@ classdef Receiver_Output < Receiver_Commons
     % ==================================================================================================================================================
     %% METHODS MANIPULATION
     % ==================================================================================================================================================
-    
+
     methods
-        function applyRemAntennaOffset(sta_list, sgn)            
+        function applyRemAntennaOffset(sta_list, sgn)
             % Add/Rem antennna offset stored in parent
             %
             % INPUT
@@ -77,7 +65,7 @@ classdef Receiver_Output < Receiver_Commons
             %           -1 remove
             % SYNTAX
             %    this.applyRemAntennaOffset(<sgn = 1>)
-            
+
             if nargin == 1
                 sgn = 1;
             end
@@ -88,21 +76,21 @@ classdef Receiver_Output < Receiver_Commons
             end
         end
     end
-    
+
     % ==================================================================================================================================================
     %% METHODS INIT - CLEAN - RESET - REM -IMPORT
     % ==================================================================================================================================================
-    
+
     methods
         function this = Receiver_Output(parent)
             this.parent = parent;
             this.initHandles();
             this.reset();
         end
-        
+
         function reset(this)
             this.reset@Receiver_Commons();
-            
+
             this.sat = struct(  ...
                 'outliers',         [], ...    % logical index of outliers
                 'cycle_slip',       [], ...    % logical index of cycle slips
@@ -116,12 +104,12 @@ classdef Receiver_Output < Receiver_Commons
                 'mfh',              []  ...    % mapping funvtion hysdrostatic
                 );
         end
-        
+
     end
     % ==================================================================================================================================================
     %% METHODS GETTER - TIME
     % ==================================================================================================================================================
-    
+
     methods
         % standard utility
         function toString(this)
@@ -138,7 +126,7 @@ classdef Receiver_Output < Receiver_Commons
                     log.newLine();
                     log.addMessage(sprintf(' Rate of the observations [s]:            %d', this(r).getRate()));
                     log.newLine();
-                    
+
                     log.smallSeparator();
                     if ~isempty(this(r).xyz)
                         enu = zero2nan(this(r).xyz); [enu(:, 1), enu(:, 2), enu(:, 3)] = cart2plan(zero2nan(this(r).xyz(:,1)), zero2nan(this(r).xyz(:,2)), zero2nan(this(r).xyz(:,3)));
@@ -152,8 +140,8 @@ classdef Receiver_Output < Receiver_Commons
                     log.smallSeparator();
                 end
             end
-        end                
-        
+        end
+
         function time = getTime(this)
             % return the time stored in the object
             %
@@ -162,10 +150,10 @@ classdef Receiver_Output < Receiver_Commons
             %
             % SYNTAX
             %   xyz = this.getTime()
-            
+
             time = this(1).time.getCopy();
         end
-        
+
         function time = getTimePositions(this)
             % return the time stored in the object
             % that correspond to position estimation epochs
@@ -175,14 +163,14 @@ classdef Receiver_Output < Receiver_Commons
             %
             % SYNTAX
             %   xyz = this.getTimePositions()
-            
+
             if isempty(this(1).time_pos)
                 time = GPS_Time();
             else
                 time = this(1).time_pos.getCopy();
             end
         end
-        
+
         function [P,T,H] = getPTH(this)
             % get ztd
             %
@@ -198,26 +186,26 @@ classdef Receiver_Output < Receiver_Commons
                 H = this.humidity(this.getIdSync);
             end
         end
-        
+
         function desync = getDesync(this)
             desync = this.desync;
         end
-        
+
         function dt_pp = getDtPrePro(this)
             dt_pp = this.dt_ip;
         end
-        
+
         function dt = getTotalDt(this)
             dt = this.getDt +  this.getDtPrePro;
         end
-        
+
         function n_sat = getMaxSat(sta_list, sys_c)
             % get the number of satellites stored in the object
             %
             % SYNTAX
             %   n_sat = getNumSat(<sys_c>)
             n_sat = zeros(size(sta_list));
-            
+
             for r = 1 : size(sta_list, 2)
                 rec = sta_list(~sta_list(r).isEmpty, r);
                 if ~isempty(rec)
@@ -231,7 +219,7 @@ classdef Receiver_Output < Receiver_Commons
                 end
             end
         end
-        
+
         function time = getPositionTime(this)
             % return the time of the computed positions
             %
@@ -246,21 +234,21 @@ classdef Receiver_Output < Receiver_Commons
                 time = [];
             end
         end
-        
+
         function [pwv, time] = getPwv(this)
             % SYNTAX
             %  [pwv, time] = this.getPwv()
-            
+
             pwv = {};
             time = {};
             for r = 1 : size(this, 2)
                 time{r} = this(1, r).time.getEpoch(this(1, r).getIdSync); %#ok<AGROW>
                 try
                     pwv{r} = this(1, r).pwv(this(1, r).getIdSync); %#ok<AGROW>
-                catch 
+                catch
                     pwv{r} = [];
                 end
-                
+
                 for s = 2 : size(this, 1)
                     pwv_tmp = this(s, r).pwv(this(s, r).getIdSync);
                     time_tmp = this(s, r).time.getEpoch(this(s, r).getIdSync);
@@ -268,13 +256,13 @@ classdef Receiver_Output < Receiver_Commons
                     time{r} = time{r}.append(time_tmp);
                 end
             end
-            
+
             if numel(pwv) == 1
                 pwv = pwv{1};
                 time = time{1};
             end
         end
-        
+
         function [quality, az, el] = getQuality(this)
             % SYNTAX
             %  [quality, az, el] = this.getQuality()
@@ -283,7 +271,7 @@ classdef Receiver_Output < Receiver_Commons
             catch
                 quality = [];
             end
-            
+
             try
                 az = this.sat.az(this.getIdSync,:);
                 el = this.sat.el(this.getIdSync,:);
@@ -292,7 +280,7 @@ classdef Receiver_Output < Receiver_Commons
                 el = [];
             end
         end
-        
+
         function missing_epochs = getMissingEpochs(this)
             % return a logical array of missing (code) epochs
             %
@@ -301,11 +289,11 @@ classdef Receiver_Output < Receiver_Commons
             %
             missing_epochs = true(this.time.length,1);
         end
-        
+
         function id_sync = getIdSync(this)
             id_sync = 1 : this.time.length;
         end
-        
+
         function [mfh, mfw, cotan_term] = getSlantMF(this)
             mfh = this.sat.mfh;
             mfw = this.sat.mfw;
@@ -318,7 +306,7 @@ classdef Receiver_Output < Receiver_Commons
                 cotan_term = nan;
             end
         end
-        
+
         function [day_lim] = getDayLim(this)
             % get the start index and end index of the days presents in the object
             %
@@ -335,7 +323,7 @@ classdef Receiver_Output < Receiver_Commons
                 day_lim(i,2) = find(mat_time < (d+1),1,'last');
             end
         end
-        
+
         function xyz = getIgsXYZ(this, mode)
             % Get the official IGS solution for either daily of weekly IGS
             % combinations
@@ -347,7 +335,7 @@ classdef Receiver_Output < Receiver_Commons
             end
             xyz = nan(size(this.xyz));
             if strcmpi(mode,'daily')
-                data_dir = fullfile(Core.getInstallDir, '..' , 'data');
+                data_dir = fullfile(Core.getInstallDir(true), '..' , 'data');
                 fnp = File_Name_Processor();
                 if isempty(this.time_pos) && isempty(this.time)
                     Core.getLogger.addWarning(sprintf('Receiver "%s" has no stored data, IGS Validation is not possible', this.parent.getMarkerNameV3));
@@ -371,7 +359,7 @@ classdef Receiver_Output < Receiver_Commons
                                 [pathstr, name, ext] = fileparts(filename);
                                 ftp_dw.downloadUncompress(remote_file_name, pathstr);
                             end
-                            
+
                             % Multiplatform
                             if exist(filename, 'file') == 2
                                 fid = fopen(filename, 'rt');
@@ -402,7 +390,7 @@ classdef Receiver_Output < Receiver_Commons
                                 %     end
                             else
                                 [pathstr, name, ext] = fileparts(remote_file_name);
-                                
+
                                 this.log.addWarning(sprintf(' File %s not found',[name, ext]));
                             end
                         end
@@ -410,7 +398,7 @@ classdef Receiver_Output < Receiver_Commons
                 end
             end
         end
-        
+
         function [ztd, gn ,ge] = getIgsTropo(this, mode)
             % get the official IGS solution fro tropospheric paramters
             %
@@ -446,11 +434,11 @@ classdef Receiver_Output < Receiver_Commons
                     ztd = timeSeriesComparison(tsc.results.r2.(['r' upper(sta_name)]).time.getMatlabTime, tsc.results.r2.(['r' upper(sta_name)]).ztd, this.time.getMatlabTime, this.ztd,'aggregate');
                     gn = timeSeriesComparison(tsc.results.r2.(['r' upper(sta_name)]).time.getMatlabTime, tsc.results.r2.(['r' upper(sta_name)]).tgn, this.time.getMatlabTime, this.tgn,'aggregate');
                     ge = timeSeriesComparison(tsc.results.r2.(['r' upper(sta_name)]).time.getMatlabTime, tsc.results.r2.(['r' upper(sta_name)]).tge, this.time.getMatlabTime, this.tge,'aggregate');
-                    
+
                 end
             end
         end
-        
+
         function remEpochTime(rec_list, time_start, time_stop)
             % remove epochs from the results
             %
@@ -459,7 +447,7 @@ classdef Receiver_Output < Receiver_Commons
             %
             % EXAMPLE
             %   rec_list.remEpochTime(GPS_Time('2019-08-06 7:00'), GPS_Time('2019-08-06 21:00'));
-            
+
             rec_list = rec_list(not(rec_list.isEmpty_mr));
             for r = 1 : numel(rec_list)
                 rec = rec_list(r);
@@ -467,13 +455,13 @@ classdef Receiver_Output < Receiver_Commons
                 rec.remEpoch(ep_ko);
             end
         end
-        
+
         function remEpoch(this, ep_ko)
             % remove epochs from the results
             %
             % SYNTAX
             % this.remEpoch(ep_idx)
-            
+
             this.time.remEpoch(ep_ko);
             if ~isempty(this.zwd)
                 this.zwd(ep_ko) = [];
@@ -540,20 +528,20 @@ classdef Receiver_Output < Receiver_Commons
                 this.sat.mfh(ep_ko,:) = [];
             end
         end
-        
+
     end
-    
+
     % ==================================================================================================================================================
     %% METHODS IMPORT / EXPORT
     % ==================================================================================================================================================
-    
+
     methods
         function injectResult(this, rec_work, rate, flag_force)
             % inject the results of receiver work into receiver output
             %
             % SYNTAX
             %  this.injectResult(rec_work)
-            
+
             state = Core.getCurrentSettings();
             if nargin < 3 || isempty(rate)
                 if rec_work.time.getRate == state.getTropoOutRate
@@ -562,9 +550,9 @@ classdef Receiver_Output < Receiver_Commons
                     rate = state.getTropoOutRate();
                 end
             end
-            
+
             log = Core.getLogger();
-            
+
             % Check push conditions ---------------------------------------
             try
                 % If it is empty go on without warning, otherwise check the
@@ -584,7 +572,7 @@ classdef Receiver_Output < Receiver_Commons
                 % Something was wrong, maybe the receiver is empty.
                 flag_ok = false;
             end
-            
+
             if nargin < 4 || isempty(flag_force)
                 flag_force = false;
             end
@@ -597,13 +585,13 @@ classdef Receiver_Output < Receiver_Commons
                 flag_ok = false;
             end
             % -------------------------------------------------------------
-            
+
             % push if ok
             if flag_force || (flag_ok && (~(rec_work.isEmpty || rec_work.flag_currupted)))
                 % set the id_sync only to time in between out times
                 %[this.time.length length(this.zwd) rec_work.time.length length(rec_work.zwd)]
                 basic_export = false;
-                
+
                 if any(rate)
                     id_sync_bk = rec_work.getIdSync;
                     id_sync = rec_work.getIdSync;
@@ -611,9 +599,9 @@ classdef Receiver_Output < Receiver_Commons
                     id_ss = mod(sync_time, rate) == 0;
                     rec_work.id_sync = id_sync(id_ss);
                 end
-                
+
                 id_sync_old = rec_work.getIdSync();
-                
+
                 this.used_sys_c = unique([this.used_sys_c rec_work.getActiveSys]);
                 this.selected_sys_c = Core.getConstellationCollector.sys_c;
                 if isempty(id_sync_old)
@@ -628,7 +616,7 @@ classdef Receiver_Output < Receiver_Commons
                 % present in out. This means, that in the end the final
                 % epochs of the output are the central ones of each
                 % session and not the ones of the buffers.
-                
+
                 work_time = rec_work.getTime();
                 if ~work_time.isEmpty
                     initial_len = this.time.length;
@@ -644,7 +632,7 @@ classdef Receiver_Output < Receiver_Commons
                                 time_old = this.time.getCopy();
                             else
                                 time_old = this.time.getCopy();
-                                if state.isSmoothTropoOut()                                    
+                                if state.isSmoothTropoOut()
                                     re_time_bf = time_old.getNominalTime(min(1, time_old.getRate));
                                     smt_buf_rgt = re_time_bf.last;
                                 end
@@ -670,7 +658,7 @@ classdef Receiver_Output < Receiver_Commons
                                     this.apr_zhd = Core_Utils.injectData(this.apr_zhd, rec_work.getAprZhd(), idx1, idx2);
                                     this.apr_zwd = Core_Utils.injectData(this.apr_zwd, rec_work.getAprZwd(), idx1, idx2);
                                 end
-                                
+
                                 % Inject used meteo parameters
                                 if state.flag_out_pth
                                     [p, t, h]         = rec_work.getPTH(true);
@@ -678,20 +666,20 @@ classdef Receiver_Output < Receiver_Commons
                                     this.temperature  = Core_Utils.injectData(this.temperature, t, idx1, idx2);
                                     this.humidity     = Core_Utils.injectData(this.humidity, h, idx1, idx2);
                                 end
-                                
+
                                 % Inject mapping functions
                                 if state.flag_out_mf
                                     [mfh, mfw]            = rec_work.getSlantMF();
                                     this.sat.mfw          = Core_Utils.injectData(this.sat.mfw, mfw, idx1, idx2);
                                     this.sat.mfh          = Core_Utils.injectData(this.sat.mfh, mfh, idx1, idx2);
                                 end
-                                
+
                                 % Inject outliers and cs
                                 if state.flag_out_ocs
                                     this.sat.outliers   = Core_Utils.injectData(this.sat.outliers, rec_work.getObsOutSat(), idx1, idx2);
                                     this.sat.cycle_slip = Core_Utils.injectData(this.sat.cycle_slip, rec_work.getObsCsSat(), idx1, idx2);
                                 end
-                                
+
                                 if state.isNSatOut()
                                     cc = Core.getState.getConstellationCollector;
                                     % all sats
@@ -708,7 +696,7 @@ classdef Receiver_Output < Receiver_Commons
                                         end
                                     end
                                 end
-            
+
                                 %######################################################
                                 % Inject DOPs
                                 %------------------------------------------------------
@@ -723,11 +711,11 @@ classdef Receiver_Output < Receiver_Commons
                                     this.quality_info.dop.tdop = Core_Utils.injectData(this.quality_info.dop.tdop, rec_work.quality_info.dop.tdop(rec_work.getIdSync), idx1, idx2);
                                     this.quality_info.dop.gdop = Core_Utils.injectData(this.quality_info.dop.gdop, rec_work.quality_info.dop.gdop(rec_work.getIdSync), idx1, idx2);
                                     this.quality_info.dop.hdop = Core_Utils.injectData(this.quality_info.dop.hdop, rec_work.quality_info.dop.hdop(rec_work.getIdSync), idx1, idx2);
-                                    this.quality_info.dop.vdop = Core_Utils.injectData(this.quality_info.dop.vdop, rec_work.quality_info.dop.vdop(rec_work.getIdSync), idx1, idx2); 
+                                    this.quality_info.dop.vdop = Core_Utils.injectData(this.quality_info.dop.vdop, rec_work.quality_info.dop.vdop(rec_work.getIdSync), idx1, idx2);
                                 end
                                 %######################################################
                                 % Inject TROPO
-                                
+
                                 if ~state.isSmoothTropoOut() || is_this_empty
                                     % Inject tropo related parameters
                                     if state.flag_out_ztd
@@ -748,7 +736,7 @@ classdef Receiver_Output < Receiver_Commons
                                     % there is probably smoothing
                                 end
                             end
-                            
+
                             if (initial_len == size(this.sat.az,1)) && (idx2 == 0) && ~is_this_empty
                                 [~, idx1, idx2] = this.time.injectBatch(work_time);
                             end
@@ -760,7 +748,7 @@ classdef Receiver_Output < Receiver_Commons
                             if state.flag_out_quality
                                 this.sat.quality = Core_Utils.injectData(this.sat.quality, rec_work.getQuality(), idx1, idx2);
                             end
-                            
+
                             % reset the old  complete id_sync
                             rec_work.id_sync = id_sync_old;
                             if isempty(id_sync_old)
@@ -768,12 +756,12 @@ classdef Receiver_Output < Receiver_Commons
                             end
                         end
                     end
-                    
+
                     if state.isResOut
                         if isempty(this.sat.res)
                             this.sat.res = Residuals();
                         end
-                        
+
                         % Get the residual only in the time span relative to the session (no buffers)
                         res = rec_work.sat.res.getCopy();
                         [is_ph] = rec_work.sat.res.isPhase();
@@ -791,7 +779,7 @@ classdef Receiver_Output < Receiver_Commons
                         res.cutEpochs(lim);
                         this.sat.res.injest(res);
                     end
-                    
+
                     %%% single results
                     if isempty(this.time_pos)
                         idx1 = 1;
@@ -802,26 +790,26 @@ classdef Receiver_Output < Receiver_Commons
                         [this.time_pos, idx1, idx2] = this.time_pos.injectBatch(rec_work.getPositionTime());
                         data_len  = rec_work.getPositionTime().length;
                     end
-                    
+
                     % Add antenna offset
                     coo_work = rec_work.getPos;
                     coo_work.addOffset(-[rec_work.parent.ant_delta_en rec_work.parent.ant_delta_h]);
                     xyz_work = coo_work.getXYZ;
-                    
+
                     this.xyz      = Core_Utils.injectData(this.xyz, xyz_work, idx1, idx2, [data_len, 3]);
                     xyz_vcv = rec_work.getVCVXYZ;
                     if ~isempty(xyz_vcv)
                         this.xyz_vcv  = Core_Utils.injectData(this.xyz_vcv, xyz_vcv, idx1, idx2, [data_len, 6]);
                     end
                     this.enu      = Core_Utils.injectData(this.enu, rec_work.getPosENU, idx1, idx2, [data_len, 3]);
-                    
+
                     this.quality_info.s0_ip     = Core_Utils.injectData(this.quality_info.s0_ip, rec_work.quality_info.s0_ip, idx1, idx2, [data_len, 1]);
                     this.quality_info.s0        = Core_Utils.injectData(this.quality_info.s0, rec_work.quality_info.s0, idx1, idx2, [data_len, 1]);
                     this.quality_info.n_epochs  = Core_Utils.injectData(this.quality_info.n_epochs, rec_work.quality_info.n_epochs, idx1, idx2, [data_len, 1]);
                     this.quality_info.n_obs     = Core_Utils.injectData(this.quality_info.n_obs, rec_work.quality_info.n_obs, idx1, idx2, [data_len, 1]);
                     this.quality_info.n_out     = Core_Utils.injectData(this.quality_info.n_out, rec_work.quality_info.n_out, idx1, idx2, [data_len, 1]);
                     this.quality_info.n_sat     = Core_Utils.injectData(this.quality_info.n_sat, rec_work.quality_info.n_sat, idx1, idx2, [data_len, 1]);
-                    
+
                     this.quality_info.n_sat_max = Core_Utils.injectData(this.quality_info.n_sat_max, rec_work.quality_info.n_sat_max, idx1, idx2, [data_len, 1]);
                     this.quality_info.fixing_ratio = Core_Utils.injectData(this.quality_info.fixing_ratio, rec_work.quality_info.fixing_ratio, idx1, idx2, [data_len, 1]);
 
@@ -885,7 +873,7 @@ classdef Receiver_Output < Receiver_Commons
                         end
                         rec_work.id_sync = id_sync_old; % restore id_sync_old
                     end
-                    
+
                     %--- append additional coo
                     if state.flag_coo_rate
                         if isempty(this.add_coo)
@@ -919,7 +907,7 @@ classdef Receiver_Output < Receiver_Commons
                             end
                         end
                     end
-                    
+
                     % insert coo computed using new
                     state = Core.getState;
                     [~, discard_time] = state.getSessionLimits;
@@ -938,25 +926,25 @@ classdef Receiver_Output < Receiver_Commons
                         catch ex
                             Core_Utils.printEx(ex);
                         end
-                        
+
                         this.coo.append(coo_work);
                     end
                     log.addMarkedMessage(sprintf('Computed results for receiver "%s" have been imported into out object', this.parent.getMarkerName4Ch()), 20); % Set verbosity to 20 this log could be expansive when importing many sessions
                 else
                     rec_work.id_sync = id_sync_old; % restore id_sync_old
                 end
-                
+
                 if any(rate)
                     rec_work.id_sync = id_sync_bk;
                 end
             end
         end
     end
-    
+
     % ==================================================================================================================================================
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
-    
+
     % Various debug images
     % name variant:
     %   c cartesian
@@ -964,19 +952,19 @@ classdef Receiver_Output < Receiver_Commons
     %   p polar
     %   m mixed
     methods (Access = public)
-        
+
         function showAll(this)
             this.toString
             this.showAll@Receiver_Commons();
             this.showDt();
         end
-        
+
         function fh_list = showDt(this)
             % Plot Clock error
             %
             % SYNTAX
             %   this.plotDt
-            
+
             fh_list = [];
             rec = this;
             if ~isempty(rec)
@@ -985,11 +973,11 @@ classdef Receiver_Output < Receiver_Commons
                     Core.getLogger.addError(sprintf('No clock found in "%s" Receiver Output object\n', this.parent.getMarkerNameV3));
                 else
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
-                    
+
                     fh_list = f;
                     fig_name = sprintf('Dt_%s_%s', this.parent.getMarkerName4Ch, this.time.first.toString('yyyymmdd_HHMM'));
                     f.UserData = struct('fig_name', fig_name);
-                    
+
                     l_list = {};
                     data = rec.getDesync;
                     if ~isempty(data)
@@ -1017,7 +1005,7 @@ classdef Receiver_Output < Receiver_Commons
                         close(f);
                     else
                         legend(l_list, 'Location', 'NorthEastOutside');
-                        
+
                         xlim([t(1) t(end)]); setTimeTicks(4); h = ylabel('receiver clock error [m]'); h.FontWeight = 'bold';
                         h = title(sprintf('dt - receiver %s', rec.parent.getMarkerName),'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
                         Core_UI.beautifyFig(f);
@@ -1028,7 +1016,7 @@ classdef Receiver_Output < Receiver_Commons
                 end
             end
         end
-        
+
         function fh_list = showProcessingQualityInfo(this)
             % Show quality info indexes for processing
             %   number of epochs
@@ -1039,29 +1027,29 @@ classdef Receiver_Output < Receiver_Commons
             %
             % SYNTAX:
             %   this.showProcessingQualityInfo
-            
+
             fh_list = [];
             if ~(this.isEmpty) && size(this.quality_info.n_obs, 1) > 1
                 this.log.addMessage('Plotting processing quality info');
-                
+
                 win = figure('Visible', 'on', ...
                     'NumberTitle', 'off');
                 win.Name = sprintf('%03d: %s, Quality Info', win.Number, this.parent.getMarkerName4Ch);
-                
-                fh_list = [fh_list; win]; 
+
+                fh_list = [fh_list; win];
                 fig_name = sprintf('Quality_Info_%s_%s', this.parent.getMarkerName4Ch, this.time.first.toString('yyyymmdd_HHMM'));
                 win.UserData = struct('fig_name', fig_name);
-                
+
                 % Single index
                 n_plot = 6;
-                
+
                 win.Units = 'pixels';
                 maximizeFig(win);
 
                 %scroller = uix.ScrollingPanel('Parent', win);
                 main_vb = uix.VBox('Parent', win, ...
                     'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-                
+
                 uicontrol('Parent', main_vb, ...
                     'Style', 'Text', ...
                     'String', sprintf('Processing quality info for rec %s\n', upper(this.parent.getMarkerName4Ch)), ...
@@ -1073,9 +1061,9 @@ classdef Receiver_Output < Receiver_Commons
 
                 container = uix.Grid('Parent', main_vb, ...
                     'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-                
+
                 %h = title(, 'interpreter', 'none'); h.FontWeight = 'bold'; %h.Units = 'pixels'; h.Position(2) = h.Position(2) + 8; h.Units = 'data';
-                                
+
                 for i = 1 : n_plot
                     tmp_box(i) = uix.VBox('Parent', container, ...
                         'Padding', 5, ...
@@ -1088,36 +1076,36 @@ classdef Receiver_Output < Receiver_Commons
                     ax(i) = axes('Parent', tmp_box(i));
                 end
                 %scroller.Heights = sum(container.Heights);
-                
+
                 color_order = handle(gca).ColorOrder;
                 t = this.getPositionTime().getMatlabTime();
-                
+
                 Core_Utils.plotSep(ax(1), t, this.quality_info.n_epochs, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(1,:)); hold on;
                 h = ylabel(ax(1), sprintf('# epochs'), 'interpreter', 'none'); h.FontWeight = 'bold';
                 h = title(ax(1), 'Number of valid epochs', 'interpreter', 'none'); h.FontWeight = 'bold';
-                
+
                 Core_Utils.plotSep(ax(2), t, this.quality_info.n_obs, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(2,:)); hold on;
                 h = ylabel(ax(2), sprintf('# obs'), 'interpreter', 'none'); h.FontWeight = 'bold';
                 h = title(ax(2), 'Total number of observations used', 'interpreter', 'none'); h.FontWeight = 'bold';
-                                
+
                 if isfield(this.quality_info, 'n_out')
                     Core_Utils.plotSep(ax(3), t, this.quality_info.n_out, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(4,:)); hold on;
                     h = ylabel(ax(3), '# outliers'); h.FontWeight = 'bold';
                     h = title(ax(3), 'Number of observations removed as outliers', 'interpreter', 'none'); h.FontWeight = 'bold';
                 end
-                
+
                 Core_Utils.plotSep(ax(4), t, this.quality_info.n_sat_max, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(3,:)); hold on;
                 h = ylabel(ax(4), 'max # sat'); h.FontWeight = 'bold';
                 h = title(ax(4), 'Maximum number of satellites seen in one epoch', 'interpreter', 'none'); h.FontWeight = 'bold';
-                
+
                 Core_Utils.plotSep(ax(5), t, this.quality_info.s0_ip * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(6,:)); hold on;
                 h = ylabel(ax(5), 's0 pp [cm]'); h.FontWeight = 'bold';
                 h = title(ax(5), 'Sigma0 as estimated from the Least Square solution (on pre-processing)', 'interpreter', 'none'); h.FontWeight = 'bold';
-                
+
                 Core_Utils.plotSep(ax(6), t, this.quality_info.s0 * 1e2, '.-', 'MarkerSize', 15, 'LineWidth', 2, 'Color', color_order(5,:)); hold on;
                 h = ylabel(ax(6), 's0 [cm]'); h.FontWeight = 'bold';
                 h = title(ax(6), 'Final sigma0 as estimated from the Least Square solution', 'interpreter', 'none'); h.FontWeight = 'bold';
-                
+
                 for i = 1 : n_plot
                     if (t(end) > t(1))
                         xlim(ax(i), [t(1) t(end)]);
@@ -1126,20 +1114,20 @@ classdef Receiver_Output < Receiver_Commons
                     setTimeTicks(ax(i), 4, 'auto');
                     ax(i).FontSize = Core_UI.getFontSize(9);
                 end
-                
+
                 linkaxes(ax, 'x');
-                
+
                 fh = win; Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
                 fh.Visible = 'on';
             else
                 Core.getLogger.addMessage(sprintf('It seems that only one session is present - these plots are not supported for %s', this.parent.getMarkerName4Ch));
-            end            
+            end
         end
-                
+
         function fh_list = showOutliersAndCycleSlip(this, sys_c_list)
             % Plot the outliers found
             % SYNTAX this.showOutliers()
-            
+
             fh_list = [];
             cc = Core.getState.getConstellationCollector;
             if nargin == 1
@@ -1147,11 +1135,11 @@ classdef Receiver_Output < Receiver_Commons
             end
             for sys_c = sys_c_list
                 f = figure('Visible', 'off'); f.Name = sprintf('%03d: %s CS, Out %s', f.Number, this.parent.getMarkerName4Ch, cc.getSysName(sys_c)); f.NumberTitle = 'off';
-                
+
                 fh_list = [fh_list; f]; %#ok<AGROW>
                 fig_name = sprintf('OCS_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
                 f.UserData = struct('fig_name', fig_name);
-                
+
                 ep = repmat((1: this.time.length)',1, size(this.sat.outliers, 2));
                 if isempty(ep)
                     close(f);
@@ -1181,19 +1169,19 @@ classdef Receiver_Output < Receiver_Commons
                 end
             end
         end
-        
+
         function fh_list = showOutliersAndCycleSlip_p(this, sys_c_list)
             % Plot Signal to Noise Ration in a skyplot
             % SYNTAX this.plotSNR(sys_c)
-            
+
             cc = Core.getState.getConstellationCollector;
-            
+
             fh_list = [];
             % SNRs
             if nargin == 1
                 sys_c_list = cc.getAvailableSys;
             end
-            
+
             for sys_c = sys_c_list
                 if isempty(this.sat.az) || isempty(this.sat.el)
                     Core.getLogger.addError('No azimuth and elevetion present in the receiver\n');
@@ -1202,11 +1190,11 @@ classdef Receiver_Output < Receiver_Commons
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: CS, Out %s', f.Number, sys_c); f.NumberTitle = 'off';
                     polarScatter([],[],1,[]);
                     hold on;
-                    
+
                     fh_list = [fh_list; f]; %#ok<AGROW>
                     fig_name = sprintf('OCS_polar_%s_%s_%s', this.parent.getMarkerName4Ch, cc.getSysName(sys_c), this.time.first.toString('yyyymmdd_HHMM'));
                     f.UserData = struct('fig_name', fig_name);
-                    
+
                     for s = cc.getGoIds(sys_c)
                         az = this.sat.az(:,s);
                         el = this.sat.el(:,s);
@@ -1215,17 +1203,17 @@ classdef Receiver_Output < Receiver_Commons
                             cs = sum(this.sat.cycle_slip(:, s), 2) > 0;
                             out = sum(this.sat.outliers(:, s), 2) > 0;
                             sat_on = (this.sat.az(:, s) ~= 0);
-                            
+
                             decl_n = (serialize(90 - el(sat_on)) / 180*pi) / (pi/2);
                             x = sin(az(sat_on)/180*pi) .* decl_n; x(az(sat_on) == 0) = [];
                             y = cos(az(sat_on)/180*pi) .* decl_n; y(az(sat_on) == 0) = [];
                             plot(x, y, '.', 'MarkerSize', 7, 'Color', [0.7 0.7 0.7]);
-                            
+
                             decl_n = (serialize(90 - el(cs)) / 180*pi) / (pi/2);
                             x = sin(az(cs)/180*pi) .* decl_n; x(az(cs) == 0) = [];
                             y = cos(az(cs)/180*pi) .* decl_n; y(az(cs) == 0) = [];
                             plot(x, y, '.k', 'MarkerSize', 20);
-                            
+
                             decl_n = (serialize(90 - el(out)) / 180*pi) / (pi/2);
                             x = sin(az(out)/180*pi) .* decl_n; x(az(out) == 0) = [];
                             y = cos(az(out)/180*pi) .* decl_n; y(az(out) == 0) = [];

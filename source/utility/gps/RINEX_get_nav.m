@@ -1,4 +1,4 @@
-function [Eph, iono] = RINEX_get_nav(file_nav, cc)
+function [Eph, iono] = RINEX_get_nav(file_nav, cc, only_iono)
 
 % SYNTAX:
 %   [Eph, iono] = RINEX_get_nav(file_nav, cc);
@@ -6,6 +6,7 @@ function [Eph, iono] = RINEX_get_nav(file_nav, cc)
 % INPUT:
 %   file_nav = RINEX navigation file
 %   cc = Constellation_Collector object, contains the satus of the satellite systems in use
+%   only_iono = flag to load only ionospheric parameters
 %
 % OUTPUT:
 %   Eph = matrix containing 33 navigation parameters for each satellite
@@ -14,14 +15,8 @@ function [Eph, iono] = RINEX_get_nav(file_nav, cc)
 % DESCRIPTION:
 %   Parse a RINEX navigation file.
 
-%--------------------------------------------------------------------------
-%               ___ ___ ___
-%     __ _ ___ / __| _ | __
-%    / _` / _ \ (_ |  _|__ \
-%    \__, \___/\___|_| |___/
-%    |___/                    v 1.0
-%
-%--------------------------------------------------------------------------
+%  Software version 1.0.1
+%-------------------------------------------------------------------------------
 %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
 %  Written by:
 %  Contributors:     ...

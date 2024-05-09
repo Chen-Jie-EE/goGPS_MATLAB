@@ -26,6 +26,8 @@
 %  Software version 1.0.1
 %-------------------------------------------------------------------------------
 %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
+%  Written by:        Andrea Gatti
+%  Contributors:      Andrea Gatti
 %
 %  The licence of this file can be found in source/licence.md
 %-------------------------------------------------------------------------------
@@ -36,10 +38,10 @@ function killProcesses(keywords, max_time)
     if nargin < 2
         max_time = 0; % If not provided, set it to 0
     end
-    
+
     % Retrieve the list of running processes matching the keywords
     processes = getProcesses(keywords);
-    
+
     % Loop through the processes and kill those that match the criteria
     for i = 1:length(processes)
         process = processes(i);
@@ -52,7 +54,7 @@ function killProcesses(keywords, max_time)
             else
                 error('Unsupported operating system.');
             end
-    
+
             % Execute the kill command
             [status, cmdout] = system(killCommand);
             if status == 0

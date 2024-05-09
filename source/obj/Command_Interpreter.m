@@ -2,7 +2,7 @@
 % =========================================================================
 %
 % DESCRIPTION
-%   Interpreter of goGPS command instructions
+%   Interpreter of App command instructions
 %
 % EXAMPLE
 %   cmd = Command_Interpreter.getInstance();
@@ -18,7 +18,7 @@
 %  The licence of this file can be found in source/licence.md
 %-------------------------------------------------------------------------------
 
-classdef Command_Interpreter < handle        
+classdef Command_Interpreter < handle
     %% PROPERTIES CONSTANTS
     % ==================================================================================================================================================
     properties (Constant, GetAccess = private)
@@ -27,13 +27,13 @@ classdef Command_Interpreter < handle
         ERR_NEI  = 2;    % Not Enough Input Parameters
         WRN_TMI  = -3;   % Too Many Inputs
         WRN_MPT  = -100; % Command empty
-        
+
         STR_ERR = {'Commad unknown', ...
             'Not enough input parameters', ...
             'Too many input parameters'};
-        
+
     end
-    
+
     properties (Constant, GetAccess = public)
         SUB_KEY = char(java.net.URLDecoder.decode('%C2%A7','UTF-8')); %urldecode("%C2%A7");
     end
@@ -42,12 +42,12 @@ classdef Command_Interpreter < handle
     % ==================================================================================================================================================
     properties (GetAccess = public, SetAccess = private)
         % List of the supported commands
-        
+
         CMD_SENDMSG     % Send a message on log
 
         CMD_SET         % Allow the modification of a setting parameter
         CMD_LOAD        % Load data from the linked RINEX file into the receiver
-        CMD_RENAME      % Rename a receiver        
+        CMD_RENAME      % Rename a receiver
         CMD_EMPTY       % Reset the receiver content
         CMD_EMPTYWORK   % Reset the receiver work space
         CMD_EMPTYOUT    % Reset the receiver output container
@@ -77,21 +77,21 @@ classdef Command_Interpreter < handle
         CMD_REMOBS      % Remove some observations from the receiver (given the obs code)
         CMD_KEEPOBS     % Keep some observations of the receiver (given the obs code)
         CMD_REMTMP      % Remove temporary data not used later for pushout
-                            
+
         CMD_PINIT       % parallel request slaves
         CMD_PKILL       % parallel kill slaves
-        
+
         KEY_FOR         % For each session keyword
         KEY_PAR         % For each target (parallel) keyword
         KEY_END         % For/Par marker end
-        
+
         PAR_VARARGIN    % Dummy Parameter
         PAR_STR         % Dummy Parameter
-        
+
         PAR_NEWSET      % Parameter new setting
-        
+
         PAR_NAME        % Parameter marker name
-        
+
         PAR_RATE        % Parameter select rate
         PAR_CUTOFF      % Parameter select cutoff
         PAR_N_DAYS      % Parameter select n_days
@@ -101,44 +101,47 @@ classdef Command_Interpreter < handle
         PAR_OTYPE       % Parameter select observation type (i.e. CPLSD)
         PAR_BAND        % Parameter of the band to be used in the adjustment
         PAR_CTYPE       % Parameter coordinate type
-                
-        PAR_EXPORT      % Export figure
+
+        PAR_EXPORT      % Export
         PAR_CLOSE       % Close figure after export
 
+        PAR_COMPRESS    % Compress (gz) files
         PAR_NOW         % Set xlim to end now
 
         PAR_SLAVE       % number of parallel slaves to request
-        
+
         PAR_R_COO       % Parameter to indicate an array of 3 float
         PAR_R_REM_ORPHANS % flag to remove coordinates without reference master receiver
         PAR_R_FROM_OUT  % Parameter to indicate to get data from Receiver Out
         PAR_R_FROM_WORK % Parameter to indicate to get data from Receiver Out
-        
-        PAR_R_FIX_APR   % Parameter to indicate to use position as approximate coordinate        
-            
+
+        PAR_R_FIX_APR   % Parameter to indicate to use position as approximate coordinate
+
         PAR_M_WAIT       % Modifier for parallel session...wait before importing sessions
         PAR_M_NOCLEAN    % Modifier to NETLOOP to not perform REMTMP
         PAR_M_PAR        % Modifier to NETLOOP to go parallel
         PAR_M_BSL        % Modifier to NETLOOP to compute a solutions by baseline
         PAR_M_REPRO      % Modifier to NETLOOP to compute solutions only if previous ones were not good
         PAR_M_UNCOMBINED % Parameter to force the usage if the new uncombined engine
-        
+
         PAR_M_NWB       % Do not use melbourne-wubbena (bad code)
-        
+
         PAR_M_CLK        % Parameter to estimate clock
         PAR_M_FREE_NET   % Parameter to let the network free
-        
+
         PAR_M_SEID_PLANE % Use old approach plane based
-        
+
         PAR_S_ALL       % show all plots
-        PAR_S_RNX_LIM   % Rinex Availability        
+        PAR_S_RNX_LIM   % Rinex Availability
         PAR_S_DA        % Data availability
         PAR_S_COO_STAT  % Coordinate status
         PAR_S_ENU       % ENU positions
-        PAR_S_PUP       % EN U positions (Planar Up)        
+        PAR_S_PUP       % EN U positions (Planar Up)
         PAR_S_ENUBSL    % Baseline ENU positions
         PAR_S_PUPBSL    % Baseline EN U positions (Planar Up)
         PAR_S_XYZ       % XYZ positions
+        PAR_S_RFL       % Reflector height
+        PAR_S_RFLD      % Reflector distance
         PAR_N_OBS       % Parameter select n_obs
         PAR_S_MAP       % positions on map GoogleMaps background
         PAR_S_MAPG      % positions on map GoogleMaps background
@@ -181,12 +184,12 @@ classdef Command_Interpreter < handle
         PAR_S_TGRAD     % Gradients table
         PAR_S_ORBOK     % Current session available orbits
         PAR_S_ALLORBOK  % All the session available orbits
-        
+
         PAR_V_RAOB      % Validate ZTD with RAOB
         PAR_V_IGS_ZTD   % Validate ZTD with IGS
         PAR_V_IGS_POS   % Validate Position with IGS
         PAR_V_IGS       % Validate Position and Tropospheric Parameters with IGS
-              
+
         PAR_E_CORE_MAT  % Export core in .mat format
         PAR_E_PLAIN_MAT % Export computed results in simple mat format (no objects)
         PAR_E_REC_MAT   % Receiver export parameter MATLAB format
@@ -197,6 +200,7 @@ classdef Command_Interpreter < handle
         PAR_E_TROPO_CSV % Tropo export Parameter csv format
         PAR_E_TROPO_HN  % Tropo export Parameter hn format
 
+        PAR_E_RFL_MAT   % Reflector height within a coordinate (mat format)
         PAR_E_COO_MAT   % Coordinates in goGPS mat format
         PAR_E_COO_TXT   % Coordinates in goGPS coo format
         PAR_E_COO_CRD   % Coordinates in goGPS crd format
@@ -205,7 +209,7 @@ classdef Command_Interpreter < handle
         PAR_E_GEO_TXT   % Coordinates GEODETIC in plain text format
         PAR_E_COO_CSV   % Coordinates in goGPS CSV format
 
-        PAR_S_SAVE      % flage for saving                
+        PAR_S_SAVE      % flage for saving
 
         KEY_LIST = {'FOR', 'PAR', 'END'};
         CMD_LIST = {'SET', ...
@@ -265,7 +269,7 @@ classdef Command_Interpreter < handle
             this.init();
         end
     end
-    
+
     %
     %% METHODS INIT
     % ==================================================================================================================================================
@@ -276,24 +280,24 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX:
             %   this.init()
-            
+
             % definition of parameters (ToDo: these should be converted into objects)
             % in the definition the character "$" indicate the parameter value
-                        
+
             this.PAR_VARARGIN.name = 'variable parameters';
             this.PAR_VARARGIN.descr = 'variable list of parameters';
             this.PAR_VARARGIN.par = '*';
             this.PAR_VARARGIN.class = 'char';
             this.PAR_VARARGIN.limits = [];
             this.PAR_VARARGIN.accepted_values = [];
-            
+
             this.PAR_STR.name = 'string parameter';
             this.PAR_STR.descr = 'string parameter, must be defined between " symbols';
             this.PAR_STR.par = '".*"';
             this.PAR_STR.class = 'char';
             this.PAR_STR.limits = [];
             this.PAR_STR.accepted_values = [];
-            
+
             this.PAR_NEWSET.name = 'Settings update';
             this.PAR_NEWSET.descr = '"param = value"     update to the parameter';
             this.PAR_NEWSET.par = '*string';
@@ -304,14 +308,14 @@ classdef Command_Interpreter < handle
 
             this.PAR_RATE.name = 'rate';
             this.PAR_RATE.descr = '@<rate>            Processing rate in seconds (e.g. @30s, -r=30s)';
-            this.PAR_RATE.par = '(\@)|(\-r\=)|(\-\-rate\=)'; % (regexp) parameter prefix: @ | -r= | --rate= 
+            this.PAR_RATE.par = '(\@)|(\-r\=)|(\-\-rate\=)'; % (regexp) parameter prefix: @ | -r= | --rate=
             this.PAR_RATE.class = 'double';
             this.PAR_RATE.limits = [0.000001 900];
             this.PAR_RATE.accepted_values = [];
-            
+
             this.PAR_CUTOFF.name = 'cut-off';
             this.PAR_CUTOFF.descr = '-e=<elevation>     Cut-off elevation in degree (e.g. -e=7)';
-            this.PAR_CUTOFF.par = '(\-e\=)|(\-\-cutoff\=)'; % (regexp) parameter prefix: -e= | --cutoff= 
+            this.PAR_CUTOFF.par = '(\-e\=)|(\-\-cutoff\=)'; % (regexp) parameter prefix: -e= | --cutoff=
             this.PAR_CUTOFF.class = 'double';
             this.PAR_CUTOFF.limits = [0 90];
             this.PAR_CUTOFF.accepted_values = [];
@@ -322,24 +326,24 @@ classdef Command_Interpreter < handle
             this.PAR_N_DAYS.class = 'double';
             this.PAR_N_DAYS.limits = [0 1e5];
             this.PAR_N_DAYS.accepted_values = [];
-            
+
             this.PAR_N_OBS.name = 'n_obs';
             this.PAR_N_OBS.descr = '-n=<n_obs>         Number of obs starting from the last session';
             this.PAR_N_OBS.par = '(\-n\=)|(\-\-ndays\=)';
             this.PAR_N_OBS.class = 'double';
             this.PAR_N_OBS.limits = [0 1e5];
             this.PAR_N_OBS.accepted_values = [];
-            
+
             this.PAR_OFFSET.name = 'offset';
             this.PAR_OFFSET.descr = '-o=<offset>        Number of days of offset from the current session (-1 means yesterday)';
             this.PAR_OFFSET.par = '(\-o\=)|(\-\-offset\=)';
             this.PAR_OFFSET.class = 'double';
             this.PAR_OFFSET.limits = [-1e5 1e5];
             this.PAR_OFFSET.accepted_values = [];
-            
+
             this.PAR_SNRTHR.name = 'SNR threshold';
             this.PAR_SNRTHR.descr = '-q=<snrthr>        SNR threshold in dbHZ on L1 (e.g. -q=7)';
-            this.PAR_SNRTHR.par = '(\-q\=)|(\-\-snrthr\=)'; % (regexp) parameter prefix: -q= | --snrthr= 
+            this.PAR_SNRTHR.par = '(\-q\=)|(\-\-snrthr\=)'; % (regexp) parameter prefix: -q= | --snrthr=
             this.PAR_SNRTHR.class = 'double';
             this.PAR_SNRTHR.limits = [0 70];
             this.PAR_SNRTHR.accepted_values = [];
@@ -350,31 +354,31 @@ classdef Command_Interpreter < handle
             this.PAR_SS.class = 'char';
             this.PAR_SS.limits = [];
             this.PAR_SS.accepted_values = [];
-            
+
             this.PAR_OTYPE.name = 'Observation type';
             this.PAR_OTYPE.descr = '-t=<obs_type_list> Type of observation (e.g. -s=CPLSD)';
             this.PAR_OTYPE.par = '(\-t\=)|(\-\-obs_type\=)'; % (regexp) parameter prefix: -t --obs_type
             this.PAR_OTYPE.class = 'char';
             this.PAR_OTYPE.limits = [];
             this.PAR_OTYPE.accepted_values = [];
-            
+
             this.PAR_CTYPE.name = 'coordinates type';
             this.PAR_CTYPE.descr = '-c=<type>          Modifier: change coordinate type (-1 external coo file, 0 coordinates of the sessions, 1 first additional coordinates, 2 second additional coordinates, 3 third additional coordinates)';
-            this.PAR_CTYPE.par = '(\-c\=)|(\-\-ctype\=)|(\-C\=)|(\-\-CTYPE\=)'; % (regexp) parameter prefix:  -c= | --ctype= 
+            this.PAR_CTYPE.par = '(\-c\=)|(\-\-ctype\=)|(\-C\=)|(\-\-CTYPE\=)'; % (regexp) parameter prefix:  -c= | --ctype=
             this.PAR_CTYPE.class = 'int';
             this.PAR_CTYPE.limits = [0 3];
             this.PAR_CTYPE.accepted_values = [];
-                        
+
             this.PAR_SLAVE.name = '(MANDATORY) Number of slaves';
             this.PAR_SLAVE.descr = '-n=<num_slaves>    minimum number of parallel slaves to request';
             this.PAR_SLAVE.par = '(N)|(-n\=)';
             this.PAR_SLAVE.class = 'double';
             this.PAR_SLAVE.limits = [1 1000];
             this.PAR_SLAVE.accepted_values = [];
-                                    
+
             this.PAR_BAND.name = 'band';
             this.PAR_BAND.descr = 'L<band>            Band to be used for single frequency adjustment';
-            this.PAR_BAND.par = '(\-L\=)|(L[0-9])'; % (regexp) parameter prefix: @ | -r= | --rate= 
+            this.PAR_BAND.par = '(\-L\=)|(L[0-9])'; % (regexp) parameter prefix: @ | -r= | --rate=
             this.PAR_BAND.class = 'double';
             this.PAR_BAND.limits = [1 5];
             this.PAR_BAND.accepted_values = [];
@@ -408,7 +412,7 @@ classdef Command_Interpreter < handle
             this.PAR_M_NWB.class = '';
             this.PAR_M_NWB.limits = [];
             this.PAR_M_NWB.accepted_values = [];
-            
+
             this.PAR_M_WAIT.name = 'Wait before import parallel sessions';
             this.PAR_M_WAIT.descr = '--wait             Wait before import parallel sessions';
             this.PAR_M_WAIT.par = '(--wait)|(--WAIT)';
@@ -422,7 +426,7 @@ classdef Command_Interpreter < handle
             this.PAR_M_NOCLEAN.class = '';
             this.PAR_M_NOCLEAN.limits = [];
             this.PAR_M_NOCLEAN.accepted_values = [];
-            
+
             this.PAR_M_PAR.name = 'Compute loop in parallel mode';
             this.PAR_M_PAR.descr = '--par              Go parallel';
             this.PAR_M_PAR.par = '(--par)|(--PAR)';
@@ -436,14 +440,14 @@ classdef Command_Interpreter < handle
             this.PAR_M_BSL.class = '';
             this.PAR_M_BSL.limits = [];
             this.PAR_M_BSL.accepted_values = [];
-           
+
             this.PAR_M_REPRO.name = 'Compute network solution if the previous were not good';
             this.PAR_M_REPRO.descr = '--repro            Compute only bad (or missing) previous solutions';
             this.PAR_M_REPRO.par = '(--repro)|(--REPRO)';
             this.PAR_M_REPRO.class = '';
             this.PAR_M_REPRO.limits = [];
             this.PAR_M_REPRO.accepted_values = [];
-           
+
             this.PAR_M_UNCOMBINED.name = 'Use the uncombined engine';
             this.PAR_M_UNCOMBINED.descr = '-u                 (flag) use the uncombined engine';
             this.PAR_M_UNCOMBINED.par = '(-u)|(-U)|(--uncombined)|(--UNCOMBINED)';
@@ -457,7 +461,7 @@ classdef Command_Interpreter < handle
             this.PAR_M_FREE_NET.class = '';
             this.PAR_M_FREE_NET.limits = [];
             this.PAR_M_FREE_NET.accepted_values = [];
-                    
+
             this.PAR_M_CLK.name = 'Export clock';
             this.PAR_M_CLK.descr = '--clk              Export common Parameter in network';
             this.PAR_M_CLK.par = '(-c)|(-C)|(--clk)|(--Clk)|(--CLK)';
@@ -471,23 +475,23 @@ classdef Command_Interpreter < handle
             this.PAR_M_SEID_PLANE.class = '';
             this.PAR_M_SEID_PLANE.limits = [];
             this.PAR_M_SEID_PLANE.accepted_values = [];
-            
+
             % Receiver parameter
-            
+
             this.PAR_R_COO.name = 'Coordinate';
             this.PAR_R_COO.descr = '[X Y Z]            Let the network free';
             this.PAR_R_COO.par = '(?<=(\[))[\+\-0-9\.\, ]*(?=\])';
             this.PAR_R_COO.class = '';
             this.PAR_R_COO.limits = [];
             this.PAR_R_COO.accepted_values = [];
-            
+
             this.PAR_R_REM_ORPHANS.name = 'Rem orphans';
             this.PAR_R_REM_ORPHANS.descr = '--ro               (flag) orphans (coordinates without the reference ricever)';
             this.PAR_R_REM_ORPHANS.par = '(--ro)';
             this.PAR_R_REM_ORPHANS.class = '';
             this.PAR_R_REM_ORPHANS.limits = [];
             this.PAR_R_REM_ORPHANS.accepted_values = [];
-            
+
             this.PAR_R_FROM_OUT.name = 'From OUT';
             this.PAR_R_FROM_OUT.descr = 'FROM_OUT           (flag) use data from Receiver Output object';
             this.PAR_R_FROM_OUT.par = '(FROM_OUT)|(from_out)';
@@ -495,11 +499,11 @@ classdef Command_Interpreter < handle
             this.PAR_R_FROM_WORK.name = 'From WORK';
             this.PAR_R_FROM_WORK.descr = 'FROM_WORK          (flag) use data from Work Space (current session)';
             this.PAR_R_FROM_WORK.par = '(FROM_WORK)|(from_work)';
-            
+
             this.PAR_R_FIX_APR.name = 'Approximate position';
             this.PAR_R_FIX_APR.descr = 'AS_APR             (flag) use position as a new a-priori position (not as fixed)';
             this.PAR_R_FIX_APR.par = '(AS_APR)|(AS_APPROXIMATE)|(as_approximate)';
-            
+
             % Show plots
 
             this.PAR_S_ALL.name = 'Show all the plots';
@@ -508,7 +512,7 @@ classdef Command_Interpreter < handle
             this.PAR_S_ALL.class = '';
             this.PAR_S_ALL.limits = [];
             this.PAR_S_ALL.accepted_values = [];
-                        
+
             this.PAR_S_RNX_LIM.name = 'Rinex Limits';
             this.PAR_S_RNX_LIM.descr = 'RNX_LIM            Rinex limits of validity';
             this.PAR_S_RNX_LIM.par = '(RNX_LIM)|(RNX_LIST)|(RNXLIM)|(rnx_lim)|(rnxlim)|(\-\-rinex-limits)';
@@ -529,7 +533,7 @@ classdef Command_Interpreter < handle
             this.PAR_S_COO_STAT.class = '';
             this.PAR_S_COO_STAT.limits = [];
             this.PAR_S_COO_STAT.accepted_values = [];
-            
+
             this.PAR_S_ENU.name = 'ENU positions';
             this.PAR_S_ENU.descr = 'ENU                East Nord Up positions';
             this.PAR_S_ENU.par = '(ENU)|(enu)';
@@ -564,6 +568,20 @@ classdef Command_Interpreter < handle
             this.PAR_S_XYZ.class = '';
             this.PAR_S_XYZ.limits = [];
             this.PAR_S_XYZ.accepted_values = [];
+
+            this.PAR_S_RFL.name = 'Reflector height';
+            this.PAR_S_RFL.descr = 'RFL                Reflector height [m]';
+            this.PAR_S_RFL.par = '(RFL)|(rfl)';
+            this.PAR_S_RFL.class = '';
+            this.PAR_S_RFL.limits = [];
+            this.PAR_S_RFL.accepted_values = [];
+
+            this.PAR_S_RFLD.name = 'Reflector distance';
+            this.PAR_S_RFLD.descr = 'RFLD                Reflector distance from antenna [m]';
+            this.PAR_S_RFLD.par = '(RFLD)|(rfld)';
+            this.PAR_S_RFLD.class = '';
+            this.PAR_S_RFLD.limits = [];
+            this.PAR_S_RFLD.accepted_values = [];
 
             this.PAR_S_MAP.name = 'Map of Receiver locations';
             this.PAR_S_MAP.descr = 'MAP                Map of station coordinates (Google Maps Background)';
@@ -601,12 +619,12 @@ classdef Command_Interpreter < handle
             this.PAR_S_MAPRDTM.accepted_values = [];
 
             this.PAR_S_MAPL.name = 'Map of Receiver locations';
-            this.PAR_S_MAPL.descr = 'L_MAP              Legacy map of station coordinates (Google Maps background)';            
+            this.PAR_S_MAPL.descr = 'L_MAP              Legacy map of station coordinates (Google Maps background)';
             this.PAR_S_MAPL.par = '(L_MAP)|(l_map)';
             this.PAR_S_MAPL.class = '';
             this.PAR_S_MAPL.limits = [];
             this.PAR_S_MAPL.accepted_values = [];
-            
+
             this.PAR_S_CK.name = 'Clock Error';
             this.PAR_S_CK.descr = 'CK                 Clock errors';
             this.PAR_S_CK.par = '(ck)|(CK)';
@@ -627,14 +645,14 @@ classdef Command_Interpreter < handle
             this.PAR_S_SKY.class = '';
             this.PAR_S_SKY.limits = [];
             this.PAR_S_SKY.accepted_values = [];
-            
+
             this.PAR_S_SNR.name = 'SNR Signal to Noise Ratio';
             this.PAR_S_SNR.descr = 'SNR                Signal to Noise Ratio (polar plot)';
             this.PAR_S_SNR.par = '(snr)|(SNR)';
             this.PAR_S_SNR.class = '';
             this.PAR_S_SNR.limits = [];
             this.PAR_S_SNR.accepted_values = [];
-            
+
             this.PAR_S_SNRI.name = 'SNRI Signal to Noise Ratio Interpolated Map';
             this.PAR_S_SNRI.descr = 'SNRI               Signal to Noise Ratio (polar plot, interpolated map)';
             this.PAR_S_SNRI.par = '(snri)|(SNRI)';
@@ -655,35 +673,35 @@ classdef Command_Interpreter < handle
             this.PAR_S_PSTAT.class = '';
             this.PAR_S_PSTAT.limits = [];
             this.PAR_S_PSTAT.accepted_values = [];
-            
+
             this.PAR_S_OCS.name = 'Outliers and cycle slips';
             this.PAR_S_OCS.descr = 'OCS                Outliers and cycle slips';
             this.PAR_S_OCS.par = '(ocs)|(OCS)';
             this.PAR_S_OCS.class = '';
             this.PAR_S_OCS.limits = [];
             this.PAR_S_OCS.accepted_values = [];
-            
+
             this.PAR_S_OCSP.name = 'Outliers and cycle slips (polar plot)';
             this.PAR_S_OCSP.descr = 'OCSP               Outliers and cycle slips (polar plot)';
             this.PAR_S_OCSP.par = '(ocsp)|(OCSP)';
             this.PAR_S_OCSP.class = '';
             this.PAR_S_OCSP.limits = [];
             this.PAR_S_OCSP.accepted_values = [];
-            
+
             this.PAR_S_RES_PR.name = 'Residuals plot';
             this.PAR_S_RES_PR.descr = 'RES_(O|W)_PR       Residual plot';
             this.PAR_S_RES_PR.par = '(res_o_pr)|(RES_O_PR)|(res_w_pr)|(RES_W_PR)';
             this.PAR_S_RES_PR.class = '';
             this.PAR_S_RES_PR.limits = [];
             this.PAR_S_RES_PR.accepted_values = [];
-            
+
             this.PAR_S_RES_PH.name = 'Residuals plot';
             this.PAR_S_RES_PH.descr = 'RES_(O|W)_PH       Residual plot';
             this.PAR_S_RES_PH.par = '(res_o_ph)|(RES_O_PH)|(res_w_ph)|(RES_W_PH)';
             this.PAR_S_RES_PH.class = '';
             this.PAR_S_RES_PH.limits = [];
             this.PAR_S_RES_PH.accepted_values = [];
-            
+
             this.PAR_S_RES_PR_STAT.name = 'Output | Work-Space pseudo-range residuals (stats)';
             this.PAR_S_RES_PR_STAT.descr = 'RES_(O|W)_PR_STAT  Output | Work-Space combined pseudo-range residuals';
             this.PAR_S_RES_PR_STAT.par = '(res_o_prs_stat)|(RES_O_PR_STAT)|(res_w_pr_stat)|(RES_W_PR_STAT)';
@@ -711,14 +729,14 @@ classdef Command_Interpreter < handle
             this.PAR_S_RES_PH_SKY.class = '';
             this.PAR_S_RES_PH_SKY.limits = [];
             this.PAR_S_RES_PH_SKY.accepted_values = [];
-            
+
             this.PAR_S_RES_PR_SKYP.name = 'Output | Work-Space pseudo-range residuals sky plot (polar plot)';
             this.PAR_S_RES_PR_SKYP.descr = 'RES_(O|W)_PR_SKYP  Residual sky plot';
             this.PAR_S_RES_PR_SKYP.par = '(res_o_pr_skyp)|(RES_O_PR_SKYP)|(res_w_pr_skyp)|(RES_W_PR_SKYP)';
             this.PAR_S_RES_PR_SKYP.class = '';
             this.PAR_S_RES_PR_SKYP.limits = [];
             this.PAR_S_RES_PR_SKYP.accepted_values = [];
-            
+
             this.PAR_S_RES_PH_SKYP.name = 'Output | Work-Space phase residuals sky plot (polar plot)';
             this.PAR_S_RES_PH_SKYP.descr = 'RES_(O|W)_PH_SKYP  Residual sky plot';
             this.PAR_S_RES_PH_SKYP.par = '(res_o_ph_skyp)|(RES_O_PH_SKYP)|(res_w_ph_skyp)|(RES_W_PH_SKYP)';
@@ -733,28 +751,28 @@ classdef Command_Interpreter < handle
             this.PAR_S_RES_STD.limits = [];
             this.PAR_S_RES_STD.accepted_values = [];
 
-            this.PAR_S_NSAT.name = 'Number of satellites used per epoch';            
+            this.PAR_S_NSAT.name = 'Number of satellites used per epoch';
             this.PAR_S_NSAT.descr = 'NSAT               Number of satellite used (multi-receiver)';
             this.PAR_S_NSAT.par = '(nsat)|(NSAT)';
             this.PAR_S_NSAT.class = '';
             this.PAR_S_NSAT.limits = [];
             this.PAR_S_NSAT.accepted_values = [];
 
-            this.PAR_S_NSATSS.name = 'Number of satellites used per epoch System by System';            
+            this.PAR_S_NSATSS.name = 'Number of satellites used per epoch System by System';
             this.PAR_S_NSATSS.descr = 'NSATSS             Number of satellite used (sys by sys)';
             this.PAR_S_NSATSS.par = '(nsatss)|(NSATSS)';
             this.PAR_S_NSATSS.class = '';
             this.PAR_S_NSATSS.limits = [];
             this.PAR_S_NSATSS.accepted_values = [];
-            
-            this.PAR_S_NSATSSS.name = 'Number of satellites used per epoch System by System (smooth)';            
+
+            this.PAR_S_NSATSSS.name = 'Number of satellites used per epoch System by System (smooth)';
             this.PAR_S_NSATSSS.descr = 'NSATSSS            Smoothed number of satellite used (sys by sys)';
             this.PAR_S_NSATSSS.par = '(nsatsss)|(NSATSSS)';
             this.PAR_S_NSATSSS.class = '';
             this.PAR_S_NSATSSS.limits = [];
             this.PAR_S_NSATSSS.accepted_values = [];
 
-            this.PAR_S_DOP.name = 'Dilution of Precision';            
+            this.PAR_S_DOP.name = 'Dilution of Precision';
             this.PAR_S_DOP.descr = 'DOP                Dilution of Precision';
             this.PAR_S_DOP.par = '(dop)|(DOP)';
             this.PAR_S_DOP.class = '';
@@ -810,7 +828,7 @@ classdef Command_Interpreter < handle
             this.PAR_S_ZWD_SYNC.limits = [];
             this.PAR_S_ZWD_SYNC.accepted_values = [];
 
-            
+
             this.PAR_S_PWV.name = 'PWV';
             this.PAR_S_PWV.descr = 'PWV                Precipitable Water Vapour';
             this.PAR_S_PWV.par = '(pwv)|(PWV)';
@@ -838,14 +856,14 @@ classdef Command_Interpreter < handle
             this.PAR_S_TGRAD.class = '';
             this.PAR_S_TGRAD.limits = [];
             this.PAR_S_TGRAD.accepted_values = [];
-            
+
             this.PAR_S_ORBOK.name = 'Available orbits';
             this.PAR_S_ORBOK.descr = 'ORBOK              Available orbits for the current session';
             this.PAR_S_ORBOK.par = '(orbok)|(ORBOK)';
             this.PAR_S_ORBOK.class = '';
             this.PAR_S_ORBOK.limits = [];
             this.PAR_S_ORBOK.accepted_values = [];
-            
+
             this.PAR_S_ALLORBOK.name = 'All available orbits';
             this.PAR_S_ALLORBOK.descr = 'ALLORBOK           Available orbits for all the sessions';
             this.PAR_S_ALLORBOK.par = '(allorbok)|(ALLORBOK)';
@@ -887,7 +905,7 @@ classdef Command_Interpreter < handle
             this.PAR_E_CORE_MAT.class = '';
             this.PAR_E_CORE_MAT.limits = [];
             this.PAR_E_CORE_MAT.accepted_values = {};
-            
+
             this.PAR_E_PLAIN_MAT.name = 'Output in plain MATLAB format';
             this.PAR_E_PLAIN_MAT.descr = 'PLAIN_MAT          Save the receiver as plain .mat files (no objects)';
             this.PAR_E_PLAIN_MAT.par = '(plain_mat)|(PLAIN_MAT)';
@@ -929,49 +947,56 @@ classdef Command_Interpreter < handle
             this.PAR_E_TROPO_MAT.class = '';
             this.PAR_E_TROPO_MAT.limits = [];
             this.PAR_E_TROPO_MAT.accepted_values = {};
-            
+
             this.PAR_E_TROPO_HN.name = 'TROPO HydroNet format';
             this.PAR_E_TROPO_HN.descr = 'TRP_HN             Tropo parameters as a HydroNet (CSV like) file';
             this.PAR_E_TROPO_HN.par = '(trp_hn)|(TRP_HN)';
             this.PAR_E_TROPO_HN.class = '';
             this.PAR_E_TROPO_HN.limits = [];
             this.PAR_E_TROPO_HN.accepted_values = {};
-            
+
             this.PAR_E_TROPO_CSV.name = 'TROPO CSV format';
             this.PAR_E_TROPO_CSV.descr = 'TRP_CSV            Tropo parameters as .csv file';
             this.PAR_E_TROPO_CSV.par = '(trp_csv)|(TRP_CSV)';
             this.PAR_E_TROPO_CSV.class = '';
             this.PAR_E_TROPO_CSV.limits = [];
             this.PAR_E_TROPO_CSV.accepted_values = {};
-                                    
+
             this.PAR_E_COO_CRD.name = 'Median Coordinates CRD format';
             this.PAR_E_COO_CRD.descr = 'COO_CRD            Coordinates .CRD file';
             this.PAR_E_COO_CRD.par = '(coo_crd)|(COO_CRD)';
             this.PAR_E_COO_CRD.class = '';
             this.PAR_E_COO_CRD.limits = [];
             this.PAR_E_COO_CRD.accepted_values = {};
-            
+
             this.PAR_E_COO_MAT.name = 'Stored coordinates MAT format';
             this.PAR_E_COO_MAT.descr = 'COO_MAT            Coordinates .mat file (one for all the coordinates)';
             this.PAR_E_COO_MAT.par = '(coo_mat)|(COO_MAT)';
             this.PAR_E_COO_MAT.class = '';
             this.PAR_E_COO_MAT.limits = [];
             this.PAR_E_COO_MAT.accepted_values = {};
-            
+
             this.PAR_E_COO_TXT.name = 'Stored coordinates TXT format';
             this.PAR_E_COO_TXT.descr = 'COO_TXT            Coordinates .TXT file (one per receiver)';
             this.PAR_E_COO_TXT.par = '(coo_txt)|(COO_TXT)';
             this.PAR_E_COO_TXT.class = '';
             this.PAR_E_COO_TXT.limits = [];
             this.PAR_E_COO_TXT.accepted_values = {};
-            
+
+            this.PAR_E_RFL_MAT.name = 'Stored reflector heights within COO MAT format';
+            this.PAR_E_RFL_MAT.descr = 'RFL_MAT            Reflector height .mat file (one for all the coordinates)';
+            this.PAR_E_RFL_MAT.par = '(rfl_mat)|(RFL_MAT)';
+            this.PAR_E_RFL_MAT.class = '';
+            this.PAR_E_RFL_MAT.limits = [];
+            this.PAR_E_RFL_MAT.accepted_values = {};
+
             this.PAR_E_XYZ_TXT.name = 'Coordinates XYZ in plain text format';
             this.PAR_E_XYZ_TXT.descr = 'XYZ_TXT            Coordinates XYZ in plain text format';
             this.PAR_E_XYZ_TXT.par = '(xyz_txt)|(XYZ_TXT)';
             this.PAR_E_XYZ_TXT.class = '';
             this.PAR_E_XYZ_TXT.limits = [];
             this.PAR_E_XYZ_TXT.accepted_values = {};
-            
+
             this.PAR_E_ENU_TXT.name = 'Coordinates local ENU in plain text format';
             this.PAR_E_ENU_TXT.descr = 'ENU_TXT            Coordinates local ENU in plain text format';
             this.PAR_E_ENU_TXT.par = '(enu_txt)|(ENU_TXT)';
@@ -992,9 +1017,9 @@ classdef Command_Interpreter < handle
             this.PAR_E_COO_CSV.class = '';
             this.PAR_E_COO_CSV.limits = [];
             this.PAR_E_COO_CSV.accepted_values = {};
-            
+
             % definition of commands
-            
+
             new_line = [char(10) '             ']; %#ok<CHARTEN>
             this.CMD_SENDMSG.name = {'SENDMSG', 'sendmsg'};
             this.CMD_SENDMSG.descr = 'Send a message on console';
@@ -1005,7 +1030,7 @@ classdef Command_Interpreter < handle
             this.CMD_SET.descr = 'Change the value of a parameter';
             this.CMD_SET.rec = '';
             this.CMD_SET.par = [this.PAR_NEWSET];
-            
+
             this.CMD_LOAD.name = {'LOAD', 'load'};
             this.CMD_LOAD.descr = 'Import the RINEX file linked with this receiver';
             this.CMD_LOAD.rec = 'T';
@@ -1050,7 +1075,7 @@ classdef Command_Interpreter < handle
             this.CMD_PREPRO.descr = ['Code positioning, computation of satellite positions and various' new_line 'corrections'];
             this.CMD_PREPRO.rec = 'T';
             this.CMD_PREPRO.par = [this.PAR_SS this.PAR_M_NWB];
-                        
+
             this.CMD_CODEPP.name = {'CODEPP', 'ls_code_point_positioning'};
             this.CMD_CODEPP.descr = 'Code positioning';
             this.CMD_CODEPP.rec = 'T';
@@ -1070,17 +1095,17 @@ classdef Command_Interpreter < handle
             this.CMD_PPP.descr = 'Precise Point Positioning using carrier phase observations';
             this.CMD_PPP.rec = 'T';
             this.CMD_PPP.par = [this.PAR_SS this.PAR_M_UNCOMBINED];
-            
+
             this.CMD_NET.name = {'NET', 'network'};
             this.CMD_NET.descr = 'Network solution using undifferenced carrier phase observations';
             this.CMD_NET.rec = 'TR';
             this.CMD_NET.par = [this.PAR_RATE this.PAR_SS  this.PAR_BAND this.PAR_M_FREE_NET this.PAR_E_COO_CRD this.PAR_M_CLK this.PAR_M_UNCOMBINED];
-            
+
             this.CMD_NETLOOP.name = {'NETLOOP', 'netloop'};
             this.CMD_NETLOOP.descr = 'Network solution using undifferenced carrier phase observations';
             this.CMD_NETLOOP.rec = 'TR';
             this.CMD_NETLOOP.par = [this.PAR_RATE this.PAR_SS this.PAR_BAND this.PAR_M_FREE_NET this.PAR_M_CLK this.PAR_M_BSL this.PAR_M_REPRO this.PAR_M_PAR, this.PAR_M_NOCLEAN];
-            
+
             this.CMD_SEID.name = {'SEID', 'synthesise_L2'};
             this.CMD_SEID.descr = ['Generate a Synthesised L2 on a target receiver ' new_line 'using n (dual frequencies) reference stations' new_line 'SEID (Satellite specific Epoch differenced Ionospheric Delay model)'];
             this.CMD_SEID.rec = 'RT';
@@ -1095,12 +1120,12 @@ classdef Command_Interpreter < handle
             this.CMD_KEEP.descr = ['Keep in the object the data of a certain constallation' new_line 'at a certain rate'];
             this.CMD_KEEP.rec = 'T';
             this.CMD_KEEP.par = [this.PAR_RATE this.PAR_SS this.PAR_CUTOFF this.PAR_SNRTHR];
-            
+
             this.CMD_SYNC.name = {'SYNC'};
             this.CMD_SYNC.descr = ['Syncronize all the receivers at the same rate ' new_line '(with the minimal data span)'];
             this.CMD_SYNC.rec = 'T';
             this.CMD_SYNC.par = [this.PAR_RATE];
-            
+
             this.CMD_OUTDET.name = {'OUTDET', 'outlier_detection', 'cycle_slip_detection'};
             this.CMD_OUTDET.descr = 'Force outlier and cycle slip detection';
             this.CMD_OUTDET.rec = 'T';
@@ -1111,7 +1136,7 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.rec = 'T';
             this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_NOW this.PAR_CLOSE this.PAR_S_MAP this.PAR_S_MAPL this.PAR_S_MAPG this.PAR_S_MAPDTM this.PAR_S_MAPRG this.PAR_S_MAPRDTM, ...
                 this.PAR_S_RNX_LIM this.PAR_S_DA this.PAR_S_COO_STAT this.PAR_S_ENU this.PAR_S_PUP this.PAR_S_ENUBSL this.PAR_CTYPE this.PAR_N_OBS, ...
-                this.PAR_S_PUPBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK, ...
+                this.PAR_S_PUPBSL this.PAR_S_XYZ this.PAR_S_RFL this.PAR_S_RFLD this.PAR_S_CKW this.PAR_S_CK, ...
                 this.PAR_S_SKY this.PAR_S_SNR this.PAR_S_SNRI, ...
                 this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES_PR this.PAR_S_RES_PH this.PAR_S_RES_PR_STAT this.PAR_S_RES_PH_STAT this.PAR_S_RES_PR_SKY this.PAR_S_RES_PH_SKY, ...
                 this.PAR_S_RES_PR_SKYP this.PAR_S_RES_PH_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_NSATSSS this.PAR_S_DOP this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD, ...
@@ -1121,12 +1146,12 @@ classdef Command_Interpreter < handle
             this.CMD_CLEANTROPO.descr = 'Remove common effects due to satellite clock estimation errors on a large set of station in the same region';
             this.CMD_CLEANTROPO.rec = 'T';
             this.CMD_CLEANTROPO.par = [];
-            
+
             this.CMD_CHKTROPO.name = {'CHKTROPO', 'Tropospheric parameters check'};
             this.CMD_CHKTROPO.descr = 'Outlier detection of tropospheric parameters based on ZWD data of multiple-receivers (min 3)';
             this.CMD_CHKTROPO.rec = 'T';
             this.CMD_CHKTROPO.par = [];
-            
+
             this.CMD_VALIDATE.name = {'VALIDATE', 'validate'};
             this.CMD_VALIDATE.descr = 'Validate estimated parameter with external data';
             this.CMD_VALIDATE.rec = 'T';
@@ -1136,12 +1161,12 @@ classdef Command_Interpreter < handle
             this.CMD_EXPORT.descr = 'Export';
             this.CMD_EXPORT.rec = 'T';
             this.CMD_EXPORT.par = [this.PAR_E_CORE_MAT this.PAR_E_PLAIN_MAT this.PAR_E_REC_MAT this.PAR_E_REC_RIN this.PAR_E_SNR this.PAR_E_COO_CRD this.PAR_E_COO_MAT this.PAR_E_COO_TXT this.PAR_E_XYZ_TXT this.PAR_E_ENU_TXT  this.PAR_E_GEO_TXT this.PAR_E_TROPO_SNX this.PAR_E_TROPO_MAT this.PAR_E_TROPO_CSV this.PAR_E_TROPO_HN];
-            
+
             this.CMD_IMPORT.name = {'IMPORT', 'import'};
             this.CMD_IMPORT.descr = 'Import';
             this.CMD_IMPORT.rec = 'T';
-            this.CMD_IMPORT.par = [this.PAR_E_COO_MAT];
-            
+            this.CMD_IMPORT.par = [this.PAR_E_COO_MAT this.PAR_E_RFL_MAT];
+
             this.CMD_PUSHOUT.name = {'PUSHOUT', 'pushout'};
             this.CMD_PUSHOUT.descr = ['Push results in output' new_line 'when used it disables automatic push'];
             this.CMD_PUSHOUT.rec = 'T';
@@ -1155,9 +1180,9 @@ classdef Command_Interpreter < handle
             this.CMD_PKILL.name = {'PKILL', 'pkill'};
             this.CMD_PKILL.descr = 'Parallel kill all the slaves';
             this.CMD_PKILL.rec = '';
-            
+
             this.CMD_PKILL.par = [];
-            
+
             this.CMD_REMSAT.name = {'REMSAT', 'remsat'};
             this.CMD_REMSAT.descr = ['Remove satellites, format: <1ch sat. sys. (GREJCI)><2ch sat. prn>' new_line 'e.g. REMSAT T1 G04,G29,J04'];
             this.CMD_REMSAT.rec = 'T';
@@ -1169,7 +1194,7 @@ classdef Command_Interpreter < handle
             this.CMD_REMOBS.rec = 'T';
             this.CMD_REMOBS.key = 'O'; % fake not used key, indicate thet there's one mandatory parameter
             this.CMD_REMOBS.par = [];
-            
+
             this.CMD_KEEPOBS.name = {'KEEPOBS', 'remobs'};
             this.CMD_KEEPOBS.descr = ['Keep observation, format: <1ch obs. sys (GRECJI)><1ch obs. type (CPDS)><1ch freq><1ch tracking>' new_line 'e.g. KEEPOBS T1 C,S,GL1C,GL2C,E???'];
             this.CMD_KEEPOBS.rec = 'T';
@@ -1181,7 +1206,7 @@ classdef Command_Interpreter < handle
             this.CMD_REMTMP.rec = 'T';
             this.CMD_REMTMP.key = '';
             this.CMD_REMTMP.par = [];
-            
+
             this.KEY_FOR.name = {'FOR', 'for'};
             this.KEY_FOR.descr = 'For session loop start';
             this.KEY_FOR.rec = '';
@@ -1216,9 +1241,9 @@ classdef Command_Interpreter < handle
                 this.CMD_ID = [this.CMD_ID, (c + numel(this.CMD_LIST)) * ones(size(this.(sprintf('KEY_%s', this.KEY_LIST{c})).name))];
                 this.KEY_ID = [this.KEY_ID, (c + numel(this.CMD_LIST)) * ones(size(this.(sprintf('KEY_%s', this.KEY_LIST{c})).name))];
                 this.(sprintf('KEY_%s', this.KEY_LIST{c})).id = (c + numel(this.CMD_LIST));
-            end            
+            end
         end
-        
+
         function str = getHelp(this)
             % Get a string containing the "help" description to all the supported commands
             %
@@ -1233,7 +1258,7 @@ classdef Command_Interpreter < handle
                     str = sprintf('%s - %s\n', str, cmd_name);
                 end
             end
-            
+
             str = sprintf('%s\n----------------------------------------------------------------------------------------------\n', str);
             str = sprintf(['%s   NOTE: "T" refers to Target receiver' ...
                 '\n         "R" refers to Reference receiver' ...
@@ -1259,7 +1284,7 @@ classdef Command_Interpreter < handle
                         end
                         str = sprintf('%s %s\n', str, rec_par);
                     end
-                    
+
                     if ~isempty(cmd.par)
                         str = sprintf('%s\n%s%s\n', str, ones(1, 13) * ' ', 'Modifiers:');
                         for p = 1 : numel(cmd.par)
@@ -1283,7 +1308,7 @@ classdef Command_Interpreter < handle
                     end
                     str = sprintf('%s %s\n', str, rec_par);
                 end
-                
+
                 if ~isempty(cmd.key)
                     str = sprintf('%s\n%s%s', str, ones(1, 13) * ' ', 'Admissible session parameters:');
                     if numel(cmd.key) > 1
@@ -1293,7 +1318,7 @@ classdef Command_Interpreter < handle
                     end
                     str = sprintf('%s %s\n', str, rec_par);
                 end
-                
+
                 if ~isempty(cmd.par)
                     str = sprintf('%s\n%s%s\n', str, ones(1, 13) * ' ', 'Optional parameters:');
                     for p = 1 : numel(cmd.par)
@@ -1301,9 +1326,9 @@ classdef Command_Interpreter < handle
                     end
                 end
                 str = sprintf('%s\n----------------------------------------------------------------------------------------------\n', str);
-            end                        
+            end
         end
-        
+
         function str = getExamples(this)
             % Get a string containing the "examples" of processing
             %
@@ -1317,14 +1342,14 @@ classdef Command_Interpreter < handle
                 '\n       PREPRO T$', ...
                 '\n       PPP T$', ...
                 '\n    END', ...
-                '\n    PUSHOUT T*', ...                
+                '\n    PUSHOUT T*', ...
                 '\n END', ...
                 '\n SHOW T* ZTD', ...
                 '\n EXPORT T* TRP_SNX', ...
                 '\n\n# Network undifferenced processing', ...
                 '\n# @30 seconds rate GPS only', ...
                 '\n# processing all sessions', ...
-                '\n# using receivers 1,2 as reference\n# for the mean', ...                
+                '\n# using receivers 1,2 as reference\n# for the mean', ...
                 '\n\n FOR S*' ...
                 '\n    FOR T*' ...
                 '\n       LOAD T$ @30s -s=G', ...
@@ -1347,7 +1372,7 @@ classdef Command_Interpreter < handle
                 '\n       PREPRO T$' ...
                 '\n       NET T1,$ R1' ...
                 '\n    END' ...
-                '\n    PUSHOUT T*', ...                
+                '\n    PUSHOUT T*', ...
                 '\n END' ...
                 '\n\n# Parallel PPP with 3 slaves\n# killing workers at the end\n# of processing', ...
                 '\n\n PINIT -n=3' ...
@@ -1356,8 +1381,8 @@ classdef Command_Interpreter < handle
                 '\n       LOAD T$ @30s -s=G', ...
                 '\n       PREPRO T$', ...
                 '\n       PPP T$', ...
-                '\n    END' ...                
-                '\n    PUSHOUT T*', ...                
+                '\n    END' ...
+                '\n    PUSHOUT T*', ...
                 '\n END', ...
                 '\n PKILL', ...
                 '\n SHOW T* ZWD', ...
@@ -1381,13 +1406,13 @@ classdef Command_Interpreter < handle
     %% METHODS EXECUTE
     % ==================================================================================================================================================
     % methods to execute a set of goGPS Commands
-    methods         
+    methods
         function ex_list = exec(this, core, cmd_list, loop_level_add, sss_level_add)
             % run a set of commands (divided in cells of cmd_list)
             %
             % SYNTAX:
             %   this.exec(rec, core, cmd_list, level_add, level_add_sss)
-            
+
             log = Core.getLogger;
             if log.isGUIOut
                 Core.getMsgGUI.bringOnTop
@@ -1407,7 +1432,7 @@ classdef Command_Interpreter < handle
             if nargin < 5
                 sss_level_add = 0;
             end
-            
+
             t0 = tic();
             try
                 [cmd_list, err_list, execution_block, sss_list, trg_list, session_lev, flag_push, flag_parallel] = this.fastCheck(cmd_list);
@@ -1419,10 +1444,10 @@ classdef Command_Interpreter < handle
                 while cur_line_id < numel(cmd_list)
                     t0_cmd = tic();
                     cur_line_id = cur_line_id + 1;
-                    
+
                     %tok = regexp(cmd_list{cur_line_id},'[^ ]*', 'match'); % get command tokens
                     tok = Command_Interpreter.splitTokens(cmd_list{cur_line_id});
-                    
+
                     log.newLine();
                     log.addMarkedMessage(sprintf('%s Executing: %s', GPS_Time.now.toString('yyyy-mm-dd HH:MM:SS'), cmd_list{cur_line_id}));
                     if log.isGUIOut
@@ -1430,7 +1455,7 @@ classdef Command_Interpreter < handle
                     end
                     t1 = tic;
                     log.simpleSeparator([], [0.4 0.4 0.4]);
-                    
+
                     % Init parallel controller when a parallel section is found
                     skip_line = core.gui_mode == 0;
                     switch tok{1}
@@ -1441,7 +1466,7 @@ classdef Command_Interpreter < handle
                             [id_pass_out, found_out] = this.getMatchingRec(core.rec, tok, 'O');
                             [id_trg, flag_par_target] = this.getMatchingRec(core.rec, tok, 'T');
                             [id_sss, flag_par_session] = this.getMatchingSession(tok);
-                            
+
                             if flag_par_target || flag_par_session
                                 if ~found
                                     id_pass = [];
@@ -1460,7 +1485,7 @@ classdef Command_Interpreter < handle
                         case this.KEY_FOR.name
                             [id_trg, flag_par_target] = this.getMatchingRec(core.rec, tok, 'T');
                             [id_sss, flag_par_session] = this.getMatchingSession(tok);
-                            
+
                             sid = cur_line_id;
                             cur_line_id = cur_line_id + find(execution_block(cur_line_id:end) < execution_block(cur_line_id), 1, 'first') - 1;
                             if isempty(cur_line_id)
@@ -1477,7 +1502,7 @@ classdef Command_Interpreter < handle
                                     end
                                     this.exec(core, cmd_list_loop, level(sid + 1), sss_level(sid + 1));
                                 end
-                                
+
                                 % Auto-push if no parallel sessions are present
                                 % and if there are not push command
                                 if flag_push(sum(diff(execution_block) < 0) + 1) && ~any(flag_parallel == 1)
@@ -1499,14 +1524,14 @@ classdef Command_Interpreter < handle
                                     id_list = [id_list; i]; %#ok<AGROW>
                                     i = i + 1;
                                 end
-                                
+
                                 % for loop on each session
                                 last_sss = 0;
                                 for s = id_sss
                                     if s ~= last_sss
                                         is_empty = core.prepareSession(s);
                                     end
-                                    
+
                                     last_sss = s;
                                     if ~is_empty
                                         cmd_list_loop = cmd_list(id_list);
@@ -1516,7 +1541,7 @@ classdef Command_Interpreter < handle
                                         end
                                         if not(isempty(id_list))
                                             this.exec(core, cmd_list_loop, level(id_list(1)), sss_level(sid + 1));
-                                            
+
                                             if flag_push(sum(diff(execution_block) < 0) + 1)
                                                 for r = 1 : length(core.rec)
                                                     % if requested push results
@@ -1537,7 +1562,7 @@ classdef Command_Interpreter < handle
                             flag_par_target = false;
                             flag_par_session = false;
                     end
-                    
+
                     if ~skip_line
                         n_workers = 0;
                         if flag_par_target || flag_par_session
@@ -1555,7 +1580,7 @@ classdef Command_Interpreter < handle
                             % Get the section target => remove not available targets
                             tmp = trg_list{cur_line_id};
                             trg_list{cur_line_id} = tmp(tmp <= numel(core.rec));
-                            
+
                             % find the last command of this block
                             %last_par_id = find(execution_block == execution_block(l), 1, 'last');
                             %if isempty(last_par_id)
@@ -1564,7 +1589,7 @@ classdef Command_Interpreter < handle
                             %    last_par_id = last_par_id + l - 2;
                             %end
                             %par_cmd_id = (l + 1) : last_par_id;
-                            
+
                             % find the last command of this section
                             last_par_id = find((level(cur_line_id : end) - level(cur_line_id)) < 0, 1, 'first');
                             if isempty(last_par_id)
@@ -1576,7 +1601,7 @@ classdef Command_Interpreter < handle
                         end
                         if n_workers > 0
                             par_cmd_list = cmd_list(par_cmd_id); % command list for the parallel worker
-                            
+
                             if flag_parallel(cur_line_id) == 1 % it means parallel session (2 is parallel targets)
                                 wait_before_import = any(regexp([tok{:}], this.PAR_M_WAIT.par, 'match', 'once'));
                                 gom.setWaitBeforeImport(wait_before_import);
@@ -1677,9 +1702,9 @@ classdef Command_Interpreter < handle
                                     case this.CMD_PPP.name                  % PPP
                                         this.runPPP(core.rec, tok(2:end));
                                     case this.CMD_CLEANTROPO.name           % CLEANTROPO
-                                        this.runCleanTropo(core.rec, tok(2:end)); 
+                                        this.runCleanTropo(core.rec, tok(2:end));
                                     case this.CMD_CHKTROPO.name             % CHKTROPO
-                                        this.runCheckTropo(core.rec, tok(2:end)); 
+                                        this.runCheckTropo(core.rec, tok(2:end));
                                     case this.CMD_NET.name                  % NET
                                         this.runNet(core.rec, tok(2:end));
                                     case this.CMD_NETLOOP.name              % NETLOOP
@@ -1733,14 +1758,14 @@ classdef Command_Interpreter < handle
     % ==================================================================================================================================================
     % methods to execute a set of goGPS Commands
     methods (Access = public)
-                
+
         function runSet(this, state, tok)
             % Modify a parameter found in state
             %
             % SYNTAX
             %   this.runSet(state, tok)
-            
-            % First of all merge the tokens separated by space 
+
+            % First of all merge the tokens separated by space
             % e.g. "flag_mp = 1" is splitted into 3 parts!
             full_tok = {};
             n_par = 0;
@@ -1748,18 +1773,18 @@ classdef Command_Interpreter < handle
                 tok{t} = strrep(tok{t}, '''''', '^');
                 n_par = n_par + 0.5 * sum(tok{t} == '''');
                 p = max(1, floor(n_par));
-                
+
                 if p > numel(full_tok)
                     full_tok{p} = tok{t};
                 else
                     full_tok{p} = [full_tok{p} ' ' tok{t}];
                 end
-                full_tok{p} = strrep(full_tok{p}, '^', '''');                
+                full_tok{p} = strrep(full_tok{p}, '^', '''');
             end
             for p = 1 : numel(full_tok)
                 par = strtrim(regexp(full_tok{p}, '^(.*(?=\=))', 'match', 'once'));
                 par = strrep(par, '''', '');
-                if ~isempty(par)                    
+                if ~isempty(par)
                     % Try to modify par into state
                     full_tok{p} = strrep(full_tok{p}, '${PRJ_NAME}', strrep(Core.getState.getPrjName,' ', '_'));
                     value = Ini_Manager.str2value(strrep(full_tok{p},'''', '"'));
@@ -1779,21 +1804,21 @@ classdef Command_Interpreter < handle
                             end
                         end
                     end
-                end             
+                end
             end
             state.check(); % Check the modified parameters
         end
-        
+
         function runParInit(this, tok)
             % Load the RINEX file into the object
             %
             % SYNTAX
             %   this.runParInit(tok)
-            
+
             [n_slaves, found] = this.getNumericPar(tok, this.PAR_SLAVE.par);
             Parallel_Manager.requestSlaves(round(n_slaves));
         end
-        
+
         function runParKill(this, tok)
             % Load the RINEX file into the object
             %
@@ -1801,7 +1826,7 @@ classdef Command_Interpreter < handle
             %   this.runParKill(tok)
             Parallel_Manager.killAll();
         end
-        
+
         function runLoad(this, rec, tok)
             % Load the RINEX file into the object
             %
@@ -1810,15 +1835,15 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runLoad(rec, tok)
-            
+
             log = Core.getLogger();
-            
+
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found || isempty(rec)
                 log.addWarning('No target found -> nothing to do');
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
-                [otype_list, ot_found] = this.getObsType(tok);                
+                [otype_list, ot_found] = this.getObsType(tok);
                 state = Core.getState();
                 if ~sys_found
                     sys_list = state.cc.getActiveSysChar;
@@ -1849,7 +1874,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runRename(this, rec, tok)
             % Change the marker name of a receiver
             %
@@ -1858,7 +1883,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runRename(rec, tok)
-            
+
             log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
@@ -1879,7 +1904,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runEmpty(this, rec, tok)
             % Reset (empty) the receiver
             %
@@ -1888,7 +1913,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runEmpty(rec, tok)
-                        
+
             log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
@@ -1896,7 +1921,7 @@ classdef Command_Interpreter < handle
             else
                 for r = id_trg
                     log.newLine();
-                    try 
+                    try
                         name = rec(r).getMarkerName();
                     catch
                         name = 'UNKN';
@@ -1911,7 +1936,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runEmptyWork(this, rec, tok)
             % Reset (empty) the receiver workspace
             %
@@ -1920,7 +1945,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runEmptyWork(rec)
-            
+
             log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
@@ -1935,7 +1960,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runEmptyOut(this, rec, tok)
             % Reset (empty) the receiver out
             %
@@ -1944,7 +1969,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runEmptyOut(rec)
-            
+
             log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
@@ -1959,7 +1984,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runPrePro(this, rec, tok)
             % Execute Pre processing
             %
@@ -1969,7 +1994,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runPrePro(rec, tok)
-            
+
             log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
@@ -1985,7 +2010,7 @@ classdef Command_Interpreter < handle
                         log.smallSeparator();
                         log.newLine();
                         flag_nmw = this.getMatchingFlag(tok, this.PAR_M_NWB.par);
-                        rec(r).work.setMelbourneWubbena(~flag_nmw);                        
+                        rec(r).work.setMelbourneWubbena(~flag_nmw);
                         if sys_found
                             rec(r).work.preProcessing(sys_list);
                         else
@@ -1995,7 +2020,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runFixPos(this, rec, tok)
             % Execute Fix pos
             %
@@ -2005,13 +2030,13 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runFixPos(rec, tok)
-            
+
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             log = Core.getLogger;
             if ~found
                 log.addWarning('No target found -> nothing to do');
             else
-                
+
                 mode = 'work'; % Take the position from work
                 flag_apr = false; % do not use coordinates as a-priori (use them as fixed)
                 for t = 1 : numel(tok)
@@ -2025,7 +2050,7 @@ classdef Command_Interpreter < handle
                         flag_apr = true;
                     end
                 end
-                
+
                 for r = id_trg
                     if ~isempty(mode)
                         try
@@ -2035,7 +2060,7 @@ classdef Command_Interpreter < handle
                             Core_Utils.printEx(ex);
                         end
                     end
-                    
+
                     if flag_apr
                         try
                             rec(r).unFixPos();
@@ -2045,10 +2070,10 @@ classdef Command_Interpreter < handle
                         end
                     end
                 end
-                
+
             end
         end
-        
+
         function runSetRef(this, rec, tok)
             % Execute Set res
             %
@@ -2058,7 +2083,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runSetRef(rec, tok)
-            
+
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             log = Core.getLogger;
             if ~found
@@ -2102,7 +2127,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runUpdateAzEl(this, rec, tok)
             % Execute Computation of azimuth and elevation
             %
@@ -2112,7 +2137,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runUpdateAzEl(rec, tok)
-            
+
             log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
@@ -2146,7 +2171,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runComputeDop(rec, tok)
-            
+
             log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
@@ -2163,9 +2188,9 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
-        
-        
+
+
+
         function runPushOut(this, rec, tok)
             % Execute Computation of azimuth and elevation
             %
@@ -2175,7 +2200,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runPushOut(rec, tok)
-            
+
             log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
@@ -2193,7 +2218,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runBasicPP(this, rec, tok)
             % Execute Basic Point positioning with no correction (useful to compute azimuth and elevation)
             %
@@ -2203,7 +2228,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.basicPP(rec, tok)
-            
+
             log = Core.getLogger;
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             if ~found
@@ -2234,7 +2259,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-     
+
         function runCleanTropo(this, rec, tok)
             % Remove common effects due to satellite clock estimation errors on a large set of station in the same region
             %
@@ -2274,7 +2299,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runPPP(this, rec, tok)
             % Execute Precise Point Positioning
             %
@@ -2290,7 +2315,7 @@ classdef Command_Interpreter < handle
                 log.addWarning('No target found -> nothing to do');
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
-                
+
                 flag_uncombined = false;
                 for t = 1 : numel(tok)
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_UNCOMBINED.par ')*$'], 'once'))
@@ -2298,7 +2323,7 @@ classdef Command_Interpreter < handle
                         flag_uncombined = true;
                     end
                 end
-                
+
                 for r = id_trg
                     if rec(r).work.loaded_session ~=  Core.getCurrentCore.getCurSession()
                         log.addError(sprintf('Receiver %d: %s seems to be empty, PPP is not possible.', r, rec(r).getMarkerName()));
@@ -2340,7 +2365,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runNetLoop(this, rec, tok)
             % Execute Network undifferenced solution
             %
@@ -2350,7 +2375,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runNET(rec, tok)
-            
+
             cmd_list = {};
 
             % Check receiver availability
@@ -2358,13 +2383,13 @@ classdef Command_Interpreter < handle
             core = Core.getCurrentCore;
             state = Core.getState();
             is_repro = any(regexp([tok{:}], this.PAR_M_REPRO.par, 'match', 'once'));
-            
+
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
-            
+
             id_trg = setdiff(id_trg, id_ref);
             [ext_lim, inner_lim] = state.getSessionLimits();
-            
+
             % Check the existence of a file containg the data of the
             % current session for the reference receivers
             ref_valid = false(numel(id_ref), 1);
@@ -2383,7 +2408,7 @@ classdef Command_Interpreter < handle
                     end
                 end
             end
-            
+
             if not(any(ref_valid))
                 log.addError('No data are present in the current session for the selected reference receiver\nNETWORK solution is not possible!');
             else
@@ -2396,7 +2421,7 @@ classdef Command_Interpreter < handle
                 else
                     is_parallel = false;
                 end
-                
+
                 % Check the existence of a file containg the data of the
                 % current session for the reference receivers
                 trg_valid = false(numel(id_trg), 1);
@@ -2419,13 +2444,13 @@ classdef Command_Interpreter < handle
                         end
                     end
                 end
-                
+
                 flag_missing = true;
                 flag_bad = true;
-                
+
                 if flag_missing || flag_bad
                     % check for missing or bad solutions
-                    
+
                     % Load old coordinates
                     coo_path = rec(id_ref(find(ref_valid,1,'first'))).getPos.getMatOutPath();
                     if exist(coo_path, 'file') == 2
@@ -2434,7 +2459,7 @@ classdef Command_Interpreter < handle
                         log.addWarning(sprintf('Missing reference coordinate file: "%s"', coo_path));
                         coo_ext = Coordinates();
                     end
-                    
+
                     i = 0;
                     trg_repro = false(numel(id_trg), 1);
                     for r = id_trg
@@ -2453,7 +2478,7 @@ classdef Command_Interpreter < handle
                                 if not(isempty(old_coo))
                                     old_epoch = find(old_coo.time < inner_lim.last & old_coo.time > inner_lim.first, 1, 'first');
                                     trg_repro(i) = isempty(old_epoch);
-                                    
+
                                     if (isempty(old_epoch))
                                         trg_repro(i) = true;
                                         log.addMarkedMessage(sprintf('Processing "%s" - no previous solution has been found in session %s to %s', core.rin_list(r).marker_name{1}, inner_lim.first.toString('yyyy-mm-dd HH:MM'), inner_lim.last.toString('yyyy-mm-dd HH:MM')));
@@ -2484,7 +2509,7 @@ classdef Command_Interpreter < handle
                                                 if log.isGUIOut
                                                     fprintf(sprintf(' ** %s Processing "%s" - observations are too few\n', GPS_Time.now.toString('yyyy-mm-dd HH:MM:SS'), core.rin_list(r).marker_name{1})); % write the command in console too
                                                 end
-                                            else                                                
+                                            else
                                                 % STEP 3 - has network being computed in the past?
                                                 try
                                                     sensor = sensor | (old_coo.isNETOk == 0);
@@ -2518,11 +2543,11 @@ classdef Command_Interpreter < handle
                             end
                         end
                     end
-                    
+
                 end
                 is_bsl = any(regexp([tok{:}], this.PAR_M_BSL.par, 'match', 'once'));
                 if any(trg_repro)
-                    % let's start the processing                    
+                    % let's start the processing
                     [rate, rate_found] = this.getNumericPar(tok, this.PAR_RATE.par);
                     [sys_list, sys_found] = this.getConstellation(tok);
 
@@ -2530,7 +2555,7 @@ classdef Command_Interpreter < handle
                     str_trg = str_trg(1:end-1);
                     str_ref = sprintf('%d,',id_ref);
                     str_ref = str_ref(1:end-1);
-                    
+
                     if is_bsl
                         % Loading and pre_processing of the references
                         for i = 1 : numel(id_ref)
@@ -2542,7 +2567,7 @@ classdef Command_Interpreter < handle
                                         'END'}];
                             end
                         end
-                        
+
                         if is_parallel
                             cmd_list = [cmd_list; { ...
                                 sprintf('PAR T%s W%s', str_trg, str_ref); ...
@@ -2578,7 +2603,7 @@ classdef Command_Interpreter < handle
                         end
                         str_pp = sprintf('%d,',[id_pp id_trg]);
                         str_pp = str_pp(1:end-1);
-                        
+
                         if is_parallel
                             cmd_list = [cmd_list; { ...
                                 sprintf('PAR T%s', str_pp); ...
@@ -2603,7 +2628,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runNet(this, rec, tok)
             % Execute Network undifferenced solution
             %
@@ -2613,7 +2638,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runNET(rec, tok)
-            
+
             [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
             %             if true
             %                 rec(id_trg).netPrePro();
@@ -2642,7 +2667,7 @@ classdef Command_Interpreter < handle
                     end
                     works(w).coo.info.coo_type(:) = 'G';
                 end
-                
+
                 if numel(id_trg) <= 1
                     log.addError('A network adjustment cannot be completed with less than 2 receivers');
                 else
@@ -2659,7 +2684,7 @@ classdef Command_Interpreter < handle
                     coo_rate = [];
                     fr_id = 1;
                     [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);
-                    
+
                     if found
                         coo_rate = rate;
                     end
@@ -2692,7 +2717,7 @@ classdef Command_Interpreter < handle
             end
             %fh = figure; plot(zero2nan(rec(2).work.sat.res)); fh.Name = 'Res'; dockAllFigures;
         end
-        
+
         function runRemSat(this, rec, tok)
             % Remove satellites from receivers
             %
@@ -2718,7 +2743,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runRemObs(this, rec, tok)
             % Remove observation from receivers
             %
@@ -2779,7 +2804,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runRemTmp(this, rec, tok)
             % Remove data no more needed for pushout
             % This function corrupts the work object and cannot be used for further processing
@@ -2821,12 +2846,12 @@ classdef Command_Interpreter < handle
                         rec(r).work.sat.tot = [];
                         rec(r).work.sat.amb_idx = [];
                         rec(r).work.sat.amb_mat = [];
-                        
+
                     end
                 end
             end
-        end        
-        
+        end
+
         function runCodePP(this, rec, tok)
             % Execute Code Point Positioning
             %
@@ -2843,7 +2868,7 @@ classdef Command_Interpreter < handle
             else
                 [sys_list, sys_found] = this.getConstellation(tok);
                 [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
-                
+
                 for r = id_trg
                     log.newLine();
                     log.addMarkedMessage(sprintf('Code positioning on receiver %d: %s', id_trg, rec(r).getMarkerName()));
@@ -2863,7 +2888,7 @@ classdef Command_Interpreter < handle
                     % correct for raw estimate of clock error based on the phase measure
                     % this also fill empty epochs with nan
                     rec(r).work.correctTimeDesync(true);
-                
+
                     % Now init positioning
                     if sys_found
                         rec(r).work.initPositioning(sys_list);
@@ -2873,7 +2898,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runSEID(this, rec, tok)
             % Synthesise L2 observations on a target receiver given a set of dual frequency reference stations
             %
@@ -2889,7 +2914,7 @@ classdef Command_Interpreter < handle
                 log.addWarning('No target found => nothing to do');
             else
                 [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
-                
+
                 flag_use_plane = false;
                 for t = 1 : numel(tok)
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_SEID_PLANE.par ')*$'], 'once'))
@@ -2897,7 +2922,7 @@ classdef Command_Interpreter < handle
                         flag_use_plane = true;
                     end
                 end
-                
+
                 if ~found_ref
                     log.addWarning('No reference SEID station found -> nothing to do');
                 else
@@ -2912,7 +2937,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runSID(this, rec, tok)
             % Synthesise L2 observations on a target receiver given a set of dual frequency reference stations
             %
@@ -2928,7 +2953,7 @@ classdef Command_Interpreter < handle
                 log.addWarning('No target found => nothing to do');
             else
                 [id_ref, found_ref] = this.getMatchingRec(rec, tok, 'R');
-                
+
                 if ~found_ref
                     log.addWarning('No reference SID station found -> nothing to do');
                 else
@@ -2936,7 +2961,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runKeep(this, rec, tok)
             % Filter Receiver data
             %
@@ -2993,7 +3018,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runOutDet(this, rec, tok)
             % Perform outlier rejection and cycle slip detection
             %
@@ -3010,13 +3035,13 @@ classdef Command_Interpreter < handle
             else
                 flag_nmw = this.getMatchingFlag(tok, this.PAR_M_NWB.par);
                 for r = id_trg
-                    rec(r).work.setMelbourneWubbena(~flag_nmw);                        
+                    rec(r).work.setMelbourneWubbena(~flag_nmw);
                     log.addMarkedMessage(sprintf('Outlier rejection and cycle slip detection for receiver %d: %s', r, rec(r).getMarkerName()));
                     rec(r).work.updateDetectOutlierMarkCycleSlip();
                 end
             end
         end
-        
+
         function runSync(this, rec, tok)
             % Filter Receiver data
             %
@@ -3039,7 +3064,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runShow(this, rec, tok, sss_lev)
             % Show Images
             %
@@ -3049,7 +3074,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runShow(rec, tok, level)
-                        
+
             fh_list = [];
             log = Core.getLogger;
             if nargin < 3 || isempty(sss_lev)
@@ -3070,17 +3095,17 @@ classdef Command_Interpreter < handle
                             show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_ALLORBOK.par ')*$'], 'once'))
                             fh_list = [fh_list; Core.getCoreSky.showOrbitsAvailability()]; %#ok<AGROW>
-                            show_ok  = show_ok + 1;                        
+                            show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_RNX_LIM.par ')*$'], 'once'))
                             fh_list = [fh_list; Core.getCurrentCore.showRinList()]; %#ok<AGROW>
-                            show_ok  = show_ok + 1;                        
+                            show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_COO_STAT.par ')*$'], 'once'))
                             [n_obs, found_n] = this.getNumericPar(tok, this.PAR_N_OBS.par);
                             if ~found_n
                                 n_obs = [];
                             end
                             fh_list = [fh_list; Core.getCurrentCore.showOutCooStatus('',n_obs,true)]; %#ok<AGROW>
-                            show_ok  = show_ok + 1;                        
+                            show_ok  = show_ok + 1;
                         end
                     catch ex
                         Core_Utils.printEx(ex);
@@ -3101,7 +3126,7 @@ classdef Command_Interpreter < handle
                         end
                         if ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MAP.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showMap()]; %#ok<AGROW>
-                            show_ok  = show_ok + 1;                            
+                            show_ok  = show_ok + 1;
                         elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_S_MAPG.par ')*$'], 'once'))
                             fh_list = [fh_list; trg.showMapGoogle()]; %#ok<AGROW>
                             show_ok  = show_ok + 1;
@@ -3240,7 +3265,7 @@ classdef Command_Interpreter < handle
                         log.addError(sprintf('%s',ex.message));
                     end
                 end
-                
+
                 for r = id_trg % different for each target
                     for t = 1 : numel(tok)
                         try
@@ -3249,7 +3274,7 @@ classdef Command_Interpreter < handle
                             else
                                 trg = [rec(r).work];
                             end
-                            
+
                             if trg.isEmpty
                                 try
                                     log.addWarning(sprintf('Receiver %d "%s" is empty', r, trg.parent.getMarkerName));
@@ -3427,12 +3452,12 @@ classdef Command_Interpreter < handle
                                 Core.getLogger.addError(sprintf('Receiver %s: %s', trg.getMarkerName, ex.message));
                             else
                                 Core.getLogger.addError(sprintf('Receiver %s: %s', trg.parent.getMarkerName, ex.message));
-                            end                            
+                            end
                         end
                     end
                 end
             end
-            
+
             if ~isempty(fh_list)
                 if export_found
                     if flag_close
@@ -3460,7 +3485,7 @@ classdef Command_Interpreter < handle
                             file_name = [file_name 'exported_at_' GPS_Time.now.toString('yyyymmdd_HHMMSS')]; %#ok<AGROW>
                         end
                         file_path = fullfile(file_dir, [file_name file_ext]);
-                        
+
                         Core_Utils.exportFig(fh_tmp, file_path, App_Settings.getInstance.getGUIModeExport);
                         if flag_close
                             delete(fh_tmp);
@@ -3478,7 +3503,7 @@ classdef Command_Interpreter < handle
             end
             Core_UI.isHideFig(false);
         end
-        
+
         function runValidation(this, rec, tok, sss_lev)
             % Compute Validation
             %
@@ -3488,7 +3513,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   this.runValidation(rec, tok, level)
-                        
+
             log = Core.getLogger;
             fh_list = [];
             if nargin < 3 || isempty(sss_lev)
@@ -3501,7 +3526,7 @@ classdef Command_Interpreter < handle
                 log.addWarning('No target found -> nothing to do');
             else
                 trg = rec(id_trg);
-                
+
                 for t = 1 : numel(tok) % global for all target
                     try
                         if ~isempty(regexp(tok{t}, ['^(' this.PAR_V_RAOB.par ')*$'], 'once'))
@@ -3521,9 +3546,9 @@ classdef Command_Interpreter < handle
                         Core_Utils.printEx(ex);
                         log.addError(sprintf('%s',ex.message));
                     end
-                end                
+                end
             end
-            
+
             if ~isempty(fh_list)
                 [export_file_name, export_found, flag_close] = this.getExportFig(tok);
                 if export_found
@@ -3545,7 +3570,7 @@ classdef Command_Interpreter < handle
                             file_name = [file_name 'exported_at_' GPS_Time.now.toString('yyyymmdd_HHMMSS')]; %#ok<AGROW>
                         end
                         file_name = fullfile(file_dir, [file_name file_ext]);
-                        
+
                         Core_Utils.exportFig(fh, file_name, App_Settings.getInstance.getGUIModeExport);
                         if flag_close
                             delete(fh);
@@ -3562,7 +3587,7 @@ classdef Command_Interpreter < handle
                 Core.getLogger.addError('No valid command show found');
             end
         end
-        
+
         function runExport(this, rec, tok, sss_lev)
             % Export results
             %
@@ -3575,7 +3600,7 @@ classdef Command_Interpreter < handle
             if nargin < 3 || isempty(sss_lev)
                 sss_lev = 0;
             end
-            
+
             log = Core.getLogger;
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
             rem_loc_id = '';
@@ -3652,7 +3677,7 @@ classdef Command_Interpreter < handle
                                 out_file_list = rec(r).work.exportSNR();
                                 not_exported = false;
                             else
-                                if sss_lev == 0 % run on all the results (out)                                    
+                                if sss_lev == 0 % run on all the results (out)
                                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*'], 'once'))
                                         pars       = regexp(tok{t},'(?<=[\(,])[0-9a-zA-Z]*','match'); %match everything that is follows a parenthesis or a coma
                                         export_par = false(length(this.PAR_E_TROPO_SNX.accepted_values),1);
@@ -3670,7 +3695,7 @@ classdef Command_Interpreter < handle
                                             end
                                         end
                                         out_file_list = rec(r).out.exportTropoSINEX(export_par);
-                                        not_exported = false;                                        
+                                        not_exported = false;
                                     elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_MAT.par ')*$'], 'once'))
                                         if rec(r).out.isEmpty
                                             out_file_list = rec(r).work.exportTropoMat();
@@ -3708,12 +3733,12 @@ classdef Command_Interpreter < handle
                                     end
                                 end
                             end
-                            
+
                         catch ex
                             Core_Utils.printEx(ex);
                             log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));
                         end
-                        
+
                         if ~isempty(out_file_list)
                             if ~iscell(out_file_list)
                                 out_file_list = {out_file_list};
@@ -3727,7 +3752,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-    
+
         function runImport(this, rec, tok, sss_lev)
             % Import results
             %
@@ -3740,7 +3765,7 @@ classdef Command_Interpreter < handle
             if nargin < 3 || isempty(sss_lev)
                 sss_lev = 0;
             end
-            
+
             log = Core.getLogger;
             [id_trg, found_trg] = this.getMatchingRec(rec, tok, 'T');
             do_not_complain = false;
@@ -3750,7 +3775,11 @@ classdef Command_Interpreter < handle
                     is_force = this.getMatchingFlag(tok, '(--force)|(-f)');
                     rec(id_trg).importMatCoo('',[], is_force);
                     flag_crd = flag_crd + 1;
-                end                
+                end
+                if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_RFL_MAT.par ')*$'], 'once'))
+                    rec(id_trg).importMatCooRfl();
+                    flag_crd = flag_crd + 1;
+                end
             end
             if ~found_trg
                 if ~do_not_complain
@@ -3774,7 +3803,7 @@ classdef Command_Interpreter < handle
                                 rec(r).work.exportSNR();
                                 not_imported = false;
                             else
-                                if sss_lev == 0 % run on all the results (out)                                    
+                                if sss_lev == 0 % run on all the results (out)
                                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_SNX.par ')*'], 'once'))
                                         pars       = regexp(tok{t},'(?<=[\(,])[0-9a-zA-Z]*','match'); %match everything that is follows a parenthesis or a coma
                                         export_par = false(length(this.PAR_E_TROPO_SNX.accepted_values),1);
@@ -3792,7 +3821,7 @@ classdef Command_Interpreter < handle
                                             end
                                         end
                                         rec(r).out.exportTropoSINEX(export_par);
-                                        not_imported = false;                                        
+                                        not_imported = false;
                                     elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_MP.par ')*$'], 'once'))
                                         rec(r).exportMultiPath();
                                         not_imported = false;
@@ -3833,7 +3862,7 @@ classdef Command_Interpreter < handle
                                     end
                                 end
                             end
-                            
+
                         catch ex
                             Core_Utils.printEx(ex);
                             log.addError(sprintf('Receiver %s: %s', rec(r).getMarkerName, ex.message));
@@ -3845,13 +3874,13 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function runSendMsg(this, state, tok)
             % Send a message on log
             %
             % SYNTAX
             %   this.runSendMsg(state, tok)
-            
+
             % First of all merge the tokens separated by space
             % e.g. "flag_mp = 1" is splitted into 3 parts!
             log = Core.getLogger;
@@ -3885,7 +3914,7 @@ classdef Command_Interpreter < handle
             end
             [id_rec, found] = getMatchingKey(this, tok, type, n_rec);
         end
-        
+
         function [id_sss, found] = getMatchingSession(this, tok)
             % Extract from a set of tokens the session to be used
             %
@@ -3898,7 +3927,7 @@ classdef Command_Interpreter < handle
             n_key = state.getSessionCount();
             [id_sss, found] = getMatchingKey(this, tok, 'S', n_key);
         end
-        
+
         function [id_trg, found] = getMatchingTarget(this, tok)
             % Extract from a set of tokens the target to be used
             %
@@ -3909,7 +3938,7 @@ classdef Command_Interpreter < handle
             %   [id_sss, found] = this.getMatchingSession(tok)
             [id_trg, found] = getMatchingKey(this, tok, 'T', 10000); % 10000 maximum number of targets
         end
-        
+
         function [found] = getMatchingFlag(this, tok, type)
             % Return true if a flag is found
             %
@@ -3917,18 +3946,18 @@ classdef Command_Interpreter < handle
             %   tok     list of tokens(parameters) from command line (cell array)
             %
             % SYNTAX
-            %   [id_sss, found] = this.getMatchingFlag(tok, type)            
-            
+            %   [id_sss, found] = this.getMatchingFlag(tok, type)
+
             found = false;
             t = 0;
-            
+
             while ~found && t < numel(tok)
                 t = t + 1;
                 % Search receiver identified after the key character "type"
-                if ~isempty(tok{t}) && any(regexp(tok{t}, ['^' type '*$'])) 
+                if ~isempty(tok{t}) && any(regexp(tok{t}, ['^' type '*$']))
                     found = true;
                 end
-            end            
+            end
         end
 
         function [id_key, found] = getMatchingKey(this, tok, type, n_key)
@@ -3938,16 +3967,16 @@ classdef Command_Interpreter < handle
             %   tok     list of tokens(parameters) from command line (cell array)
             %
             % SYNTAX
-            %   [id_sss, found] = this.getMatchingKey(tok, type, n_key)            
-            
+            %   [id_sss, found] = this.getMatchingKey(tok, type, n_key)
+
             id_key = [];
             found = false;
             t = 0;
-            
+
             while ~found && t < numel(tok)
                 t = t + 1;
                 % Search receiver identified after the key character "type"
-                if ~isempty(tok{t}) && any(regexp(tok{t}, ['^' type])) 
+                if ~isempty(tok{t}) && any(regexp(tok{t}, ['^' type]))
                     % Analyse all the receiver identified on the string
                     % e.g. T*        all the receivers
                     %      T1,3:5    receiver 1,3,4,5
@@ -3956,7 +3985,7 @@ classdef Command_Interpreter < handle
                     str_rec = strrep(str_rec, 'end', num2str(n_key));
                     str_rec = strrep(str_rec, 'END', num2str(n_key));
                     str_rec = strrep(str_rec, 'E', num2str(n_key));
-                    
+
                     % Zero means the current receiver
                     str_rec = strrep(str_rec, '$', '0');
                     if (type(1) == 'S')
@@ -3968,25 +3997,25 @@ classdef Command_Interpreter < handle
                     else
                         [ids, pos_ids] = regexp(str_rec,'[0-9]*', 'match');
                         ids = str2double(ids);
-                        
+
                         % find *:*:*
                         [sequence, pos_sss] = regexp(str_rec,'[0-9]*:[0-9]*:[0-9]*', 'match');
-                        
+
                         for s = 1 : numel(sequence)
                             pos_par = regexp(sequence{s},'[0-9]*');
                             id_before = find(pos_ids(:) == (pos_sss(s) + pos_par(1) - 1), 1, 'last');
-                            %id_step = find(pos_ids(:) == (pos_sss(s) + pos_par(2) - 1), 1, 'first');                            
+                            %id_step = find(pos_ids(:) == (pos_sss(s) + pos_par(2) - 1), 1, 'first');
                             %id_after = find(pos_ids(:) == (pos_sss(s) + pos_par(3) - 1), 1, 'first');
-                            id_step = id_before + 1; 
-                            id_after = id_before + 2; 
+                            id_step = id_before + 1;
+                            id_after = id_before + 2;
                             if ~isempty(id_before)
                                 id_key = [id_key ids(id_before) : ids(id_step) : ids(id_after)]; %#ok<AGROW>
                                 ids(id_before : id_after) = [];
                                 pos_ids(id_before : id_after) = [];
-                            end                            
+                            end
                         end
-                        
-                        % find *:*                                                
+
+                        % find *:*
                         pos_colon = regexp(str_rec,':*');
                         for p = 1 : numel(pos_colon)
                             id_before = find(pos_ids(:) < pos_colon(p), 1, 'last');
@@ -4004,8 +4033,8 @@ classdef Command_Interpreter < handle
             if isempty(id_key) % as default return all the sessions
                 id_key = 1 : n_key;
             end
-        end    
-        
+        end
+
         function [num, found] = getNumericPar(this, tok, par_regexp)
             % Extract from a set of tokens a number for a certain parameter
             %
@@ -4014,7 +4043,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   [num, found] = this.getNumericPar(tok, this.PAR_RATE.par)
-            found = false;            
+            found = false;
             num = str2double(regexp([tok{:}], ['(?<=' par_regexp ')[+-]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)*'], 'match', 'once'));
             if ~isempty(num) && ~isnan(num)
                 found = true;
@@ -4044,7 +4073,7 @@ classdef Command_Interpreter < handle
                 end
             end
         end
-        
+
         function [sys_list, found] = getConstellation(this, tok)
             % Extract from a set of tokens the constellation parameter
             %
@@ -4053,7 +4082,7 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   [sys_list, found] = this.getConstellation(tok)
-            found = false;            
+            found = false;
             sys_list = regexp([tok{:}], ['(?<=' this.PAR_SS.par ')[GREJCISA]*'], 'match', 'once');
             if ~isempty(sys_list)
                 found = true;
@@ -4061,7 +4090,7 @@ classdef Command_Interpreter < handle
                 sys_list = intersect(sys_list, cc.getActiveSysChar);
             end
         end
-        
+
         function [otype_list, found] = getObsType(this, tok)
             % Extract from a set of tokens the observation type parameter
             %
@@ -4070,14 +4099,14 @@ classdef Command_Interpreter < handle
             %
             % SYNTAX
             %   [otype_list, found] = this.getObsType(tok)
-            found = false;            
+            found = false;
             otype_list = regexp([tok{:}], ['(?<=' this.PAR_OTYPE.par ')[CPLSD]*'], 'match', 'once');
             if ~isempty(otype_list)
                 found = true;
                 otype_list = intersect(otype_list, 'CPLSD');
             end
         end
-        
+
         function [cmd, err, id, str_cmd] = getCommandValidity(this, str_cmd)
             % Extract from a string the goGPS command found
             %
@@ -4108,7 +4137,7 @@ classdef Command_Interpreter < handle
             %         id = id + 2;
             %     end
             % end
-            
+
             cmd = [];
             id = [];
             if not(isempty(str_cmd)) && ismember(str_cmd(1), '%#')
@@ -4170,9 +4199,9 @@ classdef Command_Interpreter < handle
             for c = length(cmd_list) : -1 : 1
                 if isempty(cmd_list{c})
                     cmd_list(c) = [];
-                end                    
+                end
             end
-            err_list = zeros(size(cmd_list));   
+            err_list = zeros(size(cmd_list));
             sss = 1;
             trg = [];
             sss_lev = 0; % session level
@@ -4194,7 +4223,7 @@ classdef Command_Interpreter < handle
                     if err_list(c) == 0 && (cmd.id == this.KEY_FOR.id)
                         % I need to loop
                         eb_counter = eb_counter + 1;
-                        
+
                         %tok = regexp(cmd_list{c}, '[^ ]*', 'match'); % get command tokens
                         tok = Command_Interpreter.splitTokens(cmd_list{c});
                         [tmp, sss_found] = this.getMatchingSession(tok);
@@ -4255,9 +4284,9 @@ classdef Command_Interpreter < handle
                         end
                     end
                 end
-                
+
                 flag_parallel(c) = is_par;
-                
+
                 if err_list(c) > 0
                     if ~isempty(cmd_list{c}) && (cmd_list{c}(1) ~= '#')
                         log.addError(sprintf('%s - cmd %03d "%s"', this.STR_ERR{abs(err_list(c))}, c, cmd_list{c}));
@@ -4285,8 +4314,8 @@ classdef Command_Interpreter < handle
                 session_lev(c) = sss_lev;
                 sss_list{c} = sss;
                 trg_list{c} = trg;
-            end   
-           
+            end
+
             flag_push = flag_push .* auto_push; % If in the command list PUSHOUT is present disable automatic push!
             % cmd_list = cmd_list(~err_list); % errors are now commented
             execution_block(logical(err_list')) = 0;
@@ -4297,8 +4326,8 @@ classdef Command_Interpreter < handle
                     sss_list{s} = 1 : state.getSessionCount();
                 end
             end
-        end                
-    end    
+        end
+    end
 
     %
     %% METHODS STATIC UTILITIES
@@ -4307,14 +4336,14 @@ classdef Command_Interpreter < handle
         function tok = splitTokens(input_str, keep_equals)
             % Split a string containing tokens
             % Export a cell array of strings
-            % 
+            %
             % SYNTAX
             %  tok = Command_Interpreter.splitTokens(input_str)
 
             % Split the string by spaces, but keep any square bracketed expressions and quoted strings together
             expr = '\s+(?=[^\[\]]*(?:\[|$))';
             if nargin > 1 && ~keep_equals
-                tokens = regexp(strrep(input_str,'=', ' '), expr, 'split'); % ignore "="                
+                tokens = regexp(strrep(input_str,'=', ' '), expr, 'split'); % ignore "="
             else
                 tokens = regexp(input_str, expr, 'split');
             end

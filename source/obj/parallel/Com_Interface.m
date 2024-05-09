@@ -12,7 +12,7 @@
 % force the subclasses to implement three basic methods:
 %  - import:       when a setting object of identical class, or that inherits from the same class is passed to this function, the relative parameters are copied in the calling object
 %                  when an ini file is the input of the function, the object is updated with the settings contained into the file
-%  - toString:     display the content of the object, in a human readable way, a goGPS user can "ask" for the value of the settings on screen
+%  - toString:     display the content of the object, in a human readable way, a user can "ask" for the value of the settings on screen
 %  - export:       create a cell array of strings containing the settings in plain text ini format. The variable it's the raw data format of Ini_Manager
 %
 
@@ -28,7 +28,7 @@
 classdef Com_Interface < handle
     properties (SetAccess = protected, GetAccess = protected)
         log;        % Handler to the log object
-        id;         % Id of the sender        
+        id;         % Id of the sender
 
         nch_wait = 0;
     end
@@ -36,7 +36,7 @@ classdef Com_Interface < handle
     properties
         COM_DIR = './com';
         working_dir = '';
-    end    
+    end
 
     methods  (Abstract)
     end
@@ -44,7 +44,7 @@ classdef Com_Interface < handle
     methods (Access = 'public')
         function com_dir = getComDir(this)
             % Get the comunication dir
-            % 
+            %
             % OUTPUT
             %   com_dir = fullfile(pwd, 'com') if empty
             %
@@ -61,30 +61,30 @@ classdef Com_Interface < handle
         function setComDir(this, com_dir)
             % Set the comunication dir
             % (must be used on object creation)
-            % 
+            %
             % SYNTAX
             %   this.initComDir(com_dir)
             %
             % EXAMPLE default)
             %   this.initComDir(fullfile(pwd, 'com'));
-            
+
             this.COM_DIR = com_dir;
         end
-        
+
         function initComDir(this, com_dir)
             % alias of setComDir
             % Set the comunication dir
             % (must be used on object creation)
-            % 
+            %
             % SYNTAX
             %   this.initComDir(com_dir)
             %
             % EXAMPLE default)
             %   this.initComDir(fullfile(pwd, 'com'));
-            
+
             this.setComDir(com_dir);
         end
-        
+
         function initLogger(this)
             % Init the log object
             %
@@ -94,7 +94,7 @@ classdef Com_Interface < handle
             this.log.setOutMode(1,[],0);
             this.log.setColorMode(0);
         end
-        
+
         function sendMsg(this, msg, msg_feedback)
             % Send a message to the comunication interface
             %
@@ -114,7 +114,7 @@ classdef Com_Interface < handle
                 end
             end
         end
-        
+
         function is_master = isMaster(this)
             % tell if the caller is the master
             %
@@ -122,7 +122,7 @@ classdef Com_Interface < handle
             %   this.isMaster()
             is_master = strcmp(this.id, Parallel_Manager.ID);
         end
-        
+
         function deleteAllMsg(this)
             % Delete all the messages of the caller
             % (of everyone in case of Master calling)
@@ -136,7 +136,7 @@ classdef Com_Interface < handle
                 this.deleteMsg('*');
             end
         end
-        
+
         function deleteMsg(this, msg_type, all_ids)
             % Delete all the messages with a certain msg_type
             %
@@ -145,7 +145,7 @@ classdef Com_Interface < handle
             %
             % EXAMPLE
             %   this.deleteMsg()
-            
+
             if exist(this.getComDir, 'file')
                 if nargin < 2 || isempty(msg_type)
                     msg_type = '*';
@@ -159,32 +159,32 @@ classdef Com_Interface < handle
                 warning off; % I don't care if the file does not exist
                 delete(fullfile(this.getComDir, this.working_dir, msg_type));
                 warning on;
-            end            
+            end
         end
 
         function reset_count = pause(this, seconds, reset_count)
             % Display wait message
-            % 
+            %
             % SINTAX
             %   this.pause(seconds, reset_count)
-            
+
             if nargin > 2 && ~isempty(reset_count) && reset_count > 0
                this.nch_wait = 0;
             end
-            
+
             if this.nch_wait == 20 || nargin > 2 && ~isempty(reset_count) && reset_count ~= 0
                 fprintf(char(ones(1, this.nch_wait) * 8)); % delete last chars
                 this.nch_wait = 0;
             end
-            
+
             if nargin < 3 || (~isempty(reset_count) && reset_count >= 0)
                 switch (this.nch_wait)
                     case 0, fprintf('Waiting'); this.nch_wait = 7;
                     otherwise, fprintf('.'); this.nch_wait = this.nch_wait + 1;
                 end
                 pause(seconds);
-            end 
-            reset_count = 0;            
+            end
+            reset_count = 0;
         end
     end
 
@@ -196,7 +196,7 @@ classdef Com_Interface < handle
             this.(prop_name) = value;
         end
     end
-    
+
     % =========================================================================
     %%  GETTERS IO
     % =========================================================================
@@ -210,5 +210,5 @@ classdef Com_Interface < handle
             end
         end
     end
-    
+
 end

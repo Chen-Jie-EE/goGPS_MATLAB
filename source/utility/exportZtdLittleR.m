@@ -85,11 +85,11 @@ for c = 1 : n_col
         h_ortho = h_map(r, c);
         obs_time = time.toString('yyyymmddHHMMSS');
         ztd = ztd_map(r,c) * 100; % expressed in cm
-        
+
         if ~isnan(ztd)
             %Latitude	Longitude	ID	Name	Platform (FM�Code)note	Source	Elevation	Valid fields	Num. errors	Num. warnings	Sequence number	Num. duplicates	Is sounding?	Is bogus?	Discard?	Unix time	Julian day	Date	SLP, QC	Ref Pressure, QC	Ground Temp, QC	SST,   QC	SFC Pressure, QC	Precip, QC	Daily Max T, QC	Daily Min T, QC	Night Min T, QC	3hr Pres Change, QC	24hr Pres Change, QC	Cloud cover, QC	Ceiling, QC	Precipitable water, QC (see note)
             %F20.5	    F20.5	    A40	A40	    A40	                    A40	    F20.5	    I10            	I10	        I10	            I10	            I10	            L	            L	        L	        I10	        I10	        A20	    F13.5,  I7	F13.5,    I7	F13.5,       I7	F13.5, I7	F13.5,        I7	F13.5,  I7	F13.5,       I7	F13.5,       I7	F13.5,       I7	F13.5,           I7	F13.5,            I7	F13.5,       I7	F13.5,   I7	F13.5,              I7
-            
+
             txt = sprintf('%s%20.5f%20.5f%-40s%-40s%-40s%-40s%20.5f%10d%10d%10d%10d%10d%10s%10s%10s%10d%10d%20s%13.5f%7d%13.5f%7d%13.5f%7d%13.5f%7d%13.5f%7d%13.5f%7d%13.5f%7d%13.5f%7d%13.5f%7d%13.5f%7d%13.5f%7d%13.5f%7d%13.5f%7d%13.5f%7d\n%s%s%s', ...
                 txt, ...
                 lat, ...
@@ -134,7 +134,7 @@ for c = 1 : n_col
             txt = [];
         end
     end
-    wb.go(r + (c-1) * n_row);    
+    wb.go(r + (c-1) * n_row);
     if save_on_disk
         fprintf(fid,'%s', txt);
         txt = [];

@@ -1,6 +1,6 @@
 function closeAllFigures(fig_handle)
-% Close all the dockable figures 
-% goGPS main windows are not dockable and will remain open ^_^
+% Close all the dockable figures
+% App main windows are not dockable and will remain open ^_^
 %
 % SINTAX:
 %   closeAllFigures(<fig_handles>);

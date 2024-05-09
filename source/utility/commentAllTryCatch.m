@@ -20,7 +20,7 @@ if nargin < 1
     comment = true;
 end
 
-% find all the m files in goGPS directory
+% find all the m files in App directory
 
 base_dir = '.';
 filter = '*.m';
@@ -52,10 +52,10 @@ if comment
         clean_txt = regexprep(txt, ' try', '%AUTCOMMS try');
         clean_txt = regexprep(clean_txt, '\ttry', '%AUTCOMMT try');
 
-        
+
         occurencies = strfind(clean_txt, 'catch');
         clean_txt = strrep(clean_txt, 'catch', 'if false %AUTCOMM');
-        
+
         if not(isempty(clean_txt)) && ~isempty(occurencies)
             fprintf('Opening file %3d/%3d: %s', i, length(list), file_name);
             fid = fopen(file_name, 'w');
@@ -81,11 +81,11 @@ else
         clean_txt = strrep(txt,'%AUTCOMMS try', ' try');
         clean_txt = strrep(clean_txt,'%AUTCOMMT try', '\ttry');
 
-        
+
         occurencies = strfind(clean_txt,  'if false %AUTCOMM');
         clean_txt = strrep(clean_txt, 'if false %AUTCOMM', 'catch');
-        
-        
+
+
         if not(isempty(clean_txt)) && ~isempty(occurencies)
             fprintf('Opening file %3d/%3d: %s', i, length(list), file_name);
             fid = fopen(file_name, 'w');

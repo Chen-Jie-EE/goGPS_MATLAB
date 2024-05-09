@@ -25,25 +25,25 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         DEFAULT_DIR_IN = ['${PRJ_HOME}' filesep '..' filesep '..' filesep];
         DEFAULT_DIR_OUT = ['${PRJ_HOME}' filesep 'out', filesep];
     end
-    
+
     % Real constant
     properties(Constant, Access = 'private')
         % PRE PROCESSING
         CS_THR_PRE_PRO = 1;                             % Cycle slip threshold (pre-processing) [cycles]
     end
-    
+
     properties (Constant, Access = 'public')
         % Location of the latest project (the ini contains just a reference to the default project ini file - that is actually a settings file
         LAST_SETTINGS = 'last_settings.ini';
     end
 
-    % Default values for each field - useful to restore corrupted fields    
+    % Default values for each field - useful to restore corrupted fields
     properties (Constant, Access = 'public')
-        
+
         % IO ---------------------------------------------------------------------------------------------------------------------------------------------------
         % PARALLELISM
         COM_DIR = fullfile(pwd, '..', 'com');
-        
+
         % PROJECT
         PRJ_NAME = 'Default PPP project';  % Name of the project
         PRJ_HOME = [File_Name_Processor.getFullDirPath([fileparts(which('goGPS.m')) filesep '..' filesep 'data' filesep 'project' filesep 'default_PPP']) filesep]; % Location of the project <relative path from goGPS folder>
@@ -55,12 +55,12 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         SSS_ID_LIST = '0';   % id character sequence to be use for the session $(S) special keyword
         SSS_ID_START = '0';  % first session id (char of sss_id_list)
         SSS_ID_STOP = '0';   % last session id (char of sss_id_list)
-        
+
         SSS_FILE_BASED = false;         % is the session management file based
         SSS_DURATION = 86400;          % session duration in seconds
         SSS_BUFFER = [3600*3 3600*3];  % session overlap in seconds [left right]
-        
-                
+
+
         % STATIONS
         OBS_DIR = 'RINEX';
         OBS_NAME = {'NAME${DOY}${S}.${YY}O'};
@@ -96,7 +96,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         IGRF_DIR = [Prj_Settings.DEFAULT_DIR_IN 'reference' filesep 'IGRF' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of orthometric heighs
         IGRF_NAME = 'igrf12coeff.txt';
 
-        GEOID_DIR_FALLBACK = [Core.getInstallDir() filesep '..' filesep 'data' filesep 'reference' filesep 'geoid' filesep]; % Fallback path to Geoid folder containing the geoid to be used for the computation of orthometric heighs
+        GEOID_DIR_FALLBACK = [Core.getInstallDir(true) filesep '..' filesep 'data' filesep 'reference' filesep 'geoid' filesep]; % Fallback path to Geoid folder containing the geoid to be used for the computation of orthometric heighs
         GEOID_DIR = [Prj_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of orthometric heighs
         GEOID_NAME = 'geoid_EGM2008_05.mat'; % File name of the Geoid containing the geoid to be used for the computation of orthometric heighs
         IONO_DIR = [Prj_Settings.DEFAULT_DIR_IN 'reference' filesep 'IONO' filesep '${YYYY}' filesep];
@@ -113,13 +113,13 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
         FLAG_DOWNLOAD = true;      % automatically try to download resources
         FLAG_NO_RESOURCES = false; % one true no resources are used => no orbits are computed -> useful in limited scenarios
-        
+
         PREFERRED_EPH = {'final', 'rapid', 'ultra', 'broadcast', 'real-time'}
         SELECTED_ORBIT_CENTER= {'default'}
         SELECTED_IONO_CENTER= {'default'}
         PREFERRED_IONO = {'final', 'rapid', 'predicted1', 'predicted2', 'broadcast'}
         SELECTED_BIAS_CENTER= {'none'}
-        
+
         PREFERRED_VMF_RES = {'1x1', '2.5x2', '5x5'}
         PREFERRED_VMF_SOURCE = {'operational', 'era-interim', 'forecast'}
 
@@ -136,16 +136,32 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         % ANTENNA
         ATX_DIR = [Prj_Settings.DEFAULT_DIR_IN 'antenna' filesep 'ATX' filesep]; % Location of the antex files
         ATX_NAME = 'igs20.atx';    % Name antex file
-        
+
+        % MASK
+        MASK_DIR = [Prj_Settings.DEFAULT_DIR_IN 'antenna' filesep 'mask' filesep];  % Location of the Mask files
+
+        % SIGMA
+        SIGMA_DIR = [Prj_Settings.DEFAULT_DIR_IN 'antenna' filesep 'sigma' filesep];  % Location of the Mask files
+
+        % MULTIPATH
+        MP_DIR = [Prj_Settings.DEFAULT_DIR_IN 'antenna' filesep 'MP' filesep];  % Location of the Multipath mitigation files
+        MP_REGULAR_NXM = [1 1];
+        MP_REGULAR_UP_NXM = [1 1];
+        MP_CONGRUENT_NXM = [2 1];
+        MP_CONGRUENT_UP_NXM = [2 1];
+        MP_L_MAX = [53 0 0 0];
+        MP_ZCONGRUENT_UP_NXM = [1 0.5];
+        MP_N_MIN = 7;
+
         % OUT PATH
         OUT_DIR = Prj_Settings.DEFAULT_DIR_OUT; % Directory containing the output of the project
         OUT_PREFIX = 'out';  % Every time a solution is computed a folder with prefix followed by the run number is created
         RUN_COUNTER = [];     % This parameter store the current run number
-        
+
         SAVE_LOG = true;
 
         % STD PAR ----------------------------------------------------------------------------------------------------------------------------------------------
-        
+
         % ADV RECEIVER DEFAULT PARAMETERS
 
         STD_CODE = 3;                                   % Std of code observations [m]
@@ -157,13 +173,13 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         % DATA SELECTION
         CC = Constellation_Collector('G');              % object containing info on the activated constellations
         MIN_P_EPOCH = 30;                               % Minimum percentage of epochs (over the total number in the session) to consider a receiver valid
-        MAX_BAD_OBS = 75;                               % Maximum percentage of bad observations (over the total number in the receiver) to consider the receiver valid 
+        MAX_BAD_OBS = 75;                               % Maximum percentage of bad observations (over the total number in the receiver) to consider the receiver valid
         MIN_N_SAT = 2;                                  % Minimum number of satellites needed to process a valid epoch
         CUT_OFF = 10;                                   % Cut-off [degrees]
         ABS_SNR_THR = 0;                                % Signal-to-noise ratio absolute threshold [dB]
         SCALED_SNR_THR = 0;                             % Signal-to-noise ratio scaled threshold [dB]
         MIN_ARC = 300;                                  % Minimum length of an arc (a satellite to be used must be seen for a number of seconds greater than this value)
-        
+
         % ADV DATA SELECTION
         FLAG_OUTLIER = true;                            % Flag for enabling outlier detection
         PP_SPP_THR = 10;                                % Threshold on the code point-positioning least squares estimation error [m]
@@ -179,8 +195,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                                                         %  - weights = 1: same weight for all the observations
                                                         %  - weights = 2: weight based on satellite elevation (sin)
                                                         %  - weights = 3: weight based on the square of satellite elevation (sin^2)
-                                                
-        
+
+
         PPP_REWEIGHT_MODE = 1                           % PPP re-weight / snooping
                                                         % 1: none
                                                         % 2: re-weight Huber
@@ -191,26 +207,26 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                                                         % 7: simple snooping
                                                         % 8: smart snooping
                                                         % 9: smart snooping + arc trim
-                                                                
+
         NET_REWEIGHT_MODE = 1                           % NET re-weight / snooping
                                                         % 1: none
                                                         % 2: simple 4 loops
                                                         % 3: simple 4 loops + remove bad sat
-                                                        
-                                                        
+
+
         FLAG_AMB_PASS = false;                          % try to pass ambiguities to the next session
         FLAG_PPP_AMB_FIX = false;                       % try to fix ambiguity
         NET_AMB_FIX_APPROACH = 1;                       % try to fix ambiguity
                                                         %  1 = no fix
                                                         %  2 = lambda
                                                         %  3 = bayesian
-                                                        
-        FLAG_REM_SAT_NO_CLOCK = true                    % Remove Satellites having no clocks in ephemeris                                             
+
+        FLAG_REM_SAT_NO_CLOCK = true                    % Remove Satellites having no clocks in ephemeris
         FLAG_PPP_FORCE_SINGLE_FREQ = false              % Force PPP solution for single frequency receivers
-                                                        
+
         FLAG_SMOOTH_TROPO_OUT = true;                   % smooth the output parameters at bounadries
         FLAG_SEPARATE_COO_AT_BOUNDARY = false;          % estaimtes a separte coordinat for the boundaries data
-         
+
         FLAG_CLOCK_ALIGN = false;                       % Flag to enable satellite clock alignment (solve jumps among files)
         FLAG_SOLID_EARTH = true;                        % Flag to enable solid eearth tide corrections
         FLAG_POLE_TIDE = true;                          % Falg to enable pole earth tide corrections
@@ -221,10 +237,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         FLAG_HOI = false;                               % Flag to enable High Order Ionospherich effects and bendigs
         FLAG_REC_PCV = true;                            % Flag to enable receiver pcv corrections
         FLAG_APR_IONO = true;                           % Flag to enable apriori ionospheric effect corrections
-                
+
+        FLAG_REC_MP = 0;                                % Flag to enable receiver multipath corrections
+        FLAG_MP_IGNORE_TRK = true;                      % Flag to specify if multipath management have to ignore trackings
+                                                        % and combine the data of multiple trackings all together (reccomanded)
+
         FLAG_COO_RATE = false;
         COO_RATES = [ 0 0 0];
-        
+
         TRP_OUT_RATE = 0;                               % Troposphere output rate 0 means use the rate the receivers
 
         % ATMOSPHERE
@@ -234,14 +254,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                                                         % - iono_model = 1: no model
                                                         % - iono_model = 2: Klobuchar model
                                                         % - iono_model = 3: IONEX
-                                                        
+
         ZD_MODEL = 1;                                   % A-priori Tropospheric Zenith delay model to be used (1: none, 2: Saastamoinen , 3: Vienna mapping function gridded delays)
                                                         % - zd_model = 1: Saastamoinen
                                                         % - zd_model = 1: Vienna mapping function gridded delay
-       
+
         ZDM_SAAST = 1;
         ZDM_VMF = 2
-         
+
         MAPPING_FUNCTION = 1                            % Mapping function to be used
                                                         % 1 : GMF
                                                         % 2 : VMF gridded
@@ -255,7 +275,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         MF_VMF3_1 = 4
         MF_VMF3_5 = 5
         MF_COSEL = 6;
-                                                        
+
         MAPPING_FUNCTION_GRADIENT = 1                   % Mapping function to be used
                                                         % 1 : chen and  herring
                                                         % 2 : macmillan
@@ -268,217 +288,217 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                                                         % 3: MET File
         %SIGMA0_TROPO = 0.2;                            % Std of a priori tropospheric delay
         %SIGMA0_TROPO_GRADIENT = 1;                     % Std of a priori tropospheric gradient
-        
-        
+
+
         TROPO_SPATIAL_REG_SIGMA = 1e-7;                % spatial regularization ztd sigma^2 m^2
         TROPO_SPATIAL_REG_D_DISTANCE = 25e3;           % spatial regularization ztd distance exponetial m
         TROPO_GRADIENT_SPATIAL_REG_SIGMA = 1e-7;       % spatial regularization ztd gradients sigma^2 m^2
         TROPO_GRADIENT_SPATIAL_REG_D_DISTANCE = 25e3;  % spatial regularization ztd gradients distance exponetial m
         % OUT DATA flags => what shall I store in rec.out?
-        
+
         FLAG_OUT_DT = true;         % Clock "delta"
-        
+
         FLAG_OUT_PWV = true;        % PWV
         FLAG_OUT_ZWD = true;        % ZWD
         FLAG_OUT_ZTD = true;        % ZTD
         FLAG_OUT_TROPO_G = true;    % gradients
         FLAG_OUT_APR_TROPO = true;  % a-priori values
-        
-        FLAG_OUT_PTH = true;        % pressure  / temperature / humidity        
-        
-        FLAG_OUT_OCS = true;        % outliers and cycle slips        
-        FLAG_OUT_QUALITY = true;    % Quality (SNR)        
+
+        FLAG_OUT_PTH = true;        % pressure  / temperature / humidity
+
+        FLAG_OUT_OCS = true;        % outliers and cycle slips
+        FLAG_OUT_QUALITY = true;    % Quality (SNR)
         FLAG_OUT_NSPE = true;       % Quality (n sat per epoch)
-        FLAG_OUT_AZEL = true;       % Azimuth / Elevation        
+        FLAG_OUT_AZEL = true;       % Azimuth / Elevation
         FLAG_OUT_RES_CO = true;     % residuals
         FLAG_OUT_RES_PR = true;     % residuals
         FLAG_OUT_RES_PH = true;     % residuals
         FLAG_OUT_MF = true;         % mapping functions (wet / hydrostatic)
-        
+
         % UNCOMBINED OPTIONS
-        
+
         FLAG_COO_PPP  = true; % estimate coordinets in ppp
         FLAG_COO_NET  = true; % estimate coordinates in network
-        
+
         TPARAM_COO_PPP = LS_Parametrization.CONST; % time parametrization of coordinates ppp
         TPARAM_COO_NET = LS_Parametrization.CONST; % time parametrization of coordinates net
-        
+
         FPARAM_COO_PPP = LS_Parametrization.ALL_FREQ; % frequenccy parametrization of coordinates ppp
         FPARAM_COO_NET = LS_Parametrization.ALL_FREQ;  % frequenccy parametrization of coordinates net
-        
+
         RATE_COO_PPP = 0;  % time rate coordinates ppp
         RATE_COO_NET = 0;  % time rate coordinates net
-        
+
         AREG_COO_PPP  = [-1 -1];  % horizantial absolute regularization coordinates ppp
         AREG_COO_NET = [-1 -1];  % horizantial absolute regularization coordinates net
-                
+
         DREG_COO_PPP = [-1 -1];  % horizantial differential regularization coordinates ppp
         DREG_COO_NET = [-1 -1];   % horizantial differential regularization coordinates net
-         
+
         FLAG_FREE_NET_COO = false; % absolute coordinates in network
-        
-        
-        
+
+
+
         FLAG_ZTD_PPP  = true; % estimate ztd in ppp
         FLAG_ZTD_NET  = true; % estimate ztd in net
-        
+
         TPARAM_ZTD_PPP  = 3;   % time parametrization of ztd ppp defult cubic spline
         TPARAM_ZTD_NET  = 3;  % time parametrization of ztd net defult cubic spline
-        
+
         RATE_ZTD_PPP = 300; % time rate ztd ppp
         RATE_ZTD_NET = 900; % time rate ztd net
-        
+
         AREG_ZTD_PPP = 0.5; % absolute regularization ztd ppp
         AREG_ZTD_NET = 0.5; % absolute regularization ztd net
-        
+
         DREG_ZTD_PPP  = 0.03;  % differential regularization ztd ppp
         DREG_ZTD_NET  = 0.03;  % differential regularization ztd net
-        
+
         FLAG_GRAD_PPP  = true; % estimate ztd gradient in ppp
         FLAG_GRAD_NET  = true; % estimate ztd gradient in net
-        
+
         TPARAM_GRAD_PPP  = 3;  % time parametrization of ztd  gradient ppp
-        TPARAM_GRAD_NET  = 3;  % time parametrization of ztd gradient net 
-        
+        TPARAM_GRAD_NET  = 3;  % time parametrization of ztd gradient net
+
         RATE_GRAD_PPP = 300; % time rate ztd gradient ppp
         RATE_GRAD_NET  = 7200; % time rate ztd gradient net
-        
+
         AREG_GRAD_PPP = 0.05; % absolute regularization ztd gradient  in ppp
         AREG_GRAD_NET = 0.05; % absolute rAREG_ZTD_NETegularization  ztd gradient  in network
-        
+
         DREG_GRAD_PPP = 0.0015; % differential regularization ztd gradient  in ppp
         DREG_GRAD_NET = 0.0015; % differential regularization ztd gradient  in network
-        
-        
+
+
         FLAG_SREG_ZTD_PPP = false;
         SREG_ZTD_P1_PPP = -1;
         SREG_ZTD_P2_PPP = -1;
-        
+
         FLAG_SREG_ZTD_NET =  false;
         SREG_ZTD_P1_NET= -1;
         SREG_ZTD_P2_NET= -1;
-        
-        
+
+
         FLAG_SREG_GRAD_PPP=  false;
         SREG_GRAD_P1_PPP= -1;
         SREG_GRAD_P2_PPP= -1;
-        
+
         FLAG_SREG_GRAD_NET = false;
         SREG_GRAD_P1_NET=-1;
         SREG_GRAD_P2_NET= -1;
-        
+
         %FLAG_FREE_NET_TROPO = false;  % absolute tropo in network
-        
+
         %%% IONO
-        
+
         FLAG_IONO_PPP = true; % estimate iono ppp
         FLAG_IONO_NET = false; % estimate iono network
-        
+
         FLAG_SREG_IONO_PPP = false;
         SREG_IONO_P1_PPP= -1;
         SREG_IONO_P2_PPP= -1;
-        
+
         FLAG_SREG_IONO_NET =false;
         SREG_IONO_P1_NET= -1;
         SREG_IONO_P2_NET= -1;
-        
-        
+
+
         %%% BIAS
-        
-        
+
+
         % CLOCK
-        
+
         FLAG_REC_CLOCK_PPP = true;  % estimate receiver clock ppp
         FLAG_REC_CLOCK_NET = true;  % estimate receiver clock net
-        
+
         FLAG_PHPR_REC_CLOCK_PPP = true; % estimate separate phase and pseudorange receiver clock ppp
         FLAG_PHPR_REC_CLOCK_NET = true; % estimate separate phase and pseudorange receiver clock net
-        
+
         AREG_REC_CLOCK_PPP = -1; % absolute regularization receiver clock  in ppp
         AREG_REC_CLOCK_NET = -1; % absolute regularization receiver clock in net
-        
+
         DREG_REC_CLOCK_PPP = -1; % differential regularization receiver clock  in ppp
         DREG_REC_CLOCK_NET = -1; % differential regularization receiver clock  in net
-        
-        
+
+
         FLAG_SAT_CLOCK_PPP = true; % estimate satellite clock ppp
         FLAG_SAT_CLOCK_NET = true; % estimate satellite clock ppp
-        
+
         FLAG_PHPR_SAT_CLOCK_PPP = true; % estimate separate phase and pseudorange satellite clock ppp
         FLAG_PHPR_SAT_CLOCK_NET = true; % estimate separate phase and pseudorange satellite clock net
-        
+
         AREG_SAT_CLOCK_PPP = -1; % absolute regularization satellite clock  in ppp
         AREG_SAT_CLOCK_NET = -1; % absolute regularization satellite clock  in net
-        
+
         DREG_SAT_CLOCK_PPP = -1; % differential regularization satellite clock  in ppp
         DREG_SAT_CLOCK_NET = -1; % differential regularizationsatellite clock in net
-        
-        
+
+
         % BIAS
-        
+
         FLAG_REC_IFBIAS_PPP = true;  % estimate receiver inter frequency bias ppp
         FLAG_REC_IFBIAS_NET = true;  % estimate receiver inter frequency bias net
-        
+
         TPARAM_REC_IFBIAS_PPP  = LS_Parametrization.SPLINE_CUB;  % time parametrization of receiver inter frequency bias ppp
         TPARAM_REC_IFBIAS_NET  = LS_Parametrization.SPLINE_CUB;  % time parametrization of receiver inter frequency bias net
-        
-        RATE_REC_IFBIAS_PPP = 3600;  % time rate of receiver inter frequency bias ppp 
+
+        RATE_REC_IFBIAS_PPP = 3600;  % time rate of receiver inter frequency bias ppp
         RATE_REC_IFBIAS_NET = 3600;  % time rate of receiver inter frequency bias net
-        
+
         AREG_REC_IFBIAS_PPP = -1; % absolute regularization receiver inter frequency  in ppp
         AREG_REC_IFBIAS_NET = -1; % absolute regularization receiver inter frequency  in net
-        
+
         DREG_REC_IFBIAS_PPP = -1; % differential regularization receiver inter frequency  in ppp
         DREG_REC_IFBIAS_NET = -1; % differential regularization receiver inter frequency  in net
-        
+
         FLAG_SAT_IFBIAS_PPP = true;  % estimate satellite inter frequency bias ppp
         FLAG_SAT_IFBIAS_NET = true;  % estimate satellite inter frequency bias net
-        
+
         TPARAM_SAT_IFBIAS_PPP = LS_Parametrization.SPLINE_CUB;  % time parametrization of satellite inter frequency bias ppp
         TPARAM_SAT_IFBIAS_NET = LS_Parametrization.SPLINE_CUB;  % time parametrization of satellite inter frequency bias net
-        
-        RATE_SAT_IFBIAS_PPP = 3600;  % time rate of satellite inter frequency bias ppp 
+
+        RATE_SAT_IFBIAS_PPP = 3600;  % time rate of satellite inter frequency bias ppp
         RATE_SAT_IFBIAS_NET = 3600;  % time rate of satellite inter frequency bias net
-        
+
         AREG_SAT_IFBIAS_PPP = -1; % absolute regularization satellite inter frequency  in ppp
         AREG_SAT_IFBIAS_NET = -1; % absolute regularization satellite inter frequency  in net
-        
+
         DREG_SAT_IFBIAS_PPP = -1; % differential regularization satellite inter frequency  in ppp
         DREG_SAT_IFBIAS_NET = -1; % differential regularization satellite inter frequency  in net
-        
+
         FLAG_REC_TRKBIAS_PPP = true;  % estimate receiver inter tracking bias ppp
         FLAG_REC_TRKBIAS_NET = true;  % estimate receiver inter tracking bias net
-        
+
         TPARAM_REC_TRKBIAS_PPP = LS_Parametrization.CONST;  % time parametrization of receiver inter tracking bias ppp
         TPARAM_REC_TRKBIAS_NET = LS_Parametrization.CONST;  % time parametrization of receiver inter tracking bias net
-        
-        RATE_REC_TRKBIAS_PPP = 0;  % time rate of receiver inter tracking bias ppp 
+
+        RATE_REC_TRKBIAS_PPP = 0;  % time rate of receiver inter tracking bias ppp
         RATE_REC_TRKBIAS_NET = 0;  % time rate of receiver inter tracking bias net
-        
+
         AREG_REC_TRKBIAS_PPP = -1; % absolute regularization receiver inter tracking  in ppp
         AREG_REC_TRKBIAS_NET = -1; % absolute regularization receiver inter tracking  in net
-         
+
         DREG_REC_TRKBIAS_PPP = -1; % differential regularization receiver inter tracking  in ppp
         DREG_REC_TRKBIAS_NET = -1; % differential regularization receiver inter tracking  in net
-        
-        
+
+
         FLAG_SAT_TRKBIAS_PPP = true; % estimate satellite inter tracking bias ppp
         FLAG_SAT_TRKBIAS_NET = true; % estimate satellite inter tracking bias net
-        
+
         TPARAM_SAT_TRKBIAS_PPP = LS_Parametrization.CONST;   % time parametrization of satellite inter tracking bias ppp
         TPARAM_SAT_TRKBIAS_NET = LS_Parametrization.CONST;   % time parametrization of satellite inter tracking bias net
-        
-        RATE_SAT_TRKBIAS_PPP = 0;  % time rate of satellite inter tracking bias ppp 
+
+        RATE_SAT_TRKBIAS_PPP = 0;  % time rate of satellite inter tracking bias ppp
         RATE_SAT_TRKBIAS_NET = 0;  % time rate of satellite inter tracking bias net
-        
+
         AREG_SAT_TRKBIAS_PPP = -1; % absolute regularization satellite inter tracking  in ppp
         AREG_SAT_TRKBIAS_NET = -1; % absolute regularization satellite inter tracking  in net
-        
+
         DREG_SAT_TRKBIAS_PPP = -1; % differential regularization satellite inter tracking  in ppp
-        DREG_SAT_TRKBIAS_NET = -1; % differential regularization satellite inter tracking  in net  
-        
+        DREG_SAT_TRKBIAS_NET = -1; % differential regularization satellite inter tracking  in net
+
         % TEMPORAL PARAMTER
-        
+
         getNumZerTropoCoef = 0;
 
     end
@@ -497,7 +517,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         IONO_LABEL = {'No model', ...
                       'Klobuchar model', ...
                       'IONEX'}
-                  
+
         % id to string of reweight/snooping mode
         PPP_REWEIGHT_SMODE = {'1: none', ...
                       '2: re-weight Huber', ...
@@ -514,7 +534,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                       '2: lambda search and shrink', ...
                       '3: lambda round then search and shrink', ...
                       '4: lambda integer bootstrapping', ...
-                      '5: lambda partial', ...                      
+                      '5: lambda partial', ...
                       '6: bayesian', ...
                       '7: bayesian BIE', ...
                       '8: Sequential best integer equivariant'}
@@ -532,7 +552,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                       'lambda integer least square', ...
                       'lambda rounding then integer least square', ...
                       'lambda integer bootstrapping', ...
-                      'lambda partial', ...                      
+                      'lambda partial', ...
                       'bayesian monte carlo', ...
                       'best integer equivariant', ...
                       'sequential best integer equivariant'}
@@ -561,7 +581,11 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
           'Per binned frequency',...
           'Per frequency and constellation',...
           'Per Rinex Band'}
-                  
+        % Multipath management
+        FLAG_REC_MP_SMODE = {'none'}
+        FLAG_REC_MP_LABEL = {'none'}
+        FLAG_REC_MP_UI2INI = [0];
+
         % id to string of tropospheric models
         ZD_SMODE = {'1: Saastamoinen model' ...
             '2: Vienna Mapping Function gridded'
@@ -575,11 +599,11 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             '5: Vienna Mapping Function 3 5x5 gridded', ...
             '6: cos(el)'}
         MF_LABEL = {'GMF','VMF1 gridded','Niell','VMF3 gridded 1x1','VMF3 gridded 5x5', 'cos(el)'}
-        
+
         % id to string of gradients mappig functions
         MFG_SMODE = {'1: Chen and Herring', '2: MacMillan'}
         MFG_LABEL = {'Chen and Herring','MacMillan'}
-        
+
         % id to string of meteo data
         MD_SMODE = {'1: standard atmosphere', ...
             '2: Global Pressure Temperature Model' ...
@@ -596,14 +620,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             '2 : Linear Spline',...
             '3 : Cubic Spline'}
         TIME_TROPO_PARAMETRIZATION_UI2INI = [1 2 3];
-        
+
         TIME_PARAMETRIZATION_SMODE = {'1: Constant',...
             '2: Epoch wise', ...
             '4: Regular spaced constant',...
             '5: Linear Spline',...
             '6: Cubic Spline'}
         TIME_PARAMETRIZATION_UI2INI = [1 2 4 5 6];
-        
+
         SPLINE_TROPO_ORDER_UI2INI = [0 1 3];
         SPLINE_TROPO_ORDER_LABEL = {'None','Linear','Cubic'}
         SPLINE_TROPO_GRADIENT_ORDER_SMODE = {'0: none', ...
@@ -629,7 +653,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         %------------------------------------------------------------------
         % PARALLELISM
         %------------------------------------------------------------------
-        
+
         % Location of the communication dir for parallel message passing interface
         com_dir = Prj_Settings.COM_DIR;
         %max_timeout_time = 3600;
@@ -648,18 +672,18 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         % SESSION
         %------------------------------------------------------------------
         cur_session     % id of the current session
-        
+
 
         sss_date_start = Prj_Settings.SSS_DATE_START;    % start of the processing session
         sss_date_stop =  Prj_Settings.SSS_DATE_STOP;     % end of the processing session
         sss_id_list =    Prj_Settings.SSS_ID_LIST;       % id character sequence to be use for the session $(S) special keyworc
         sss_id_start =   Prj_Settings.SSS_ID_START;      % first session id (char of sss_id_list)
         sss_id_stop =    Prj_Settings.SSS_ID_STOP;       % last session id (char of sss_id_list)
-        
+
         sss_file_based = Prj_Settings.SSS_FILE_BASED;
         sss_duration   = Prj_Settings.SSS_DURATION;
         sss_buffer     = Prj_Settings.SSS_BUFFER;
-        
+
         flag_smooth_tropo_out = Prj_Settings.FLAG_SMOOTH_TROPO_OUT;
         flag_separate_coo_at_boundary = Prj_Settings.FLAG_SEPARATE_COO_AT_BOUNDARY;
 
@@ -700,7 +724,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         % Centers for computation of orbits and other related parameters
         flag_download = Prj_Settings.FLAG_DOWNLOAD;         % enable auto download of missing resources
         flag_no_resources = Prj_Settings.FLAG_NO_RESOURCES; % one true no resources are used => no orbits are computed -> useful in limited scenarios
-        
+
         preferred_eph = Prj_Settings.PREFERRED_EPH;         % kind of orbits to prefer
         preferred_iono = Prj_Settings.PREFERRED_IONO;
         selected_orbit_center = Prj_Settings.SELECTED_ORBIT_CENTER;
@@ -736,7 +760,20 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
         atx_dir = Prj_Settings.ATX_DIR;    % Location of the antex file
         atx_name = Prj_Settings.ATX_NAME;  % Location of the antex file
-        
+
+        mask_dir = Prj_Settings.MASK_DIR;  % Location of the mask
+
+        sigma_dir = Prj_Settings.SIGMA_DIR;% Location of the Zernike multipath files
+
+        mp_dir = Prj_Settings.MP_DIR;      % Location of the Zernike multipath files
+        mp_regular_nxm = Prj_Settings.MP_REGULAR_NXM;
+        mp_regular_up_nxm = Prj_Settings.MP_REGULAR_UP_NXM;
+        mp_congruent_nxm = Prj_Settings.MP_CONGRUENT_NXM;
+        mp_congruent_up_nxm = Prj_Settings.MP_CONGRUENT_UP_NXM;
+        mp_l_max = Prj_Settings.MP_L_MAX;
+        mp_zcongruent_up_nxm = Prj_Settings.MP_ZCONGRUENT_UP_NXM;
+        mp_n_min = Prj_Settings.MP_N_MIN;
+
         %------------------------------------------------------------------
         % REFERENCE
         %------------------------------------------------------------------
@@ -771,13 +808,13 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         out_dir = Prj_Settings.OUT_DIR;        % Directory containing the output of the project
         out_prefix = Prj_Settings.OUT_PREFIX;  % Every time a solution is computed a folder with prefix followed by the run number is created
         out_full_path;                        % Full prefix of the putput files generated during runtime from the provided parameters
-        
+
         save_log = Prj_Settings.SAVE_LOG;
 
         % This parameter store the current run number
         run_counter = Prj_Settings.RUN_COUNTER;
         run_counter_is_set = false; % When importing the run counter, check if is set -> when set overwrite output
-                
+
         %------------------------------------------------------------------
         % ADVANCED RECEIVER DEFAULT PARAMETERS
         %------------------------------------------------------------------
@@ -803,12 +840,12 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         % object containing info on the activated constellations
         cc =  Prj_Settings.CC;
         % Minimum percentage of epochs to consider a receiver valid
-        min_p_epoch = Prj_Settings.MIN_P_EPOCH;      
+        min_p_epoch = Prj_Settings.MIN_P_EPOCH;
         % Maximum percentage of bad observations to consider the receiver valid
-        max_bad_obs = Prj_Settings.MAX_BAD_OBS;              
+        max_bad_obs = Prj_Settings.MAX_BAD_OBS;
         % Minimum number of satellites needed to process a valid epoch
         min_n_sat = Prj_Settings.MIN_N_SAT;
-       
+
         % Cut-off [degrees]
         cut_off = Prj_Settings.CUT_OFF;
         % Signal-to-noise ratio threshold [dB]
@@ -834,18 +871,18 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         max_phase_err_thr = Prj_Settings.MAX_PHASE_ERR_THR;
         % Remove eclipsing satellites
         remove_eclipsing_satellites = Prj_Settings.REMOVE_ECLIPSING_SATELLITES;
-        
+
 
         %------------------------------------------------------------------
         % PROCESSING PARAMETERS
         %------------------------------------------------------------------
 
         % Flag for enabling cycle slip restoration
-        flag_repair = Prj_Settings.FLAG_REPAIR;                
-        
+        flag_repair = Prj_Settings.FLAG_REPAIR;
+
         % Flag for enabling trackings combination
         flag_combine_trk = Prj_Settings.FLAG_COMBINE_TRK;
-        
+
 
         % Parameter used to select the weightening mode for GPS observations
         w_mode = Prj_Settings.W_MODE;
@@ -856,14 +893,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         % PPP re-weight / snooping
         ppp_reweight_mode = Prj_Settings.PPP_REWEIGHT_MODE;
         net_reweight_mode = Prj_Settings.NET_REWEIGHT_MODE;
-        
+
         flag_ppp_force_single_freq = Prj_Settings.FLAG_PPP_FORCE_SINGLE_FREQ;
 
-        flag_ppp_amb_fix = Prj_Settings.FLAG_PPP_AMB_FIX;                
-        net_amb_fix_approach = Prj_Settings.NET_AMB_FIX_APPROACH;        
-        
-        flag_amb_pass = Prj_Settings.FLAG_AMB_PASS; 
-        
+        flag_ppp_amb_fix = Prj_Settings.FLAG_PPP_AMB_FIX;
+        net_amb_fix_approach = Prj_Settings.NET_AMB_FIX_APPROACH;
+
+        flag_amb_pass = Prj_Settings.FLAG_AMB_PASS;
+
         % Flag for enabling the usage of iono-free combination
         iono_management  = Prj_Settings.IONO_MANAGEMENT;
         flag_clock_align = Prj_Settings.FLAG_CLOCK_ALIGN;
@@ -875,13 +912,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         flag_atm_load    = Prj_Settings.FLAG_ATM_LOAD;
         flag_hoi         = Prj_Settings.FLAG_HOI;
         flag_rec_pcv     = Prj_Settings.FLAG_REC_PCV;
+        flag_rec_mp      = Prj_Settings.FLAG_REC_MP;
         flag_apr_iono    = Prj_Settings.FLAG_APR_IONO;
-        
+
         flag_coo_rate     = Prj_Settings.FLAG_COO_RATE;
         coo_rates         = Prj_Settings.COO_RATES;
-        
+
         trp_out_rate      = Prj_Settings.TRP_OUT_RATE;
-        
+
         %------------------------------------------------------------------
         % ATMOSPHERE
         %------------------------------------------------------------------
@@ -910,17 +948,17 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         %sigma0_tropo = Prj_Settings.SIGMA0_TROPO;
         %sigma0_tropo_gradient = Prj_Settings.SIGMA0_TROPO_GRADIENT;
         % Std of tropospheric delay [m / h]
-        
+
         tropo_spatial_reg_sigma = Prj_Settings.TROPO_SPATIAL_REG_SIGMA;
         tropo_spatial_reg_d_distance = Prj_Settings.TROPO_SPATIAL_REG_D_DISTANCE;
         tropo_gradient_spatial_reg_sigma = Prj_Settings.TROPO_GRADIENT_SPATIAL_REG_SIGMA;
         tropo_gradient_spatial_reg_d_distance = Prj_Settings.TROPO_GRADIENT_SPATIAL_REG_D_DISTANCE;
-        
+
         %------------------------------------------------------------------
         % UNDIFFERNCED PARAMETRIZATION
         %------------------------------------------------------------------
-        
-        
+
+
         flag_coo_ppp            = Prj_Settings.FLAG_COO_PPP;
         flag_coo_net            = Prj_Settings.FLAG_COO_NET;
         tparam_coo_ppp          = Prj_Settings.TPARAM_COO_PPP;
@@ -1031,27 +1069,27 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         areg_sat_trkbias_net    = Prj_Settings.AREG_SAT_TRKBIAS_NET;
         dreg_sat_trkbias_ppp    = Prj_Settings.DREG_SAT_TRKBIAS_PPP;
         dreg_sat_trkbias_net    = Prj_Settings.DREG_SAT_TRKBIAS_NET;
-        
-        
-        
+
+
+
         %------------------------------------------------------------------
         % OUTPUT TO KEEP
         %------------------------------------------------------------------
-        
+
         flag_out_dt = true;         % Dt
-        
+
         flag_out_pwv = true;        % PWV
         flag_out_zwd = true;        % ZWD
         flag_out_ztd = true;        % ZTD
         flag_out_tropo_g = true;    % gradients
         flag_out_apr_tropo = true;  % a-priori values
-        
+
         flag_out_pth = true;        % pressure  / temperature / humidity
-        
-        flag_out_ocs = true;        % outliers and cycle slips        
-        flag_out_quality = true;    % quality (SNR)        
-        flag_out_nspe = true;       % quality (number of satellite per epoch)        
-        flag_out_azel = true;       % azimuth / elevation        
+
+        flag_out_ocs = true;        % outliers and cycle slips
+        flag_out_quality = true;    % quality (SNR)
+        flag_out_nspe = true;       % quality (number of satellite per epoch)
+        flag_out_azel = true;       % azimuth / elevation
         flag_out_res_co = true;     % combined residuals
         flag_out_res_pr = true;     % code residuals
         flag_out_res_ph = true;     % phase residuals
@@ -1088,7 +1126,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             else
                 ini_settings_file = this.LAST_SETTINGS;
             end
-            
+
             if (nargin >= 1) && isa(ini_settings_file,'Prj_Settings')
                 this.import(ini_settings_file);
             else
@@ -1116,10 +1154,10 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   s_obj.import(state)
 
             fnp = File_Name_Processor;
-            
+
             if isa(state, 'Ini_Manager')
                 log = Core.getLogger();
-                
+
                 % PROJECT
                 this.prj_name   = fnp.checkPath(state.getData('prj_name'), this.getHomeDir());
                 if isempty(fnp.getPath(state.file_name))
@@ -1155,19 +1193,19 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.sss_id_list = state.getData('sss_id_list');
                 this.sss_id_start = state.getData('sss_id_start');
                 this.sss_id_stop = state.getData('sss_id_stop');
-                
+
                 this.sss_file_based = state.getData('sss_file_based');
                 this.sss_duration   = state.getData('sss_duration');
                 this.sss_buffer     = state.getData('sss_buffer');
 
                 this.flag_smooth_tropo_out  = state.getData('flag_smooth_tropo_out');
                 this.flag_separate_coo_at_boundary = state.getData('flag_separate_coo_at_boundary');
-                
+
                 % STATIONS
                 this.obs_dir  = fnp.getFullDirPath(state.getData('obs_dir'), this.prj_home, pwd);
                 this.obs_name = fnp.checkPath(state.getData('obs_name'), this.getHomeDir());
                 this.obs_full_name = {};
-                
+
                 this.rec_dyn_mode = state.getData('rec_dyn_mode');
 
                 this.crd_dir    = fnp.getFullDirPath(state.getData('crd_dir'), this.prj_home, [], fnp.getFullDirPath(fnp.checkPath(this.(upper('crd_dir')), this.prj_home), this.prj_home));
@@ -1191,16 +1229,16 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
                 % COMPUTATION CENTERS
                 this.flag_download = state.getData('flag_download');
-                
+
                 this.preferred_eph = state.getData('preferred_eph');
                 this.preferred_iono = state.getData('preferred_iono');
                 this.selected_orbit_center = state.getData('selected_orbit_center');
                 this.selected_iono_center = state.getData('selected_iono_center');
                 this.selected_bias_center = state.getData('selected_bias_center');
-                
+
                 this.preferred_vmf_res = state.getData('preferred_vmf_res');
                 this.preferred_vmf_source = state.getData('preferred_vmf_source');
-                
+
                 if isempty(this.selected_orbit_center)
                     this.selected_orbit_center = 'default';
                 end
@@ -1210,7 +1248,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 if isempty(this.selected_bias_center)
                     this.selected_bias_center = 'none';
                 end
-                
+
                 % SATELLITES
                 this.eph_dir    = fnp.getFullDirPath(state.getData('eph_dir'), this.prj_home, [], fnp.getFullDirPath(fnp.checkPath(this.(upper('eph_dir')), this.prj_home), this.prj_home));
                 this.clk_dir    = fnp.getFullDirPath(state.getData('clk_dir'), this.prj_home, [], fnp.getFullDirPath(fnp.checkPath(this.(upper('clk_dir')), this.prj_home), this.prj_home));
@@ -1221,7 +1259,24 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 % ANTENNAS
                 this.atx_dir    = fnp.getFullDirPath(state.getData('atx_dir'), this.prj_home, pwd);
                 this.atx_name   = fnp.checkPath(state.getData('atx_name'), this.getHomeDir());
-                                
+
+                % MASK
+                this.mask_dir   = fnp.getFullDirPath(state.getData('mask_dir'), this.prj_home, pwd);
+
+                % SIGMAS
+                this.sigma_dir   = fnp.getFullDirPath(state.getData('sigma_dir'), this.prj_home, pwd);
+
+                % MULTIPATH
+                this.mp_dir     = fnp.getFullDirPath(state.getData('mp_dir'), this.prj_home, pwd);
+
+                this.mp_regular_nxm = state.getData('mp_regular_nxm');
+                this.mp_regular_up_nxm = state.getData('mp_regular_up_nxm');
+                this.mp_congruent_nxm = state.getData('mp_congruent_nxm');
+                this.mp_congruent_up_nxm = state.getData('mp_congruent_up_nxm');
+                this.mp_l_max = state.getData('mp_l_max');
+                this.mp_zcongruent_up_nxm = state.getData('mp_zcongruent_up_nxm');
+                this.mp_n_min = state.getData('mp_n_min');
+
                 % OUTPUT
                 this.out_dir = fnp.getFullDirPath(state.getData('out_dir'), this.prj_home, [], fnp.getFullDirPath(fnp.checkPath(this.(upper('out_dir')), this.prj_home), this.prj_home));
                 if ~exist(this.out_dir, 'dir')
@@ -1230,8 +1285,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 end
                 this.out_prefix = fnp.checkPath(state.getData('out_prefix'), this.getHomeDir());
                 %this.run_counter = state.getData('run_counter'); % not currently used
-                this.run_counter_is_set = ~isempty(this.run_counter);                
-                
+                this.run_counter_is_set = ~isempty(this.run_counter);
+
                 % RECEIVER DEFAULT PARAMETERS
                 this.std_code = state.getData('std_code');
                 this.std_phase = state.getData('std_phase');
@@ -1254,12 +1309,12 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
                 % ADV DATA SELECTION
                 this.flag_outlier = state.getData('flag_outlier');
-                
+
                 this.pp_spp_thr = state.getData('pp_spp_thr');
                 this.pp_max_code_err_thr = state.getData('pp_max_code_err_thr');
                 this.max_code_err_thr = state.getData('max_code_err_thr');
                 this.max_phase_err_thr = state.getData('max_phase_err_thr');
-                
+
                 % for legacy reasons
                 if isempty(this.max_code_err_thr)
                     this.max_code_err_thr = state.getData('pp_max_code_err_thr');
@@ -1269,25 +1324,25 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                     this.max_phase_err_thr = state.getData('pp_max_phase_err_thr');
                 end
                 this.remove_eclipsing_satellites = state.getData('remove_eclipsing_satellites');
-                
+
                 % PROCESSING PARAMETERS
                 this.flag_repair = state.getData('flag_repair');
                 this.flag_combine_trk = state.getData('flag_combine_trk');
-                
+
                 this.w_mode = state.getData('w_mode');
-                
+
                 this.ppp_reweight_mode = state.getData('ppp_reweight_mode');
                 this.net_reweight_mode = state.getData('net_reweight_mode');
 
                 this.flag_ppp_force_single_freq = state.getData('flag_ppp_force_single_freq');
-                
-                this.flag_ppp_amb_fix = state.getData('flag_ppp_amb_fix');                
+
+                this.flag_ppp_amb_fix = state.getData('flag_ppp_amb_fix');
                 this.net_amb_fix_approach = state.getData('net_amb_fix_approach');
                 if isempty(this.net_amb_fix_approach) % compatibility mode
                     this.net_amb_fix_approach = state.getData('flag_net_amb_fix') + 1;
                 end
                 this.flag_amb_pass = state.getData('flag_amb_pass');
-                
+
                 this.flag_clock_align = state.getData('flag_clock_align');
                 this.flag_solid_earth = state.getData('flag_solid_earth');
                 this.flag_pole_tide = state.getData('flag_pole_tide');
@@ -1297,10 +1352,11 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.flag_atm_load = state.getData('flag_atm_load');
                 this.flag_hoi = state.getData('flag_hoi');
                 this.flag_rec_pcv = state.getData('flag_rec_pcv');
+                this.flag_rec_mp = state.getData('flag_rec_mp');
                 this.flag_apr_iono = state.getData('flag_apr_iono');
                 this.flag_coo_rate = state.getData('flag_coo_rate');
                 this.coo_rates     = state.getData('coo_rates');
-                
+
                 this.trp_out_rate = state.getData('trp_out_rate');
 
                 % ATMOSPHERE
@@ -1316,22 +1372,22 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 % ADV ATMOSPHERE
                 %this.sigma0_tropo  = state.getData('sigma0_tropo');
                 %this.sigma0_tropo_gradient  = state.getData('sigma0_tropo_gradient');
-                
+
                 this.tropo_spatial_reg_sigma   = state.getData('tropo_spatial_reg_sigma');
                 this.tropo_spatial_reg_d_distance   = state.getData('tropo_spatial_reg_d_distance');
                 this.tropo_gradient_spatial_reg_sigma   = state.getData('tropo_gradient_spatial_reg_sigma');
                 this.tropo_gradient_spatial_reg_d_distance   = state.getData('tropo_gradient_spatial_reg_d_distance');
-                
-                % OUTPUT TO KEEP                
+
+                % OUTPUT TO KEEP
                 this.flag_out_dt = state.getData('flag_out_dt');                % Dt
                 this.flag_out_pwv = state.getData('flag_out_pwv');              % PWV
                 this.flag_out_zwd = state.getData('flag_out_zwd');              % ZWD
                 this.flag_out_ztd = state.getData('flag_out_ztd');              % ZTD
                 this.flag_out_tropo_g = state.getData('flag_out_tropo_g');      % gradients
                 this.flag_out_apr_tropo = state.getData('flag_out_apr_tropo');  % a-priori values
-                
+
                 this.flag_out_pth = state.getData('flag_out_pth');              % pressure  / temperature / humidity
-                
+
                 this.flag_out_ocs = state.getData('flag_out_ocs');              % outliers and cycle slips
                 this.flag_out_quality = state.getData('flag_out_quality');      % quality (SNR)
                 this.flag_out_nspe = state.getData('flag_out_nspe');            % number of satellites per epoch
@@ -1343,7 +1399,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.flag_out_res_pr = state.getData('flag_out_res_pr');        % phase residuals
                 this.flag_out_res_ph = state.getData('flag_out_res_ph');        % code residuals
                 this.flag_out_mf = state.getData('flag_out_mf');                % mapping functions (wet / hydrostatic)
-                
+
                 this.flag_coo_ppp            = state.getData('flag_coo_ppp');
                 this.flag_coo_net            = state.getData('flag_coo_net');
                 this.tparam_coo_ppp          = state.getData('tparam_coo_ppp');
@@ -1359,83 +1415,83 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.flag_free_net_coo       = state.getData('flag_free_net_coo');
                 this.flag_ztd_ppp            = state.getData('flag_ztd_ppp');
                 if isempty(this.flag_ztd_ppp) % compatibility mode
-                    this.flag_ztd_ppp = state.getData('flag_tropo');       
+                    this.flag_ztd_ppp = state.getData('flag_tropo');
                 end
                 this.flag_ztd_net            = state.getData('flag_ztd_net');
                 if isempty(this.flag_ztd_net) % compatibility mode
-                    this.flag_ztd_net = state.getData('flag_tropo');       
+                    this.flag_ztd_net = state.getData('flag_tropo');
                 end
                 this.tparam_ztd_ppp          = state.getData('tparam_ztd_ppp');
                 if isempty(this.tparam_ztd_ppp) % compatibility mode
-                    this.tparam_ztd_ppp = state.getData('spline_tropo_order');       
+                    this.tparam_ztd_ppp = state.getData('spline_tropo_order');
                 end
                 this.tparam_ztd_net          = state.getData('tparam_ztd_net');
                 if isempty(this.tparam_ztd_net) % compatibility mode
-                    this.tparam_ztd_net = state.getData('spline_tropo_order');    
+                    this.tparam_ztd_net = state.getData('spline_tropo_order');
                 end
                 this.rate_ztd_ppp            = state.getData('rate_ztd_ppp');
                 if isempty(this.rate_ztd_ppp) % compatibility mode
-                    this.rate_ztd_ppp = state.getData('spline_rate_tropo');     
+                    this.rate_ztd_ppp = state.getData('spline_rate_tropo');
                 end
                 this.rate_ztd_net            = state.getData('rate_ztd_net');
                 if isempty(this.rate_ztd_net) % compatibility mode
-                    this.rate_ztd_net = state.getData('spline_rate_tropo');   
+                    this.rate_ztd_net = state.getData('spline_rate_tropo');
                 end
                 this.areg_ztd_ppp            = state.getData('areg_ztd_ppp');
                 if isempty(this.areg_ztd_ppp) % compatibility mode
-                    this.areg_ztd_ppp = state.getData('std_tropo_abs');   
+                    this.areg_ztd_ppp = state.getData('std_tropo_abs');
                 end
                 this.areg_ztd_net            = state.getData('areg_ztd_net');
                 if isempty(this.areg_ztd_net) % compatibility mode
-                    this.areg_ztd_net = state.getData('std_tropo_abs');   
+                    this.areg_ztd_net = state.getData('std_tropo_abs');
                 end
                 this.dreg_ztd_ppp            = state.getData('dreg_ztd_ppp');
                 if isempty(this.dreg_ztd_ppp) % compatibility mode
-                    this.dreg_ztd_ppp = state.getData('std_tropo');   
+                    this.dreg_ztd_ppp = state.getData('std_tropo');
                 end
                 this.dreg_ztd_net            = state.getData('dreg_ztd_net');
                 if isempty(this.dreg_ztd_net) % compatibility mode
-                    this.dreg_ztd_net = state.getData('std_tropo');   
+                    this.dreg_ztd_net = state.getData('std_tropo');
                 end
                 this.flag_grad_ppp           = state.getData('flag_grad_ppp');
                 if isempty(this.flag_grad_ppp) % compatibility mode
-                    this.flag_grad_ppp = state.getData('flag_tropo_gradient')+1;   
+                    this.flag_grad_ppp = state.getData('flag_tropo_gradient')+1;
                 end
                 this.flag_grad_net           = state.getData('flag_grad_net');
                 if isempty(this.flag_grad_net) % compatibility mode
-                    this.flag_grad_net = state.getData('flag_tropo_gradient');   
+                    this.flag_grad_net = state.getData('flag_tropo_gradient');
                 end
                 this.tparam_grad_ppp         = state.getData('tparam_grad_ppp');
                 if isempty(this.tparam_grad_ppp) % compatibility mode
-                    this.tparam_grad_ppp = state.getData('spline_tropo_gradient_order')+1;   
+                    this.tparam_grad_ppp = state.getData('spline_tropo_gradient_order')+1;
                 end
                 this.tparam_grad_net         = state.getData('tparam_grad_net');
                 if isempty(this.tparam_grad_net) % compatibility mode
-                    this.tparam_grad_net = state.getData('spline_tropo_gradient_order');   
+                    this.tparam_grad_net = state.getData('spline_tropo_gradient_order');
                 end
                 this.rate_grad_ppp           = state.getData('rate_grad_ppp');
                 if isempty(this.rate_grad_ppp) % compatibility mode
-                    this.rate_grad_ppp = state.getData('spline_rate_tropo_gradient');   
+                    this.rate_grad_ppp = state.getData('spline_rate_tropo_gradient');
                 end
                 this.rate_grad_net           = state.getData('rate_grad_net');
                 if isempty(this.rate_grad_net) % compatibility mode
-                    this.rate_grad_net = state.getData('spline_rate_tropo_gradient');   
+                    this.rate_grad_net = state.getData('spline_rate_tropo_gradient');
                 end
                 this.areg_grad_ppp           = state.getData('areg_grad_ppp');
                 if isempty(this.areg_grad_ppp) % compatibility mode
-                    this.areg_grad_ppp = state.getData('std_tropo_gradient_abs');   
+                    this.areg_grad_ppp = state.getData('std_tropo_gradient_abs');
                 end
                 this.areg_grad_net           = state.getData('areg_grad_net');
                 if isempty(this.areg_grad_net) % compatibility mode
-                    this.areg_grad_net = state.getData('std_tropo_gradient_abs');   
+                    this.areg_grad_net = state.getData('std_tropo_gradient_abs');
                 end
                 this.dreg_grad_ppp           = state.getData('dreg_grad_ppp');
                 if isempty(this.dreg_grad_ppp) % compatibility mode
-                    this.dreg_grad_ppp = state.getData('std_tropo_gradient');   
+                    this.dreg_grad_ppp = state.getData('std_tropo_gradient');
                 end
                 this.dreg_grad_net           = state.getData('dreg_grad_net');
                 if isempty(this.dreg_grad_net) % compatibility mode
-                    this.dreg_grad_net = state.getData('std_tropo_gradient');   
+                    this.dreg_grad_net = state.getData('std_tropo_gradient');
                 end
                 this.flag_sreg_ztd_ppp       = state.getData('flag_sreg_ztd_ppp');
                 this.sreg_ztd_p1_ppp         = state.getData('sreg_ztd_p1_ppp');
@@ -1449,7 +1505,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.flag_sreg_grad_net      = state.getData('flag_sreg_grad_net');
                 this.sreg_grad_p1_net        = state.getData('sreg_grad_p1_net');
                 this.sreg_grad_p2_net        = state.getData('sreg_grad_p2_net');
-                
+
                 this.flag_free_net_tropo     = state.getData('flag_free_net_tropo');
                 this.flag_iono_ppp           = state.getData('flag_iono_ppp');
                 this.flag_iono_net           = state.getData('flag_iono_net');
@@ -1459,12 +1515,12 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.flag_sreg_iono_net      = state.getData('flag_sreg_iono_net');
                 this.sreg_iono_p1_net        = state.getData('sreg_iono_p1_net');
                 this.sreg_iono_p2_net        = state.getData('sreg_iono_p2_net');
-                
+
                 this.flag_rec_clock_ppp      = state.getData('flag_rec_clock_ppp');
                 this.flag_rec_clock_net      = state.getData('flag_rec_clock_net');
                 this.flag_phpr_rec_clock_ppp = state.getData('flag_phpr_rec_clock_ppp');
                 this.flag_phpr_rec_clock_net = state.getData('flag_phpr_rec_clock_net');
-                
+
                 this.areg_rec_clock_ppp      = state.getData('areg_rec_clock_ppp');
                 this.areg_rec_clock_net      = state.getData('areg_rec_clock_net');
                 this.dreg_rec_clock_ppp      = state.getData('dreg_rec_clock_ppp');
@@ -1529,7 +1585,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             else
                 % PARALLELISM
                 this.com_dir = state.com_dir;
-                
+
                 % PROJECT
                 this.prj_name   = state.prj_name;
                 this.prj_home   = state.prj_home;
@@ -1541,7 +1597,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.sss_id_list = state.sss_id_list;
                 this.sss_id_start = state.sss_id_start;
                 this.sss_id_stop = state.sss_id_stop;
-                
+
                 this.sss_file_based = state.sss_file_based;
                 this.sss_duration   = state.sss_duration;
                 this.sss_buffer     = state.sss_buffer;
@@ -1555,7 +1611,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.obs_full_name = {};
 
                 this.rec_dyn_mode = state.rec_dyn_mode;
-                
+
                 this.crd_dir     = state.crd_dir;
                 this.crd_name    = state.crd_name;
                 this.met_dir     = state.met_dir;
@@ -1577,13 +1633,13 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
                 % COMPUTATION CENTERS
                 this.flag_download = state.flag_download;
-                
+
                 this.preferred_eph = state.preferred_eph;
                 this.preferred_iono = state.preferred_iono;
                 this.selected_orbit_center = state.selected_orbit_center;
                 this.selected_iono_center = state.selected_iono_center;
                 this.selected_bias_center = state.selected_bias_center;
-                
+
                 this.preferred_vmf_res = state.preferred_vmf_res;
                 this.preferred_vmf_source = state.preferred_vmf_source;
 
@@ -1599,14 +1655,30 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 % ANTENNA
                 this.atx_dir     = state.atx_dir;
                 this.atx_name    = state.atx_name;
-                                
+
+                % MASK
+                this.mask_dir    = state.mask_dir;
+
+                % SIGMAS
+                this.sigma_dir   = state.sigma_dir;
+
+                % MULTIPATH
+                this.mp_dir      = state.mp_dir;
+                this.mp_regular_nxm = state.mp_regular_nxm;
+                this.mp_regular_up_nxm = state.mp_regular_up_nxm;
+                this.mp_congruent_nxm = state.mp_congruent_nxm;
+                this.mp_congruent_up_nxm = state.mp_congruent_up_nxm;
+                this.mp_l_max = state.mp_l_max;
+                this.mp_zcongruent_up_nxm = state.mp_zcongruent_up_nxm;
+                this.mp_n_min = state.mp_n_min;
+
                 % OUTPUT
                 this.out_dir = state.out_dir;
                 this.out_prefix = state.out_prefix;
                 this.run_counter = state.run_counter;
                 this.run_counter_is_set = ~isempty(this.run_counter);
-                
-                
+
+
                 % ADV RECEIVER DEFAULT PARAMETERS
                 this.std_code = state.std_code;
                 this.std_phase = state.std_phase;
@@ -1632,19 +1704,19 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.remove_eclipsing_satellites = state.remove_eclipsing_satellites;
 
                 % PROCESSING PARAMETERS
-                this.flag_repair = state.flag_repair;   
-                this.flag_combine_trk = state.flag_combine_trk;   
-                
+                this.flag_repair = state.flag_repair;
+                this.flag_combine_trk = state.flag_combine_trk;
+
                 this.w_mode = state.w_mode;
                 this.ppp_reweight_mode = state.ppp_reweight_mode;
                 this.net_reweight_mode = state.net_reweight_mode;
-                
+
                 this.flag_ppp_force_single_freq = state.flag_ppp_force_single_freq;
 
                 this.flag_ppp_amb_fix = state.flag_ppp_amb_fix;
                 this.net_amb_fix_approach = state.net_amb_fix_approach;
                 this.flag_amb_pass = state.flag_amb_pass;
-                
+
                 this.flag_clock_align = state.flag_clock_align;
                 this.flag_solid_earth = state.flag_solid_earth;
                 this.flag_pole_tide = state.flag_pole_tide;
@@ -1654,13 +1726,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.flag_atm_load = state.flag_atm_load;
                 this.flag_hoi = state.flag_hoi;
                 this.flag_rec_pcv = state.flag_rec_pcv;
+                this.flag_rec_mp = state.flag_rec_mp;
                 this.flag_apr_iono = state.flag_apr_iono;
-                
+
                 this.flag_coo_rate = state.flag_coo_rate;
                 this.coo_rates     = state.coo_rates;
-                
+
                 this.trp_out_rate = state.trp_out_rate;
-               
+
                 % ATMOSPHERE
                 this.flag_free_net_tropo = state.flag_free_net_tropo;
                 this.iono_management = state.iono_management;
@@ -1674,13 +1747,13 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 % ADV ATMOSPHERE
                 %this.sigma0_tropo = state.sigma0_tropo;
                 %this.sigma0_tropo_gradient = state.sigma0_tropo_gradient;
-                
+
                 this.tropo_spatial_reg_sigma = state.tropo_spatial_reg_sigma;
                 this.tropo_spatial_reg_d_distance = state.tropo_spatial_reg_d_distance;
                 this.tropo_gradient_spatial_reg_sigma = state.tropo_gradient_spatial_reg_sigma;
                 this.tropo_gradient_spatial_reg_d_distance = state.tropo_gradient_spatial_reg_d_distance;
-                
-                
+
+
                 % OUTPUT TO KEEP
                 this.flag_out_dt = state.flag_out_dt;                % PWV
 
@@ -1689,9 +1762,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.flag_out_ztd = state.flag_out_ztd;              % ZTD
                 this.flag_out_tropo_g = state.flag_out_tropo_g;      % gradients
                 this.flag_out_apr_tropo = state.flag_out_apr_tropo;  % a-priori values
-                
+
                 this.flag_out_pth = state.flag_out_pth;              % pressure  / temperature / humidity
-                
+
                 this.flag_out_ocs = state.flag_out_ocs;              % outliers and cycle slips
                 this.flag_out_quality = state.flag_out_quality;      % quality (SNR)
                 this.flag_out_nspe = state.flag_out_nspe;            % number of satellites per epoch
@@ -1699,9 +1772,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.flag_out_res_co = state.flag_out_res_co;        % combined residuals
                 this.flag_out_res_pr = state.flag_out_res_pr;        % code residuals
                 this.flag_out_res_ph = state.flag_out_res_ph;        % phase residuals
-                this.flag_out_mf = state.flag_out_mf;                % mapping functions (wet / hydrostatic)     
-                
-                
+                this.flag_out_mf = state.flag_out_mf;                % mapping functions (wet / hydrostatic)
+
+
                 % undifferenced paramters
                 this.flag_coo_ppp            = state.flag_coo_ppp;
                 this.flag_coo_net            = state.flag_coo_net;
@@ -1814,7 +1887,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.dreg_sat_trkbias_ppp    = state.dreg_sat_trkbias_ppp;
                 this.dreg_sat_trkbias_net    = state.dreg_sat_trkbias_net;
             end
-            
+
             this.eph_full_name = '';
             this.clk_full_name = '';
             this.erp_full_name = '';
@@ -1841,7 +1914,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             fnp = File_Name_Processor();
             str = [str '---- PARALLELISM ----------------------------------------------------------' 10 10];
             str = [str sprintf(' Path to communication dir for custom MPI:         %s\n\n', fnp.getFullDirPath(this.com_dir, pwd))];
-            
+
             str = [str '---- PROJECT --------------------------------------------------------------' 10 10];
             str = [str sprintf(' Project name:                                     %s\n', this.prj_name)];
             str = [str sprintf(' Project home:                                     %s\n', fnp.getFullDirPath(this.prj_home, pwd))];
@@ -1855,11 +1928,11 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Character sequence to be used for the sessions    %s \n', this.sss_id_list)];
             str = [str sprintf(' First session char                                %c \n', this.sss_id_start)];
             str = [str sprintf(' Last session char                                 %c \n', this.sss_id_stop)];
-            
+
             str = [str sprintf(' Session management file based                     %d \n', this.sss_file_based)];
             str = [str sprintf(' Duration of the session                           %d \n', this.sss_duration  )];
             str = [str sprintf(' Overlap of the sessions [left right]              %d %d \n', this.sss_buffer(1), this.sss_buffer(end))];
-            
+
             str = [str '---- INPUT: STATIONS  -----------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of the observation files                %s \n', fnp.getRelDirPath(this.obs_dir, this.prj_home))];
             str = [str sprintf(' Name of the observation files                     %s%s\n', strCell2Str(this.obs_name(1:min(30, numel(this.obs_name))), ', '), iif(numel(this.obs_name) < 30, '', ', [... line too long ...]'))];
@@ -1871,7 +1944,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Name of ocean loading file:                       %s\n\n', this.ocean_name)];
             str = [str sprintf(' Smooth tropospheric outputs :                     %d\n', this.flag_smooth_tropo_out)];
             str = [str sprintf(' Separate coordinates for boundaries:              %d\n\n', this.flag_separate_coo_at_boundary)];
-            
+
             str = [str '---- INPUT: REFERENCE ------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of ERP files:                           %s\n', fnp.getRelDirPath(this.erp_dir, this.prj_home))];
             str = [str sprintf(' Name of ERP files:                                %s\n', this.erp_name)];
@@ -1886,7 +1959,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Name of the tidal Atmospehric Loading files:      %s\n', this.atm_load_name_t)];
             str = [str sprintf(' Directory of Vienna Mapping Function coefficients:%s\n', fnp.getRelDirPath(this.vmf_dir, this.prj_home))];
             str = [str sprintf(' Name of Vienna Mapping Function coefficients:     %s\n\n', this.vmf_name)];
-            
+
             str = [str '---- COMPUTATION CENTER ---------------------------------------------------' 10 10];
             str = [str sprintf(' List of server to be used for downloading ephemeris\n')];
             str = [str sprintf(' Try to download the missing resources:            %d\n\n', this.flag_download)];
@@ -1897,7 +1970,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Selected bias center:                             %s\n', strCell2Str(this.selected_bias_center))];
             str = [str sprintf(' Selected VMF resolution:                          %s\n', strCell2Str(this.preferred_vmf_res))];
             str = [str sprintf(' Selected VMF source:                              %s\n\n', strCell2Str(this.preferred_vmf_source))];
-            
+
             str = [str '---- INPUT: SATELLITE ------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of Ephemeris files:                     %s\n', fnp.getRelDirPath(this.eph_dir, this.prj_home))];
             str = [str sprintf(' Name of Ephemeris files:                          %s\n', this.eph_name)];
@@ -1906,10 +1979,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Directory of CRX (satellite problems):            %s\n', fnp.getRelDirPath(this.crx_dir, this.prj_home))];
             str = [str sprintf(' Directory of Biases:                              %s\n', fnp.getRelDirPath(this.bias_dir, this.prj_home))];
             str = [str sprintf(' Directory of EMS (EGNOS Message Server):          %s\n\n', fnp.getRelDirPath(this.ems_dir, this.prj_home))];
-            
+
             str = [str '---- INPUT: ANTENNAS -------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of antennas (atx) files                 %s \n', fnp.getRelDirPath(this.atx_dir))];
             str = [str sprintf(' Antenna antex (ATX) file                          %s \n\n', this.atx_name)];
+
+            str = [str '---- MASK -------------------------------------------------------------------' 10 10];
+            str = [str sprintf(' Directory of mask files                           %s \n\n', fnp.getRelDirPath(this.mask_dir))];
+
 
             str = [str '---- OUTPUT SETTINGS ------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory containing the output of the project:   %s\n', fnp.getRelDirPath(this.out_dir, this.prj_home))];
@@ -1920,7 +1997,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             else
                 str = [str sprintf(' Run counter has not been previously set \n => it will be set automatically to avoid overwriting of the oputputs\n\n')];
             end
-            
+
             str = [str '---- ADV RECEIVERS -------------------------------------------------------' 10 10];
             str = [str sprintf(' Default STD of code observations [m]:             %g\n', this.std_code)];
             str = [str sprintf(' Default STD of phase observations [m]:            %g\n', this.std_phase)];
@@ -1945,14 +2022,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Threshold on max residual of code obs [m]:        %g\n', this.max_code_err_thr)];
             str = [str sprintf(' Threshold on max residual of phase obs [m]:       %g\n', this.max_phase_err_thr)];
             str = [str sprintf(' Remove eclised/eclipsing satellites:              %g\n\n', this.remove_eclipsing_satellites)];
-            
+
             str = [str '---- PROCESSING PARAMETERS -----------------------------------------------' 10 10];
             str = [str sprintf(' Enable cycle slip repair                          %d\n', this.flag_repair)];
             str = [str sprintf(' Enable phase tracking combination                 %d\n\n', this.flag_combine_trk)];
             str = [str sprintf(' Using %s\n\n', this.W_SMODE{this.w_mode + 1})];
             str = [str sprintf(' PPP Using rewight/snooping:                       %s\n\n', this.PPP_REWEIGHT_SMODE{this.ppp_reweight_mode})];
             str = [str sprintf(' PPP Enable for single frequency receiverrs:       %d\n\n', this.flag_ppp_force_single_freq)];
-            str = [str sprintf(' PPP Enable ambiguity fixing:                      %d\n\n', this.flag_ppp_amb_fix)];            
+            str = [str sprintf(' PPP Enable ambiguity fixing:                      %d\n\n', this.flag_ppp_amb_fix)];
             str = [str sprintf(' NET Using rewight/snooping:                       %s\n\n', this.NET_REWEIGHT_SMODE{this.net_reweight_mode})];
             str = [str sprintf(' NET Enable ambiguity fixing:                      %s\n\n', this.NET_AMB_FIX_SMODE{this.net_amb_fix_approach})];
             str = [str sprintf(' Pass ambiguity:                                   %d\n', this.flag_amb_pass)];
@@ -1966,9 +2043,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Enable high order ionosphere and bending:         %d\n', this.flag_hoi)];
             str = [str sprintf(' Enable Receiver pcv/pco corrections:              %d\n', this.flag_rec_pcv)];
             str = [str sprintf(' Enable apriori iono correction:                   %d\n\n', this.flag_apr_iono)];
-            str = [str sprintf(' Addtional coordinates estimation:                 %d\n', this.flag_coo_rate)];            
+            str = [str sprintf(' Addtional coordinates estimation:                 %d\n', this.flag_coo_rate)];
             str = [str sprintf(' Rate of the additional coordinate:                %d %d %d\n\n', this.coo_rates(1), this.coo_rates(2), this.coo_rates(3) )];
-            
+
             str = [str sprintf(' Rate of the exported tropospheric parameters:     %g\n\n', this.trp_out_rate)];
 
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
@@ -1980,14 +2057,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Gradient mapping function                         %s\n', this.MFG_SMODE{this.mapping_function_gradient})];
 
             str = [str sprintf(' Meteo data model                                  %s\n\n', this.MD_SMODE{this.meteo_data})];
-            
+
             str = [str '---- ADV ATMOSPHERE ------------------------------------------------------' 10 10];
            str = [str sprintf(' Spatial regualrization ztd [m^2]:                 %g\n', this.tropo_spatial_reg_sigma)];
             str = [str sprintf(' Spatial regualrization ztd halving distance [m]:  %g\n', this.tropo_spatial_reg_d_distance)];
-          
+
             str = [str sprintf(' Spatial reg. ztd gardients halving distance [m]:  %g\n\n', this.tropo_gradient_spatial_reg_d_distance)];
             str = this.toString@Command_Settings(str);
-            
+
             str = [str 10 '---- RESULTS KEEP IN OUT -------------------------------------------------' 10 10];
             str = [str sprintf(' Keep Dt                                           %d\n', this.flag_out_dt)];
             str = [str sprintf(' Keep PWV                                          %d\n', this.flag_out_pwv)];
@@ -1995,9 +2072,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' Keep ZTD                                          %d\n', this.flag_out_ztd)];
             str = [str sprintf(' Keep tropospheric gradientents                    %d\n', this.flag_out_tropo_g)];
             str = [str sprintf(' Keep a-priori troposphere                         %d\n', this.flag_out_apr_tropo)];
-            
+
             str = [str sprintf(' Keep pressure / temperature / humidity            %d\n', this.flag_out_pth)];
-            
+
             str = [str sprintf(' Keep satellite outlier flags and cycle slips      %d\n', this.flag_out_ocs)];
             str = [str sprintf(' Keep satellite quality (snr)                      %d\n', this.flag_out_quality)];
             str = [str sprintf(' Keep satellite number of satellite per epoch      %d\n', this.flag_out_nspe)];
@@ -2188,7 +2265,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('crd_dir', fnp.getRelDirPath(this.crd_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Name of coordinates (CRD) file', str_cell);
             str_cell = Ini_Manager.toIniString('crd_name', this.crd_name, str_cell);
-            
+
             str_cell = Ini_Manager.toIniStringComment('Set the a-priori information on the motion of the receiver', str_cell);
             str_cell = Ini_Manager.toIniString('rec_dyn_mode', this.rec_dyn_mode, str_cell);
             for i = 1 : numel(this.DYN_MODE)
@@ -2334,7 +2411,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('atx_name', this.atx_name, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
-        
+
         function str_cell = exportIO_output(this, str_cell)
             % Export IO output parameters as ini file syntax
             %
@@ -2357,7 +2434,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %str_cell = Ini_Manager.toIniStringComment('WARNING: when set it will be used, and can cause overwrites', str_cell);
             %str_cell = Ini_Manager.toIniString('run_counter', iif(this.run_counter_is_set, this.run_counter, []), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            
+
             % OUT TO KEEP
             str_cell = Ini_Manager.toIniStringSection('OUT TO KEEP', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Results to be keep in the "out" object stored in rec', str_cell);
@@ -2412,7 +2489,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Location of the communication dir for parallel message passing interface',str_cell);
             str_cell = Ini_Manager.toIniStringComment('Absolute or relative to execution path',str_cell);
-            
+
             str_cell = Ini_Manager.toIniString('com_dir', File_Name_Processor.getRelDirPath(this.com_dir, this.getHomeDir()), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
@@ -2426,7 +2503,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = this.exportIO_antenna(str_cell);
             str_cell = this.exportIO_output(str_cell);
         end
-        
+
         function str_cell = export(this, str_cell)
             % Conversion to string ini format of the minimal information needed to reconstruct the this
             %
@@ -2444,7 +2521,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
             str_cell = this.exportIO(str_cell);
-            
+
             % RECEIVER DEFAULT PARAMETERS
             str_cell = Ini_Manager.toIniStringSection('ADV RECEIVERS', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Default STD of code observations [m]', str_cell);
@@ -2491,7 +2568,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('max_phase_err_thr', this.max_phase_err_thr, str_cell);
             str_cell = Ini_Manager.toIniString('remove_eclipsing_satellites', this.remove_eclipsing_satellites, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            
+
             % PROCESSING PARAMETERS
             str_cell = Ini_Manager.toIniStringSection('PROCESSING', str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
@@ -2499,7 +2576,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('flag_repair', this.flag_repair, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable phase trackings combination', str_cell);
             str_cell = Ini_Manager.toIniString('flag_combine_trk', this.flag_combine_trk, str_cell);
-            
+
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Processing using weighting mode:', str_cell);
             str_cell = Ini_Manager.toIniString('w_mode', this.w_mode, str_cell);
@@ -2513,7 +2590,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             for i = 1 : numel(this.PPP_REWEIGHT_SMODE)
                 str_cell = Ini_Manager.toIniStringComment(sprintf('%s', this.PPP_REWEIGHT_SMODE{i}), str_cell);
             end
-            
+
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable PPP on single frequency receiver', str_cell);
             str_cell = Ini_Manager.toIniStringComment('This should be used only when REMIONO or a good iono model is provided', str_cell);
@@ -2521,7 +2598,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('PPP enable ambiguity fixing', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_ppp_amb_fix', this.flag_ppp_amb_fix, str_cell);           
+            str_cell = Ini_Manager.toIniString('flag_ppp_amb_fix', this.flag_ppp_amb_fix, str_cell);
 
             str_cell = Ini_Manager.toIniStringComment('NET processing using reweight/snooping mode:', str_cell);
             str_cell = Ini_Manager.toIniString('net_reweight_mode', this.net_reweight_mode, str_cell);
@@ -2538,11 +2615,11 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('Allow ambiguity passing from one session to the following (experimental)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_amb_pass', this.flag_amb_pass, str_cell);
 
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable corrections', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable re-alignment of satellite clocks (to compensate for discontinuities at the limits of validity)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_clock_align', this.flag_clock_align, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable solid earth tide corrections', str_cell);
             str_cell = Ini_Manager.toIniString('flag_solid_earth', this.flag_solid_earth, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable pole tide corrections', str_cell);
@@ -2562,13 +2639,13 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('Enable a-priori ', str_cell);
             str_cell = Ini_Manager.toIniString('flag_apr_iono', this.flag_apr_iono, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            
+
             str_cell = Ini_Manager.toIniStringComment('Separate the antenna phase center for each constellations', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Estimate additional coordinates set', str_cell);
             str_cell = Ini_Manager.toIniString('flag_coo_rate', this.flag_coo_rate, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Rate of the additional coordiates', str_cell);
             str_cell = Ini_Manager.toIniString('coo_rates', this.coo_rates, str_cell);
-            
+
             % ATMOSPHERE
             str_cell = Ini_Manager.toIniStringSection('ATMOSPHERE', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Management of ionosphere', str_cell);
@@ -2582,8 +2659,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             for i = 1 : numel(this.IONO_SMODE)
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.IONO_SMODE{i}), str_cell);
             end
-            
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);           
+
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Compute tropospheric indicators (e.g. ZTD):', str_cell);
             str_cell = Ini_Manager.toIniString('flag_free_net_tropo', this.flag_free_net_tropo, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
@@ -2595,7 +2672,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Mapping function', str_cell);
             str_cell = Ini_Manager.toIniString('mapping_function', this.mapping_function, str_cell);
-           
+
 
             for i = 1 : numel(this.MF_SMODE)
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.MF_SMODE{i}), str_cell);
@@ -2622,7 +2699,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment(sprintf('Spatial regularization tropo gradient halving distance [m] (default = %.0f)', this.TROPO_GRADIENT_SPATIAL_REG_D_DISTANCE), str_cell);
             str_cell = Ini_Manager.toIniString('tropo_gradient_spatial_reg_d_distance', this.tropo_gradient_spatial_reg_d_distance, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            
+
             str_cell = Ini_Manager.toIniStringSection('U2_PARAMETRIZATION', str_cell);
             str_cell = Ini_Manager.toIniStringComment(' Estimates coordinates in PPP', str_cell);
             str_cell = Ini_Manager.toIniString('flag_coo_ppp', this.flag_coo_ppp, str_cell);
@@ -2808,7 +2885,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniString('dreg_sat_trkbias_ppp', this.dreg_sat_trkbias_ppp, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Differential regularization satellite intertracking bias  in network [m/sqrt(h)]', str_cell);
             str_cell = Ini_Manager.toIniString('dreg_sat_trkbias_net', this.dreg_sat_trkbias_net, str_cell);
-            
+
             str_cell = Ini_Manager.toIniStringSection('UNDOCUMENTED', str_cell);
             str_cell = Ini_Manager.toIniString('sreg_iono_p2_net', this.sreg_iono_p2_net, str_cell);
             str_cell = Ini_Manager.toIniString('sreg_iono_p1_net', this.sreg_iono_p1_net, str_cell);
@@ -2953,7 +3030,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %
-            %   this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);            
+            %   this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
             switch nargin
                 case 2, [this.(field_name), is_existing] = this.checkString(field_name, this.(field_name), this.(upper(field_name)));
                 case 3, [this.(field_name), is_existing] = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
@@ -3000,7 +3077,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 otherwise, error('Settings checkNumericField called with the wrong number of parameters');
             end
         end
-        
+
         % File type specific ----------------------------------------------
 
         function file_path = checkCrdPath(this, file_path)
@@ -3058,7 +3135,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             if strcmp(file_path, filesep)
                 file_path = '';
             end
-        end        
+        end
 
         function file_path = checkOceanPath(this, file_path)
             % Check if the blq file exists, if not                                try                                                                to look for it into the default dirs
@@ -3142,7 +3219,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.checkStringField('cur_ini', EMPTY_IS_NOT_VALID);
 
             this.checkLogicalField('flag_download');
-            
+
             this.checkCellStringField('preferred_eph', EMPTY_IS_NOT_VALID);
             this.checkCellStringField('preferred_iono', EMPTY_IS_VALID);
             this.checkCellStringField('selected_orbit_center', EMPTY_IS_NOT_VALID);
@@ -3158,14 +3235,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('sss_file_based');
             this.checkNumericField('sss_duration', [0 365*86400]);
             this.checkNumericField('sss_buffer', [0 86400*10]);
-        
+
             this.checkPathField('out_dir', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
             this.checkPathField('obs_dir', EMPTY_IS_NOT_VALID, CHECK_EXISTENCE);
             this.checkCellStringField('obs_name', EMPTY_IS_NOT_VALID);
 
             this.checkPathField('atx_dir', EMPTY_IS_NOT_VALID);
             this.checkStringField('atx_name', EMPTY_IS_NOT_VALID);
-            
+
             this.checkPathField('eph_dir', EMPTY_IS_NOT_VALID);
             % When the ephemeris file inserted here is not found -> the automatic downloader will dowload the proper file
             this.checkStringField('eph_name', EMPTY_IS_VALID);
@@ -3239,7 +3316,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 for r = 1 : n_rec
 
                     if go_verbose
-                        log = Core.getLogger();            
+                        log = Core.getLogger();
                         log.addMessage(sprintf('Checking files for receiver %d', r));
                     end
                     file_name = file_name_all{r};
@@ -3374,7 +3451,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             end
         end
     end
-    
+
     % =========================================================================
     %%  DEFAULT PROJECT SETTERS
     % =========================================================================
@@ -3391,14 +3468,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.selected_iono_center = {'none'};
             this.preferred_vmf_res = {'1x1'};
             this.preferred_vmf_source = {'operational'  'forecast'};
-            
+
             % set std receiver data quality:
             this.std_code = 3;
             this.std_phase = 0.003;
             this.std_phase_if = 0.009;
             this.sigma0_clock = this.SIGMA0_CLOCK;
             this.sigma0_r_clock = this.SIGMA0_R_CLOCK;
-            
+
             % Data filtering
             this.min_p_epoch = 30;
             this.max_bad_obs = 75;
@@ -3412,7 +3489,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.max_code_err_thr = 30;
             this.max_phase_err_thr = 0.10;
             this.remove_eclipsing_satellites = true;
-            
+
             % Processing
             this.w_mode = 1; % same weight for all the observations
             this.ppp_reweight_mode = 9; % smart snooping + arc trim
@@ -3420,13 +3497,13 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.flag_ppp_force_single_freq = 0; % If you don't know what you are doing this is risky
 
             this.flag_repair = 0; % (too much experimental)
-            
+
             this.flag_combine_trk = 1; % Usually it improves the results
-            
+
             this.flag_amb_pass = 0;
             this.flag_ppp_amb_fix = 0; % not yet woking stable enough
             this.flag_amb_pass = 0; % (too much experimental)
-            
+
             % Corrections
             this.flag_clock_align = Prj_Settings.FLAG_CLOCK_ALIGN;
             this.flag_solid_earth = 1;
@@ -3438,21 +3515,21 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.flag_hoi = 1;
             this.flag_rec_pcv = 1;
             this.flag_apr_iono = 1;
-            
+
             % Coordinates
-            this.flag_coo_rate = 0;      % no additional coordinates for PPP tropospheric estimation            
+            this.flag_coo_rate = 0;      % no additional coordinates for PPP tropospheric estimation
             this.coo_rates = [0 0 0];
-            
+
             % Output
             this.trp_out_rate = this.TRP_OUT_RATE;
-            
+
             % Atmosphere
             this.zd_model = this.ZDM_VMF;              % Use VMF for a-priori
             this.mapping_function = this.MF_VMF3_1;      % Use VMF grids
             this.mapping_function_gradient = this.MFG_CHEN;  % Use chen and herring
 
             this.meteo_data = 2;            % Use GPT
-            
+
             this.tparam_ztd_ppp  = 3;  % time parametrization of ztd   ppp
             this.tparam_grad_ppp  = 3;  % time parametrization of ztd  gradient ppp
 
@@ -3460,8 +3537,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.iono_model = 3;            % use IONEX external model for reductions
             this.flag_iono_ppp = 1;      % Estimate iono (PPP uncombinaed)
 
-            this.flag_free_net_tropo = 0;   % no reference in tropo est 
-            
+            this.flag_free_net_tropo = 0;   % no reference in tropo est
+
             % Default values are the right values
             this.flag_ztd_ppp            = Prj_Settings.FLAG_ZTD_PPP;
             this.tparam_ztd_ppp          = Prj_Settings.TPARAM_ZTD_PPP;
@@ -3477,15 +3554,15 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
             this.tparam_rec_ifbias_ppp   = Prj_Settings.TPARAM_REC_IFBIAS_PPP;
             this.rate_rec_ifbias_ppp     = Prj_Settings.RATE_REC_IFBIAS_PPP;
-            
-            
+
+
             % Regularization
-            
+
             this.tropo_spatial_reg_sigma = 1e-7;
             this.tropo_spatial_reg_d_distance = 25e3;
             this.tropo_gradient_spatial_reg_sigma = 1e-7;
             this.tropo_gradient_spatial_reg_d_distance = 25e3;
-                                    
+
             % Save Results
             this.flag_out_dt = 0;
             this.flag_out_pwv = 1;
@@ -3496,20 +3573,20 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.flag_out_pth = 1;
             this.flag_out_ocs = 0;
             this.flag_out_quality = 1;
-            this.flag_out_nspe = 1;            
+            this.flag_out_nspe = 1;
             this.flag_out_azel = 0;
             this.flag_out_res_co = 0;
             this.flag_out_res_pr = 0;
             this.flag_out_res_ph = 1;
             this.flag_out_mf = 0;
-            
+
             this.cc.setActive([1 0 1 0 0 0 0]);
             this.cc.gps.setFlagF(1:numel(this.cc.gps.flag_f), true);
             this.cc.gal.setFlagF(1:numel(this.cc.gal.flag_f), true);
             this.abs_snr_thr = 30;
             this.cmd_list = {'FOR S*', 'FOR T*', 'LOAD T$ @30s -t=CPLS', 'PREPRO T$', 'PPP T$', 'REMTMP T*', 'END', 'PUSHOUT T*', 'END', 'SHOW T* ZWD'};
         end
-        
+
         function setReflectometry(this)
             this.setToTropoPPP;
             this.selected_orbit_center = {'broadcast'};
@@ -3521,16 +3598,16 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             % Modify the parameters to have a standard configuration for medium baselines
             % No iono - Tropo estimation on (with splines)
             this.rec_dyn_mode = 0; % static
-            
+
             this.flag_iono_net = false; % no iono
-            
+
             % set std receiver data quality:
             this.std_code = 3;
             this.std_phase = 0.003;
             this.std_phase_if = 0.009;
             this.sigma0_clock = this.SIGMA0_CLOCK;
             this.sigma0_r_clock = this.SIGMA0_R_CLOCK;
-            
+
             % Data filtering
             this.min_p_epoch = 5;
             this.max_bad_obs = 75;
@@ -3548,20 +3625,20 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.sss_file_based = false;
             this.flag_smooth_tropo_out = false;
             this.flag_separate_coo_at_boundary = true;
-           
+
             % Processing
             this.w_mode = 1; % same weight for all the observations
-            
+
             this.net_reweight_mode = 2; % 4 loops
             this.net_amb_fix_approach = 2; % fix ambiguities with lambda
-            
+
             this.flag_repair = 0; % (too much experimental)
             this.flag_combine_trk = 1; % Usually it improves the results
-            
+
             this.flag_amb_pass = 0;
             this.flag_ppp_amb_fix = 0; % not yet woking stable enough
             this.flag_amb_pass = 0; % (too much experimental)
-            
+
             % Corrections
             this.flag_clock_align = Prj_Settings.FLAG_CLOCK_ALIGN;
             this.flag_solid_earth = 1;
@@ -3573,31 +3650,31 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.flag_hoi = 0;
             this.flag_rec_pcv = 1;
             this.flag_apr_iono = 1;
-            
+
             % Coordinates
-            this.flag_coo_rate = 0;      % no additional coordinates for PPP tropospheric estimation            
+            this.flag_coo_rate = 0;      % no additional coordinates for PPP tropospheric estimation
             this.coo_rates = [0 0 0];
-            
+
             % Output
             this.trp_out_rate = this.TRP_OUT_RATE;
-            
+
             % Atmosphere
             this.iono_management = 1;       % iono-free
             this.iono_model = 3;            % use IONEX external model for reductions
-            
+
             this.flag_ztd_net = true;
             this.flag_grad_net = true;
-            
+
             this.flag_free_net_tropo = 0;
-            
+
             this.zd_model = this.ZDM_VMF;                      % Use Saastamoinen for a-priori
             this.mapping_function = this.MF_VMF3_1;                 % Use GMF grids
             this.setPreferredVMFSource(1); % Use operational
             this.mapping_function_gradient = this.MFG_CHEN;      % Use chen and herrign
             this.meteo_data = 2;            % Use GPT
-            
+
             % Regularization
-            
+
             % Save Results
             this.flag_out_pwv = 0;
             this.flag_out_zwd = 0;
@@ -3613,20 +3690,20 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.flag_out_res_pr = 1;
             this.flag_out_res_ph = 1;
             this.flag_out_mf = 1;
-            
+
             this.cmd_list = {'FOR S*', 'FOR T*', 'LOAD T$ @30s', 'PREPRO T$', 'ENDFOR', 'NET T* R1 -U', 'PUSHOUT T*', 'ENDFOR', 'SHOW T* ENUBSL'};
         end
-        
+
         function setToShortNET(this)
             % Modify the parameters to have a standard configuration for short baselines
             % No iono - No Tropo
             this.setToMediumNET();
-            
+
             this.flag_free_net_tropo = 0;
 
             this.flag_ztd_net = false;
             this.flag_grad_net = false;
-            
+
             this.flag_out_pwv = 0;
             this.flag_out_zwd = 0;
             this.flag_out_ztd = 0;
@@ -3634,17 +3711,17 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.flag_out_apr_tropo = 0;
             this.flag_out_pth = 0;
         end
-        
+
         function setToLongNET(this)
             % Modify the parameters to have a standard configuration for long baselines
             % Iono free mode - Tropo estimation on (with splines)
             this.setToMediumNET();
             this.flag_iono_net = true; % iono
 
-            this.cmd_list = {'FOR S*', 'FOR T*', 'LOAD T$ @30s', 'PREPRO T$', 'ENDFOR', 'NET T* R1 -IONO', 'PUSHOUT T*', 'ENDFOR', 'SHOW T* ENUBSL'};            
+            this.cmd_list = {'FOR S*', 'FOR T*', 'LOAD T$ @30s', 'PREPRO T$', 'ENDFOR', 'NET T* R1 -IONO', 'PUSHOUT T*', 'ENDFOR', 'SHOW T* ENUBSL'};
         end
     end
-        
+
     % =========================================================================
     %%  TEST PARAMETERS VALIDITY
     % =========================================================================
@@ -3658,7 +3735,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
             this.checkIO();
             log = Core.getLogger();
-            
+
             % ADV RECEIVER DEFAULT PARAMETERS
             this.checkNumericField('std_code',[0 1e50]);
             this.checkNumericField('std_phase',[0 1e50]);
@@ -3682,30 +3759,30 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.checkNumericField('max_code_err_thr',[0.001 1e50]);
             this.checkNumericField('max_phase_err_thr',[0.001 1e50]);
             this.checkLogicalField('remove_eclipsing_satellites');
-            
+
             % PROCESSING PARAMETERS
             this.checkLogicalField('flag_repair');
             this.checkLogicalField('flag_combine_trk');
-            
+
             this.checkNumericField('w_mode',[1 numel(this.W_SMODE)]);
             this.checkNumericField('ppp_reweight_mode',[1 numel(this.PPP_REWEIGHT_SMODE)]);
             this.checkNumericField('net_reweight_mode',[1 numel(this.NET_REWEIGHT_SMODE)]);
-            
+
             this.checkLogicalField('flag_ppp_force_single_freq');
 
             this.checkLogicalField('flag_ppp_amb_fix');
-            
+
             this.checkNumericField('net_amb_fix_approach', [1 numel(this.NET_AMB_FIX_FIXER_APPROACH)]);
             this.checkLogicalField('flag_amb_pass');
-            
+
             this.checkLogicalField('flag_smooth_tropo_out');
             this.checkLogicalField('flag_separate_coo_at_boundary');
             [buf_lft, buf_rgt] = this.getBuffer();
-            if (this.isRinexSession || (buf_lft == 0 && buf_rgt == 0)) && this.isSmoothTropoOut 
+            if (this.isRinexSession || (buf_lft == 0 && buf_rgt == 0)) && this.isSmoothTropoOut
                 this.setSmoothTropoOut(false)
                 log.addWarning('Smoothing of troposphere is not possible when RINEX based sessions are requested');
             end
-                
+
             this.checkNumericField('iono_management');
             this.checkLogicalField('flag_clock_align');
             this.checkLogicalField('flag_solid_earth');
@@ -3717,7 +3794,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_hoi');
             this.checkLogicalField('flag_rec_pcv');
             this.checkLogicalField('flag_apr_iono');
-             
+
             this.checkLogicalField('flag_coo_rate');
             this.checkNumericField('coo_rates',[0 4.32*1e17]); % <- Age of the universe!!
 
@@ -3731,13 +3808,13 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
             this.checkNumericField('meteo_data',[1 numel(this.MD_SMODE)]);
             this.checkLogicalField('flag_free_net_tropo');
-                        
+
             % ADV ATMOSPHERE
             this.checkNumericField('tropo_spatial_reg_sigma',[0 1e50]);
             this.checkNumericField('tropo_spatial_reg_d_distance',[0 1e50]);
             this.checkNumericField('tropo_gradient_spatial_reg_sigma',[0 1e50]);
             this.checkNumericField('tropo_gradient_spatial_reg_d_distance',[0 1e50]);
-            
+
             % RESULTS KEEP IN OUT
             this.checkLogicalField('flag_out_dt');
             this.checkLogicalField('flag_out_pwv');
@@ -3754,7 +3831,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.checkLogicalField('flag_out_res_pr');
             this.checkLogicalField('flag_out_res_ph');
             this.checkLogicalField('flag_out_mf');
-            
+
             % U2 parametrization
             this.checkLogicalField('flag_coo_ppp');
             this.checkLogicalField('flag_coo_net');
@@ -3869,57 +3946,57 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
             this.cc.check();
         end
-        
+
         function n_missing = checkDir(this, field_name, field_text, flag_verbose)
             % Check the validity of the fields
             %
             % SYNTAX
             %   n_missing = this.checkDir(field_name, field_text, flag_verbose);
-            
+
             if nargin < 4
                 flag_verbose = true;
             end
             n_missing = checkPath(this, field_name, field_text, flag_verbose, false);
         end
-                
+
         function n_missing = checkDirErr(this, field_name, field_text, flag_verbose)
             % Check the validity of the fields
             %
             % SYNTAX
             %   n_missing = this.checkDir(field_name, field_text, flag_verbose);
-            
+
             if nargin < 4
                 flag_verbose = true;
             end
             n_missing = checkPath(this, field_name, field_text, flag_verbose, false, true);
         end
-        
+
         function n_missing = checkFile(this, field_name, field_text, flag_verbose)
             % Check the validity of the fields
             %
             % SYNTAX
             %   n_missing = this.checkFile(field_name, field_text, flag_verbose);
             %   n_missing = this.checkFile({field_dir, field_name}, field_text, flag_verbose);
-            
+
             if nargin < 4
                 flag_verbose = true;
             end
             n_missing = checkPath(this, field_name, field_text, flag_verbose, true);
         end
-        
+
         function n_missing = checkFileErr(this, field_name, field_text, flag_verbose)
             % Check the validity of the fields
             %
             % SYNTAX
             %   n_missing = this.checkFile(field_name, field_text, flag_verbose);
             %   n_missing = this.checkFile({field_dir, field_name}, field_text, flag_verbose);
-            
+
             if nargin < 4
                 flag_verbose = true;
             end
             n_missing = checkPath(this, field_name, field_text, flag_verbose, true, true);
         end
-        
+
         function change_status = resetPath(this, field_name, new_home, flag_verbose)
             % given a new home path reset the field with the default value
             %
@@ -3939,14 +4016,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 end
             end
         end
-        
+
         function n_missing = checkPath(this, field_name, field_text, flag_verbose, is_file, flag_error)
             % Check the validity of the fields
             %
-            % SYNTAX 
+            % SYNTAX
             %   n_missing = this.checkPath(field_name, field_text, flag_verbose);
             %   n_missing = this.checkPath({field_dir, field_name}, field_text, flag_verbose);
-            
+
             if nargin < 4
                 flag_verbose = true;
             end
@@ -3954,9 +4031,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 flag_error = false;
             end
             if ~iscell(field_name)
-                field_name = {field_name};                
+                field_name = {field_name};
             end
-            
+
             fnp = File_Name_Processor();
             date_start = this.getSessionsStartExt;
             date_stop = this.getSessionsStartExt;
@@ -3965,7 +4042,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 if ~iscell(file_name)
                     file_name = {file_name};
                 end
-                
+
                 file_path = {};
                 for i = 1 : numel(file_name)
                     file_path(i) = fnp.dateKeyRepBatch(fnp.checkPath(strcat(File_Name_Processor.getFullDirPath(this.(field_name{1}), this.getHomeDir), filesep, file_name{i})), date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop); %#ok<AGROW>
@@ -3974,18 +4051,18 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 file_path = File_Name_Processor.getFullDirPath(this.(field_name{end}), this.getHomeDir);
                 file_path = fnp.dateKeyRepBatch(file_path, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
             end
-                        
+
             if ~iscell(file_path)
                 file_path = {file_path};
             end
-            
+
             n_missing = -numel(file_path);
             for d = 1 : numel(file_path)
                 if exist(file_path{d}, 'file') == iif(is_file, 2, 7)
                     n_missing = n_missing + 1;
                 end
             end
-            
+
             log = Core.getLogger();
             if n_missing == 0
                 if flag_verbose
@@ -4017,7 +4094,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             end
             cur_ini = this.cur_ini;
         end
-        
+
         function file_dir = getHomeDir(this)
             % Get the base directory containing the project
             %
@@ -4027,14 +4104,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         end
 
         function com_dir = getComDir(this)
-            % Get the communication directory for the custom 
+            % Get the communication directory for the custom
             % MPI implementation
             %
             % SYNTAX
             %   com_dir = getComDir(this)
             com_dir = File_Name_Processor.getFullDirPath(this.com_dir, this.getHomeDir());
         end
-        
+
         function remote_source_file = getRemoteSourceFile(this)
             % get remote source files
             %
@@ -4045,8 +4122,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             if ~exist(remote_source_file, 'file')
                 remote_source_file = which('remote_resource.ini');
             end
-        end       
-        
+        end
+
         function remote_center = getRemoteCenter(this)
             % Get selected remote center
             %
@@ -4057,7 +4134,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 remote_center = remote_center{1};
             end
         end
-        
+
         function remote_center = getRemoteIonoCenter(this)
             % Get selected remote ionosphere center
             %
@@ -4068,7 +4145,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 remote_center = remote_center{1};
             end
         end
-        
+
         function remote_center = getRemoteBiasCenter(this)
             % Get selected remote ionosphere center
             %
@@ -4079,7 +4156,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 remote_center = remote_center{1};
             end
         end
-        
+
         function list_preferred = getPreferredEph(this, center_name)
             % get preferred ephemeris
             %
@@ -4103,7 +4180,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.setPreferredOrbit(flag); % let's reset the preferred orbit
             list_preferred = this.PREFERRED_EPH(flag);
         end
-        
+
         function flag = getPreferredOrbit(this)
             % Get the preferred orbit sequence:
             %   1 final
@@ -4126,9 +4203,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                     case 'broadcast', flag(4) = true;
                     case 'real-time', flag(5) = true;
                 end
-            end            
+            end
         end
- 
+
         function flag = getPreferredIono(this)
             % Get the preferred iono sequence:
             %   1 final
@@ -4155,7 +4232,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 end
             end
         end
-        
+
         function flag = getPreferredVMFRes(this)
             % Get the preferred VMF resolution:
             %   1   1x1    VMF3
@@ -4176,7 +4253,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 end
             end
         end
-        
+
         function flag = getPreferredVMFSource(this)
             % Get the preferred VMF source:
             %   1 operational
@@ -4197,7 +4274,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 end
             end
         end
-        
+
         function dir_path = getFileDir(this, filename)
             % get file dir (form the resource name, try  to get the name of the iono)
             %
@@ -4228,7 +4305,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 dir_path = this.getAtmLoadDir();
             elseif instr(name,'VMF') && instr(ext,'.H')
                 dir_path = this.getVMFDir();
-            end            
+            end
         end
 
         function base_rinex_dir = getRinexBaseDir(this)
@@ -4252,7 +4329,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   getRinexBaseDir
             base_rinex_dir = this.obs_dir;
         end
-        
+
         function num_session = getSessionCount(this)
             % Get the number of sessions
             %
@@ -4298,7 +4375,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 end
             end
         end
-        
+
         function dyn_mode = getDynMode(this)
             % Get the a-priori information on the motion of the receiver
             %
@@ -4402,7 +4479,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %    erp_path = this.getErpPath()
             erp_file = this.erp_name;
         end
-        
+
         function cs_thr = getCycleSlipThr(this)
             % get cycle slip threshold
             %
@@ -4458,7 +4535,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   out = this.getIonoDir()
             out = this.iono_dir;
         end
-        
+
         function out = getAtmLoadDir(this)
             % Get the path to the atm loading files
             %
@@ -4466,7 +4543,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   out = this.getAtmLoadDir()
             out = this.atm_load_dir;
         end
-        
+
         function out = getVMFDir(this)
             % Get the path to the VMF files
             %
@@ -4506,7 +4583,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   file_dir = this.getCrdDir()
             out =  File_Name_Processor.getFullDirPath(this.crd_dir, this.getHomeDir);
         end
-        
+
         function out = getCrdFile(this)
             % Get the path of the stations coordinates file
             %
@@ -4519,7 +4596,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 out = File_Name_Processor.checkPath(strcat(crd_dir, filesep, this.crd_name), this.getHomeDir());
             end
         end
-        
+
         function out = getAtxFile(this)
             % Get the path of the antex file
             %
@@ -4530,8 +4607,47 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             else
                 out = this.checkAtxPath(fullfile(this.atx_dir, this.atx_name));
             end
-        end                
-        
+        end
+
+        function out = getMaskDir(this)
+            % Get the path of the mask file dir
+            %
+            % SYNTAX
+            %   file_path = this.getMaskDir()
+            fnp = File_Name_Processor;
+            out = fnp.getFullDirPath(fnp.checkPath(this.mask_dir, this.getHomeDir), this.getHomeDir);
+        end
+
+        function out = getMPDir(this)
+            % Get the path of the multipath file dir
+            %
+            % SYNTAX
+            %   file_path = this.getMPFile()
+            fnp = File_Name_Processor;
+            out = fnp.getFullDirPath(fnp.checkPath(this.mp_dir, this.getHomeDir), this.getHomeDir);
+        end
+
+        function out = getSigmaDir(this)
+            % Get the path of the sigma file dir
+            %
+            % SYNTAX
+            %   file_path = this.getSigmaDir()
+            fnp = File_Name_Processor;
+            out = fnp.getFullDirPath(fnp.checkPath(this.sigma_dir, this.getHomeDir), this.getHomeDir);
+        end
+
+        function out = getMPFile(this)
+            % Get the path of the mp file
+            %
+            % SYNTAX
+            %   file_path = this.getMPFile()
+            file_list = dir(fullfile(this.mp_dir, '*.mp'));
+            out = {};
+            for f = 1 : numel(file_list)
+                out{f} = fullfile(this.mp_dir, file_list(f).name);
+            end
+        end
+
         function out = getOceanFile(this)
             % Get the path of the ocean loading file
             %
@@ -4599,9 +4715,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             if ~(exist(out, 'dir') == 7) && (exist(this.GEOID_DIR_FALLBACK, 'dir') == 7)
                 out = this.GEOID_DIR_FALLBACK;
             end
-            
+
         end
-        
+
         function file_path = getGeoidFile(this)
             % Get the path of the geoid file
             %
@@ -4629,7 +4745,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   ocean_dir = this.getOutDir()
             ocean_dir = File_Name_Processor.checkPath(this.ocean_dir, this.getHomeDir());
         end
-        
+
         function out_prefix = getOutPrefix(this)
             % Get the path of the out_prefix
             %
@@ -4638,7 +4754,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             fnp = File_Name_Processor;
             out_prefix = fnp.checkPath(this.out_prefix, this.getHomeDir());
         end
-        
+
         function max_time = getMaxExecutionTimePar(this)
             % Get the max execution time for parallel workers
             %
@@ -4701,7 +4817,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             end
             out = this.out_full_path;
         end
-        
+
         function w_mode = getWeigthingStrategy(this)
             % Get the weighting strategy
             %
@@ -4717,7 +4833,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   counter = getRunCounter(this)
             counter = this.run_counter;
         end
-        
+
         function len = getSessionDuration(this)
             % Get length of the sessions in seconds
             % not considering buffer
@@ -4726,7 +4842,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   len = this.getSessionDuration()
             len = this.sss_duration;
         end
-        
+
         function date = getSessionsStart(this)
             % Get the beginning of all the sessions
             % not considering buffer
@@ -4735,7 +4851,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   date = getSessionsStart(this)
             date = this.sss_date_start.getCopy;
         end
-        
+
         function date = getSessionsStartExt(this)
             % Get the beginning of all the sessions
             % considering buffer
@@ -4746,7 +4862,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             buf_lft = this.getBuffer();
             date.addSeconds(-buf_lft); % left buffer
         end
-        
+
         function response = isRinexSession(this)
             % is the program using session based on rinex files?
             %
@@ -4754,7 +4870,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %  response = this.isRinexSession()
             response = this.sss_file_based;
         end
-        
+
         function date = getSessionsStop(this)
             % Get the end of all the sessions
             % not considering buffer
@@ -4764,9 +4880,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             date = this.sss_date_stop.getCopy;
             if this.sss_date_stop == this.sss_date_start
                 date.addSeconds(86400 - 1e-4); % If session is empty set it to be one day long
-            end            
+            end
         end
-        
+
         function date = getSessionsStopExt(this)
             % Get the end of all the sessions
             % considering buffer
@@ -4782,7 +4898,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         end
 
         function [sss_ext_lim, sss_lim] = getSessionLimits(this, n)
-            % Get the time limits for a specific session 
+            % Get the time limits for a specific session
             %
             % OUTPUT
             %   sss_ext_lim     limits of the data to be used for the computation
@@ -4796,7 +4912,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             if n < 0
                 n = 1;
             end
-            
+
             [buf_lft, but_rgt] = this.getBuffer();
             sss_lim = this.getSessionsStart;
             sss_lim.addSeconds((n-1) * this.sss_duration);
@@ -4809,22 +4925,22 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             end
             time_ext_stop = time_stop.getCopy();
             time_ext_stop.addSeconds(but_rgt); % right buffer
-            
+
             sss_ext_lim.append(time_ext_stop);
             sss_lim.append(time_stop);
         end
-        
+
         function central_ss_time = getSessionCentralTime(this)
             % get the central time of the session
             %
-            % SYNTAX 
+            % SYNTAX
             %    central_ss_time = this.getSessionCentralTime()
              [~, sss_lim] = this.getSessionLimits(this.getCurSession());
              central_ss_time = sss_lim.first();
              % Apply a 5 seconds rounding
              central_ss_time.addSeconds((round((sss_lim.last - sss_lim.first)/5) * 5)/2);
         end
-        
+
         function [buf_lft, buf_rgt] = getBuffer(this)
             % get the session buffer
             %
@@ -4839,13 +4955,13 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   iono_model = this.getIonoModel()
             iono_model = this.iono_model;
         end
-        
+
         function iono_management = isIonoKlobuchar(this)
             % SYNTAX
             %   date = isIonoKlobuchar(this)
             iono_management = this.iono_model == 2;
         end
-        
+
         function iono_management = getIonoManagement(this)
             % SYNTAX
             %   date = getIonoManagement(this)
@@ -4862,18 +4978,18 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 center_name = {center_name};
             end
         end
-        
+
         function setCurCenter(this, center_name)
             % Set the current orbit center
             %
             % SYNTAX
             %   this.setCurCenter(center_name);
-            
+
             % Check validity
             if ischar(center_name)
                 center_name = {center_name};
             end
-            
+
             if ~strcmp(this.selected_orbit_center, center_name)
                 Core.getCoreSky(true); % Reset Core_Sky
                 fw = File_Wizard;
@@ -4882,7 +4998,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             end
             this.selected_orbit_center = center_name;
         end
-                
+
         function center_name = getCurIonoCenter(this)
             % Get the current iono center
             %
@@ -4893,21 +5009,21 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 center_name = {center_name};
             end
         end
-        
+
         function setCurIonoCenter(this, center_name)
             % Set the current iono center
             %
             % SYNTAX
             %   this.setCurIonoCenter(center_name);
-            
+
             % Check validity
             if ischar(center_name)
                 center_name = {center_name};
             end
-            
+
             this.selected_iono_center = center_name;
-        end  
-        
+        end
+
         function center_name = getCurBiasCenter(this)
             % Get the current bias center
             %
@@ -4918,21 +5034,21 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 center_name = {center_name};
             end
         end
-        
+
         function setCurBiasCenter(this, center_name)
             % Set the current bias center
             %
             % SYNTAX
             %   this.setCurIonoCenter(center_name);
-            
+
             % Check validity
             if ischar(center_name)
                 center_name = {center_name};
             end
-            
+
             this.selected_bias_center = center_name;
-        end  
-        
+        end
+
         function eph_full_name = getEphFileName(this, date_start, date_stop)
             % Get the full name of the ephemerides files (replacing special keywords)
             %
@@ -4944,16 +5060,16 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             else
                 file_name = fnp.checkPath(strcat(this.eph_dir, filesep, this.eph_name), this.getHomeDir());
                 step_sec = min(3*3600, fnp.getStepSec(file_name)); %supposing a polynomial of degree 12 and SP3 orbit data every 15 min (at worst)
-                
+
                 if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
                     date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
                     date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
                 end
-                
+
                 eph_full_name = fnp.dateKeyRepBatch(file_name, date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
             end
         end
-        
+
          function met_full_name = getMetFileName(this, date_start, date_stop)
             % Get the full name of the ephemerides files (replacing special keywords)
             %
@@ -4988,7 +5104,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             else
                 file_name = fnp.checkPath(strcat(this.clk_dir, filesep, this.clk_name), this.getHomeDir());
                 step_sec = min(3*3600, fnp.getStepSec(file_name)); %supposing a polynomial of degree 12 and SP3 orbit data every 15 min (at worst)
-                
+
                 if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
                     date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
                     date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
@@ -5007,7 +5123,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 erp_full_name = '';
             else
                 file_name = fnp.checkPath(strcat(this.erp_dir, filesep, this.erp_name), this.getHomeDir());
-                
+
                 if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
                     date_start = date_start.getCopy;
                     date_stop = date_stop.getCopy;
@@ -5015,7 +5131,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 erp_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
             end
         end
-        
+
         function bias_full_name = getBiasFileName(this, date_start, date_stop)
             % Get the full name of the BIAS files (replacing special keywords)
             %
@@ -5027,7 +5143,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             else
                 file_name = fnp.checkPath(strcat(this.bias_dir, filesep, this.bias_name), this.getHomeDir());
                 step_sec = min(3*3600, fnp.getStepSec(file_name)); %supposing a polynomial of degree 12 and SP3 orbit data every 15 min (at worst)
-                
+
                 if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
                     date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
                     date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
@@ -5044,9 +5160,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   erp_full_name = getErpFileName(this, date_start, date_stop)
-            
+
             fnp = File_Name_Processor();
-                
+
             if false && this.isIonoBroadcast()
                 % Search broadcast orbits in the ephemerides folder
                 file_name = fnp.checkPath(fullfile(this.eph_dir, this.iono_name), this.getHomeDir());
@@ -5058,7 +5174,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             date_stop = date_stop.getCopy;
             iono_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
-        
+
         function stm_load_full_name = getNTAtmLoadFileName(this, date_start, date_stop)
             % Get the full name of the ERP files (replacing special keywords)
             %
@@ -5073,7 +5189,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             end
             stm_load_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
-        
+
         function stm_load_full_name = getTAtmLoadFileName(this)
             % Get the full name of the ERP files (replacing special keywords)
             %
@@ -5082,7 +5198,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             fnp = File_Name_Processor();
             stm_load_full_name = fnp.checkPath(strcat(strrep(this.atm_load_dir, '${YYYY}',''), filesep, this.atm_load_name_t), this.getHomeDir());
         end
-        
+
         function vmf_full_name = getVMFFileName(this, date_start, date_stop)
             % Get the full name of the ERP files (replacing special keywords)
             %
@@ -5102,7 +5218,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             date_stop.addSeconds(step_s);
             vmf_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop, this.vmf_res, upper(this.vmf_source));
         end
-        
+
         function vmf_height_name = getVMFHeightFileName(this)
             % Get the full name of the ERP files (replacing special keywords)
             % SYNTAX: erp_full_name = getErpFileName(this, date_start, date_stop)
@@ -5131,9 +5247,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             end
             crx_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
-        
+
     end
-    
+
     % =========================================================================
     %%  SETTERS IO
     % =========================================================================
@@ -5165,7 +5281,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.setVMFFile(filename);
             end
         end
-        
+
         function setCrdDir(this, crd_dir)
             % Set the path of the stations coordinates directory
             %
@@ -5173,7 +5289,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   this.setCrdDir(crd_dir)
             this.crd_dir = crd_dir;
         end
-        
+
         function setCrdFile(this, crd_path)
             % Set the path of the stations coordinates file
             %
@@ -5193,7 +5309,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   this.setCrxDir(crx_dir)
             this.crx_dir = crx_dir;
         end
-        
+
         function setNavPath(this, nav_dir)
             % Set the path to the navigational files
             %
@@ -5220,7 +5336,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.setErpFile('');
             this.setBiasFile('');
         end
-        
+
         function setNavEphFile(this, nav_name)
             % Set the file name of the navigational files
             %
@@ -5231,7 +5347,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
         function setNavClkPath(this, clk_dir)
             % Set the path to the clock files
-            % 
+            %
             % SYNTAX
             %   this.getClkPath(nav_path)
             this.clk_dir = clk_dir;
@@ -5239,7 +5355,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
         function setNavClkFile(this, clk_name)
             % Set the file name of the clock files
-            % 
+            %
             % SYNTAX
             %   this.getClkFile(nav_name)
             this.clk_name = clk_name;
@@ -5247,7 +5363,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
         function setErpPath(this, erp_dir)
             % Set the path to the clock files
-            % 
+            %
             % SYNTAX
             %   this.getClkPath(nav_path)
             this.erp_dir = erp_dir;
@@ -5275,7 +5391,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   this.getClkFile(erp_name)
             this.iono_name = iono_file;
         end
-        
+
         function setAtmLoadFile(this, atm_load_file)
             % Set the file name of the clock files
             %
@@ -5283,7 +5399,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   this.getClkFile(erp_name)
             this.atm_load_name_nt = atm_load_file;
         end
-        
+
         function setVMFFile(this, vmf_file)
             % Set the file name of the clock files
             %
@@ -5368,14 +5484,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                         marker_name{s} = obs_fname{s}(1:9);
                         flag_v3(s) = true;
                     else
-                        marker_name{s} = obs_fname{s}(1:4);                
+                        marker_name{s} = obs_fname{s}(1:4);
                     end
                 catch
                     marker_name{s} = obs_fname{s}(1:4);
                 end
             end
         end
-        
+
         function updateMetFileName(this)
             % Update the full name of the observations files (replacing special keywords)
             %
@@ -5416,7 +5532,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
         function updateClkFileName(this)
             % Update the full name of the clock offset files (replacing special keywords)
-            %  
+            %
             % SYNTAX
             %   this.updateClkFileName();
             this.clk_full_name = this.getClkFileName(this.getSessionsStartExt, this.getSessionsStopExt);
@@ -5445,7 +5561,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   setSessionStop(this, date)
             this.sss_date_stop = date.getCopy();
         end
-        
+
         function setSessionDuration(this, len)
             % Set length of the sessions in seconds
             % not considering buffer
@@ -5454,7 +5570,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   this.setSessionDuration(len)
             this.sss_duration = len;
         end
-        
+
         function setBuffer(this, buf_lft, buf_rgt)
             % get the session buffer
             %
@@ -5463,7 +5579,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.sss_buffer = [buf_lft buf_rgt];
         end
 
-        
+
         function setSmoothTropoOut(this, is_smt)
             % Should the troposphere paramteres be smoothed
             %
@@ -5471,7 +5587,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   this.isSmoothTropoOut(is_smt)
             this.flag_smooth_tropo_out = is_smt;
         end
-        
+
         function setRemoteSourceDir(this, dir_path)
             % Set Remote Source Dir
             %
@@ -5479,15 +5595,15 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   this.setRemoteSourceDir(dir_path)
             this.remote_res_conf_dir = fnp.getFullDirPath(dir_path, this.getHomeDir);
         end
-        
+
         function setCurSession(this, cur_session)
             % Get the id of the current session
             %
             % SYNTAX
-            %   this.setCurSession(cur_session)            
+            %   this.setCurSession(cur_session)
             this.cur_session = cur_session;
         end
-        
+
         function setAmbFixPPP(this, amb_fix)
             % Set the amb fixing flag for PPP
             %
@@ -5495,7 +5611,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   this.setAmbFixPPP(amb_fix)
             this.flag_ppp_amb_fix = amb_fix;
         end
-        
+
         function setAmbFixNET(this, amb_fix)
             % Set the amb fixing flag for NET
             %
@@ -5503,7 +5619,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   this.setAmbFixNET(amb_fix)
             this.net_amb_fix_approach = amb_fix;
         end
-        
+
         function setAutomaticDownload(this, flag)
             % Set the download flag
             %
@@ -5511,7 +5627,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   this.setAutomaticDownload(flag)
             this.flag_download = flag;
         end
-        
+
         function setNoResources(this, flag)
             % Set the no_resources flag
             %
@@ -5519,7 +5635,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   this.setNoResources(flag)
             this.flag_no_resources = flag;
         end
-        
+
         function setPreferredOrbit(this, flag, center_name)
             % Set the preferred orbit sequence:
             %   1 final
@@ -5559,7 +5675,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                     flag = tmp;
                 end
             end
-            
+
             if flag_reset || ~any(flag) || ~strcmp(this.preferred_eph{1}, flag_name{find(flag, 1, 'first')})
                 if ~any(flag)
                     flag = true(5,1);
@@ -5570,10 +5686,10 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 fw.conjureResource(flag_name{find(flag, 1, 'first')}, this.getSessionsStartExt, this.getSessionsStopExt, center_name, false);
                 this.updateNavFileName();
             end
-            
+
             this.preferred_eph = flag_name(flag);
         end
- 
+
         function setPreferredIono(this, flag)
             % Set the preferred iono sequence:
             %   1 final
@@ -5601,7 +5717,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             end
             this.preferred_iono = flag_name(flag);
         end
-        
+
          function setPreferredVMFRes(this, flag)
             % Set the preferred VMF resolution:
             %   1   1x1    VMF3
@@ -5616,7 +5732,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             iono = {'1x1', '2.5x2', '5x5'};
             this.preferred_vmf_res = iono(flag);
          end
-        
+
           function setPreferredVMFSource(this, flag)
             % Set the preferred VMF source:
             %   1 operational
@@ -5631,7 +5747,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             iono = {'operational', 'era-interim', 'forecast'};
             this.preferred_vmf_source = iono(flag);
         end
- 
+
         function setPrjHome(this, prj_home)
             % Set home folder of the project
             %
@@ -5639,7 +5755,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   dir = this.setPrjHome(prj_home)
             this.prj_home = prj_home;
         end
-        
+
         function setObsName(this, name_list)
             % Set observation file names
             %
@@ -5648,7 +5764,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.obs_name = name_list;
             this.obs_full_name = {};
         end
-        
+
         function setObsDir(this, obs_dir)
             % Set observation dir
             %
@@ -5656,7 +5772,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   this.setObsDir(obs_dir)
             this.obs_dir = obs_dir;
         end
-        
+
         function setMaskDir(this, mask_dir)
             % Set the path of the mask file dir
             %
@@ -5664,7 +5780,23 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   this.setMaskDir()
             this.mask_dir = mask_dir;
         end
-        
+
+        function setSigmaDir(this, sigma_dir)
+            % Set the path of the sigmas file dir
+            %
+            % SYNTAX
+            %   this.setSigmaDir()
+            this.mask_dir = sigma_dir;
+        end
+
+        function setMPDir(this, mp_dir)
+            % Set the path of the multipath file dir
+            %
+            % SYNTAX
+            %   this.setMPDir()
+            this.mp_dir = mp_dir;
+        end
+
         function setOutDir(this, out_dir)
             % Set output dir
             %
@@ -5672,7 +5804,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %  this.setOutDir(out_dir)
             this.out_dir = out_dir;
         end
-        
+
         function setOceanDir(this, ocean_dir)
             % Set ocean loading dir
             %
@@ -5688,10 +5820,10 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %  this.setOceanFile(ocean_filename)
             this.ocean_name = ocean_filename;
         end
-        
+
         function setIniPath(this, file_path)
             % Set the file name of the current settings
-            %   
+            %
             % SYNTAX
             %   this.setIniPath(file_path)
             [path_str, name, ~] = fileparts(file_path);
@@ -5705,7 +5837,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %  this.isRinexSession()
             this.sss_file_based = flag;
         end
-        
+
         function setMaxErrPP(this, max_thr)
             % Set the maximum s0 error acceptable on LS pre-processing solution
             % Quantity in meters
@@ -5714,7 +5846,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   this.setMaxCodeErrThrPP(max_thr)
             this.pp_spp_thr = max_thr;
         end
-        
+
         function updatePrj(this, file_path)
             % Set the file project name / home / file_path from file_path
             %
@@ -5746,8 +5878,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.atx_name = [atx_name, atx_ext];
         end
     end
-    
-    
+
+
     % =========================================================================
     %%  GETTERS
     % =========================================================================
@@ -5766,22 +5898,22 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %
             % SYNTAX
             %   rate = this.getRateNet()
-            
+
             rate = this.rate_coo_net;
         end
-        
+
         function rate = getRatePPP(this)
             % get the rate of the coordinates in PPP
             %
             % SYNTAX
             %   rate = this.getRatePPP()
-            
+
             rate = this.rate_coo_ppp;
         end
-        
+
         function file_path = getFilePath(this, file_path)
             % Get the file name of the current settings
-            %   
+            %
             % SYNTAX
             %   file_path = this.getFilePath()
             file_path = this.cur_ini;
@@ -5802,7 +5934,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   cc = this.getCC();
             cc = handle(this.cc);
         end
-        
+
         function cur_session = getCurSession(this)
             % Get the id of the current session
             %
@@ -5821,7 +5953,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   cut_off = this.getCutOff();
             cut_off = this.cut_off;
         end
-        
+
         function abs_snr_thr = getAbsSnrThr(this)
             % Get the  absolute snr threshold
             %
@@ -5829,7 +5961,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   abs_snr_thr = this.getAbsSnrThr();
             abs_snr_thr = this.abs_snr_thr;
         end
-        
+
         function scaled_snr_thr = getScaledSnrThr(this)
             % Get the scaled snr threshold
             %
@@ -5846,7 +5978,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   min_perc = this.getMinAvailEpochs()
             min_perc = this.min_p_epoch / 100;
         end
-        
+
         function max_perc = getMaxBadObs(this)
             % Get the maximum PERCENTAGE of bad observations present to
             % consider the RINEX ok
@@ -5855,8 +5987,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   max_perc = this.getMaxBadObs()
             max_perc = this.max_bad_obs / 100;
         end
-        
-        
+
+
         function min_n_sat = getMinNSat(this)
             % Get the minimum number of sat to keep in one epoch
             %
@@ -5864,7 +5996,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   min_n_sat = this.getMinNSat()
             min_n_sat = this.min_n_sat;
         end
-        
+
         function min_arc = getMinArc(this,rate)
             % Get the minimum arc legnth to be kept
             %
@@ -5875,7 +6007,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             end
             min_arc = max(2,floor(this.min_arc/rate));
         end
-        
+
         function err_thr = getMaxErrPP(this)
             % Get the maximum error acceptable on LS pre-processing solution
             %
@@ -5883,7 +6015,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   err_thr = this.getMaxCodeErrThrPP()
             err_thr = this.pp_spp_thr;
         end
-        
+
         function err_thr = getMaxCodeErrThrPP(this)
             % Get the maximum error acceptable on code observations for pre-processing
             %
@@ -5907,7 +6039,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   err_thr = this.getMaxPhaseErrThr()
             err_thr = this.max_phase_err_thr;
         end
-        
+
         function remove_eclipsing_satellites = isRemEclips(this)
             % getter of removing eclispsing satellite flag
             %
@@ -5915,7 +6047,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   err_thr = this.isRemEclips()
             remove_eclipsing_satellites = this.remove_eclipsing_satellites;
         end
-        
+
         function reweight_mode = getReweightPPP(this)
             % Get the reweight method to use for PPP
             %
@@ -5923,7 +6055,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   err_thr = this.getReweight()
             reweight_mode = this.ppp_reweight_mode;
         end
-        
+
         function reweight_mode = getReweightNET(this)
             % Get the reweight method to use for NET
             %
@@ -5931,7 +6063,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   err_thr = this.getReweight()
             reweight_mode = this.net_reweight_mode;
         end
-        
+
         function amb_fix = getAmbFixPPP(this)
             % Get the amb fixing flag for PPP
             %
@@ -5939,7 +6071,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   amb_fix = this.getAmbFixPPP(this)
             amb_fix = this.flag_ppp_amb_fix;
         end
-        
+
         function amb_fix = getAmbFixNET(this)
             % Get the amb fixing flag for NET
             %
@@ -5947,7 +6079,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   amb_fix = this.getAmbFixNET()
             amb_fix = this.net_amb_fix_approach;
         end
-        
+
         function flag_rem = isRemSatNoClock(this)
             % Remove satellites with no clock in ephemerides
             %
@@ -5955,7 +6087,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   amb_fix = this.isPPPOnSF(this)
             flag_rem = this.FLAG_REM_SAT_NO_CLOCK;
         end
-        
+
         function amb_fix = isPPPOnSF(this)
             % Get the PPP on single freq flag for PPP
             %
@@ -5963,7 +6095,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   amb_fix = this.isPPPOnSF(this)
             amb_fix = this.flag_ppp_force_single_freq;
         end
-        
+
         function is_dwn = isAutomaticDownload(this)
             % Get the status of download request
             %
@@ -5971,7 +6103,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   is_dwn = this.isAutomaticDownload()
             is_dwn = this.flag_download;
         end
-        
+
         function is_nores = isNoResources(this)
             % Get wheter resources (orbits, VMF, ecc) are used
             %
@@ -5979,7 +6111,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   is_dwn = this.isNoResources()
             is_nores = this.flag_no_resources;
         end
-        
+
         function is_vmf = isVMF(this)
             % Get the VMF flag
             %
@@ -5987,7 +6119,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   is_vmf = this.isVMF()
             is_vmf = this.mapping_function == this.MF_VMF1 || this.mapping_function == this.MF_VMF3_1 || this.mapping_function == this.MF_VMF3_5 || this.zd_model == this.ZDM_VMF;
         end
-        
+
         function setMappingFunction(this, mf)
             % Set the current mapping function
             %
@@ -6003,7 +6135,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %  this. setMappingFunction(mf);
             this.mapping_function = mf;
         end
-        
+
         function setAtmLoading(this, flag)
             % Set the athmospheric loading correction is enabled
             %
@@ -6011,7 +6143,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   this.setAtmLoading(flag)
             this.flag_atm_load = flag;
         end
-        
+
         function is_iono_free = isIonoFree(this)
             % Check whether the iono free combination is enabled
             %
@@ -6019,16 +6151,16 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   is_iono_free = isIonoFree(this)
             is_iono_free = this.iono_management == 1;
         end
-        
+
         function is_brdc = isIonoBroadcast(this)
             % Return the kind of iono data used (are the iono parameters broadcast?)
             %
             % SYNTAX
             %   is_brdc = this.isIonoBroadcast();
-            
+
             is_brdc = length(this.iono_name) > 4 && this.iono_model == 2;
         end
-        
+
         function is_iono_ext = isIonoExtModel(this)
             % Check whether the iono external model is enabled
             %
@@ -6036,7 +6168,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   is_iono_ext = isIonoExtModel(this)
             is_iono_ext = this.iono_management == 3;
         end
-        
+
         function is_clock_align = isClockAlign(this)
             % Check whether the clock re-alignment for sats is requested
             %
@@ -6044,7 +6176,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   is_clock_align = isClockAlign(this)
             is_clock_align = this.flag_clock_align;
         end
-                
+
         function is_solid_earth = isSolidEarth(this)
             % Check whether the solid Earth tide corrections are enabled
             %
@@ -6052,7 +6184,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   is_solid_earth = isSolidEarth(this)
             is_solid_earth = this.flag_solid_earth;
         end
-        
+
         function is_pole_tide = isPoleTide(this)
             % Check whether the Pole tide corrections are enabled
             %
@@ -6060,7 +6192,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   is_pole_tide = isPoleTide(this)
             is_pole_tide = this.flag_pole_tide;
         end
-        
+
         function save_log = isLogOnFile(this)
             % check weather the log should be saved
             %
@@ -6068,7 +6200,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %    save_log = saveLog(this)
             save_log = this.save_log;
         end
-        
+
         function is_phase_wind = isPhaseWind(this)
             % Check whether the phase wind up correction is enabled
             %
@@ -6076,7 +6208,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   is_phase_wind = isPhaseWind(this)
             is_phase_wind = this.flag_phase_wind;
         end
-        
+
         function is_shapiro = isShapiro(this)
             % Check whether the shaphiro delay correction is enabled
             %
@@ -6084,15 +6216,15 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   is_shapiro = isShapiro(this)
             is_shapiro = this.flag_shapiro;
         end
-        
+
         function is_met = isMet(this)
             % Check whether the meteorological usage is active
             %
             % SYNTAX
             %   is_met = isMet(this)
             is_met = this.meteo_data == 3;
-        end             
-        
+        end
+
         function is_ocean_load = isOceanLoading(this)
             % Check whether the ocean loading correction is enabled
             %
@@ -6100,7 +6232,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   is_ocean_load = isOceanLoading(this)
             is_ocean_load = this.flag_ocean_load;
         end
-        
+
         function is_atm_load = isAtmLoading(this)
             % Check whether the athmospheric loading correction is enabled
             %
@@ -6108,7 +6240,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   is_atm_load = isAtmLoading(this)
             is_atm_load = this.flag_atm_load;
         end
-        
+
         function is_hoi = isHOI(this)
             % Check whether high order ionspheric delays are enabled
             %
@@ -6116,23 +6248,23 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   is_hoi = isHOI(this)
             is_hoi = this.flag_hoi;
         end
-   
+
         function is_smt = isSmoothTropoOut(this)
             % Should the troposphere parameters be smoothed
             %
             % SYNTAX
             %   is_smt = this.isSmoothTropoOut()
-            
-            is_smt = this.flag_smooth_tropo_out;            
+
+            is_smt = this.flag_smooth_tropo_out;
         end
-        
+
         function is_bound_coo = isSepCooAtBoundaries(this)
             % Should separate coordinates be estimated at boundaries
             %
             % SYNTAX
             %   is_smt = this.isSepCooAtBoundaries()
-            
-            is_bound_coo = this.flag_separate_coo_at_boundary;            
+
+            is_bound_coo = this.flag_separate_coo_at_boundary;
         end
 
         function need_iono = needIonoMap(this)
@@ -6142,22 +6274,30 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   need_iono = needIonoMap(this)
             need_iono = this.isHOI || (this.iono_model == 3 && this.iono_management == 3) || this.isAprIono;
         end
-        
+
         function is_rec_pcv = isRecPCV(this)
             % Check whether the receiver PCV correction is enabled
             %
             % SYNTAX
             %   is_rec_pcv= isRecPCV(this)
             is_rec_pcv = this.flag_rec_pcv;
-        end   
-        
+        end
+
+        function is_rec_mp = isRecMP(this)
+            % Check whether the receiver multipath correction is enabled
+            %
+            % SYNTAX
+            %   is_rec_mp= isRecMP(this)
+            is_rec_mp = this.flag_rec_mp;
+        end
+
         function is_apr_iono = isAprIono(this)
             % Check whether the apriori ionofree correction are enabled
             % SYNTAX
             %   is_apr_iono= isAprIono(this)
             is_apr_iono = this.flag_apr_iono;
-        end  
-        
+        end
+
         function is_reference_tropo = isReferenceTropoEnabled(this)
             % Check whether the tropospheric delay gradient estimation is enabled
             %
@@ -6187,61 +6327,61 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.flag_out_mf || ...
             this.flag_out_apr_tropo;
         end
-                
+
         function flag = isResOut(this)
             % flag: is exporting of combined residuals requested?
             %
             % SYNTAX
             %   flag = isResCoOut(this)
-            
+
             flag = this.flag_out_res_co || this.flag_out_res_pr || this.flag_out_res_ph;
         end
-        
+
         function flag = isResCoOut(this)
             % flag: is exporting of combined residuals requested?
             %
             % SYNTAX
             %   flag = isResCoOut(this)
-            
+
             flag = this.flag_out_res_co;
         end
-        
+
         function flag = isResPrOut(this)
             % flag: is exporting of uncombined code residuals requested?
             %
             % SYNTAX
             %   flag = isResPrOut(this)
-            
+
             flag = this.flag_out_res_pr;
         end
-        
+
         function flag = isResPhOut(this)
             % flag: is exporting of uncombined phase residuals requested?
             %
             % SYNTAX
             %   flag = isResPhOut(this)
-            
+
             flag = this.flag_out_res_ph;
         end
-        
+
         function flag = isSatOut(this)
             % flag: is exporting of sat specific parameters requested?
             %
             % SYNTAX
             %   flag = isSatOut(this)
-            
+
             flag = this.flag_out_res; % && ... ad here other sat specific parameters when getNumSat is expanded
         end
-           
+
         function flag = isNSatOut(this)
             % flag: is exporting of num sate per epoch requested?
             %
             % SYNTAX
             %   flag = isNSatOut(this)
-            
+
             flag = this.flag_out_nspe;
         end
-        
+
         function flag = isPreCleaningOn(this)
             % Try to correct cycle slips / discontinuities in the observations and increase spike variance
             %
@@ -6289,7 +6429,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   flag = this.isRepairOn()
             flag = this.flag_repair;
         end
-        
+
         function flag = isCombineTrk(this)
             % Get the status of trackings combination
             %
@@ -6297,7 +6437,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   flag = this.isCombineTrk()
             flag = this.flag_combine_trk;
         end
-        
+
         function flag = isBlockForceStabilizationOn(this)
             % Get the status of outlier rejection OF UNSTABLE ARCS
             % SYNTAX
@@ -6312,7 +6452,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             %   flag = this.isBlockOneArc()
             flag = this.block_one_arc;
         end
-                
+
         function rate = getTropoOutRate(this)
             % Get the output rate of tropo to be used in PUSHOUT commands
             %
@@ -6321,9 +6461,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             rate = this.trp_out_rate;
         end
     end
-    
+
     % =========================================================================
-    
+
     %%  SETTERS
     % =========================================================================
     methods
@@ -6335,7 +6475,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
             this.prj_name = name;
         end
-        
+
         function err_thr = setMaxPhaseErrThr(this, err_thr)
             % Set the maximum error acceptable on phase observations
             %
@@ -6361,8 +6501,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             end
             if ~is_field
                 % Try to see if it is constellation related
-                if length(par_name) > 3 
-                    try 
+                if length(par_name) > 3
+                    try
                         ss = this.cc.(lower(par_name(1:3)));
                         if strcmp(par_name, [par_name(1:3) '_is_active'])
                             ss.enable(logical(new_value));
@@ -6375,7 +6515,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                             % Maybe is a change of freq to enable
                             ss_freq = fields(ss.F);
                             id_freq = find(ismember(ss_freq(iif(ss.SYS_C == 'R', 6, 1):end), par_name(5:end)));
-                            ss.setFlagF(id_freq, logical(new_value));     
+                            ss.setFlagF(id_freq, logical(new_value));
                             return
                         end
                     catch
@@ -6384,7 +6524,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                         log = Core.getLogger();
                         log.addWarning(sprintf('Setting of "%s" failed', par_name));
                         % not trying to change constellation parameters
-                    end                   
+                    end
                 end
                 %
                 log = Core.getLogger();
@@ -6402,7 +6542,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             end
         end
     end
-    
+
     % =========================================================================
     %%  TEST
     % =========================================================================

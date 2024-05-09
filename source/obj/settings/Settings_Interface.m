@@ -25,7 +25,7 @@
 %  The licence of this file can be found in source/licence.md
 %-------------------------------------------------------------------------------
 
-classdef Settings_Interface < Exportable    
+classdef Settings_Interface < Exportable
     properties (Abstract)
     end
 
@@ -64,7 +64,7 @@ classdef Settings_Interface < Exportable
                 [path_str, ~, ~] = fileparts(fnp.getFullDirPath(file_path));
                 prj_home = fnp.getFullDirPath(strcat(path_str, [filesep '..' filesep]), pwd);
                 if exist(prj_home, 'dir')
-                    ini.setData('prj_home', prj_home);                    
+                    ini.setData('prj_home', prj_home);
                 else
                     home_reset = '';
                 end
@@ -73,7 +73,7 @@ classdef Settings_Interface < Exportable
             end
             this.import(ini);
         end
-        
+
         function updateSettingsFile(this, file_path)
             this.importIniFile(file_path);
             this.save(file_path);
@@ -89,7 +89,7 @@ classdef Settings_Interface < Exportable
             this.(prop_name) = value;
         end
     end
-    
+
     % =========================================================================
     %%  GETTERS IO
     % =========================================================================
@@ -103,7 +103,7 @@ classdef Settings_Interface < Exportable
             end
         end
     end
-    
+
     % =========================================================================
     %  TEST PARAMETERS VALIDITY
     % =========================================================================
@@ -222,7 +222,7 @@ classdef Settings_Interface < Exportable
                         checked_val = field_val;
                     end
                 end
-                
+
                 if isempty(field_val) || ~any(strcmp(checked_val, field_val))
                     log = Core.getLogger();
                     if check_existence > 1 || ~empty_is_valid

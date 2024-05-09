@@ -19,7 +19,7 @@ function [bcheck, acheck, Qzhat, Qbcheck, bfixed, afixed] = lambdafix(bhat, ahat
 %   afixed  = output ambiguities (fixed or float depending on method)
 %
 % DESCRIPTION:
-%   A wrapper for LAMBDA function to be used in goGPS.
+%   A wrapper for LAMBDA function to be used in Breva.
 
 %  Software version 1.0.1
 %-------------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 function ax = setYLim(fh, new_lim, axis_id)
 % Set the Y limits to all the axis of a figure
-% 
+%
 % INPUT
 %   fh       figurehandle
 %   new_lim  new limits for X axis
@@ -12,48 +12,14 @@ function ax = setYLim(fh, new_lim, axis_id)
 %   setXLim(fh, new_line)
 %   setXLim(new_line)
 
-%--------------------------------------------------------------------------
-%   ______   ______ _______ _    _ _______ (TM)
-%   |_____] |_____/ |______  \  /  |_____|
-%   |_____] |    \_ |______   \/   |     |
-%                                           v0.9999.1
-%--------------------------------------------------------------------------
+%  Software version 1.0.1
+%-------------------------------------------------------------------------------
 %  Copyright (C) 2024 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      ...
 %
-%  This software is based on GReD's goGPS software
-%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%  The licence of this file can be found in source/licence.md
 %-------------------------------------------------------------------------------
-%
-%    GReD Geomatics Research & Development - Proprietary Use License
-%    Version 1.0, - July, 2023
-%
-%    This software and its associated code, functions, and tools are the property
-%    of GReD (Geomatics Research & Development). All rights reserved.
-%
-%    Redistribution and use of this software in source and binary forms, with or
-%    without modification, are strictly prohibited without explicit permission
-%    from GReD, except as permitted by law.
-%
-%    You may not distribute, sublicense, sell, or otherwise transfer any part of
-%    this software, code, functions, or tools, nor grant usage rights to any
-%    third party without explicit written permission from GReD.
-%
-%    Unauthorized use, reproduction, or distribution of any part of this software
-%    will be considered a breach of the GReD Geomatics Research & Development
-%    Proprietary Use License and may result in legal consequences.
-%
-%    For licensing inquiries or permissions, please contact GReD at:
-%    info@g-red.eu
-%
-%    For the avoidance of doubt, any part of the software not explicitly
-%    mentioned under this license remains under the terms of its
-%    respective licence
-%
-%-------------------------------------------------------------------------------
-% 1000010 1010010 1000101 1010110 1000001
-%--------------------------------------------------------------------------
 
     if nargin <= 2
         axis_id = [];

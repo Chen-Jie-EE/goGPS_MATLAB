@@ -20,7 +20,7 @@
 %-------------------------------------------------------------------------------
 
 classdef Core_UI < Logos
-    
+
     properties (Constant)
         FONT_SIZE_CONVERSION_LNX = 0.85;
         FONT_SIZE_CONVERSION_MAC = 1.45;
@@ -40,7 +40,7 @@ classdef Core_UI < Logos
         YELLOW = [0.929 0.694 0.125];
         ORANGE = [1 0.6 0];
         LBLUE = [0 163 222]/255;
-        
+
         COLOR_ORDER = [ ...
             0     0.447 0.741;
             0.85  0.325 0.098;
@@ -49,7 +49,7 @@ classdef Core_UI < Logos
             0.466 0.674 0.188;
             0.301 0.745 0.933;
             0.635 0.078 0.184];
-        
+
         CMAP_51 = [      0                         0                         0
                          1         0.901960784313726                         1
                          1         0.843137254901961                         1
@@ -101,7 +101,7 @@ classdef Core_UI < Logos
                          0         0.862745098039216         0.980392156862745
          0.313725490196078         0.941176470588235         0.980392156862745
          0.705882352941177         0.980392156862745         0.980392156862745];
-     
+
         LINE_HEIGHT = 23
     end
     %% PROPERTIES SINGLETON POINTERS
@@ -109,14 +109,14 @@ classdef Core_UI < Logos
     properties % Utility Pointers to Singletons
         state
         w_bar
-        
+
         hide_fig = false; % Keep figure hidden (for background processing)
     end
     %% PROPERTIES GUI
     % ==================================================================================================================================================
     properties
         main        % Handle of the main
-    end    
+    end
     %% METHOD CREATOR
     % ==================================================================================================================================================
     methods (Static, Access = private)
@@ -125,14 +125,14 @@ classdef Core_UI < Logos
             % Core object creator
         end
     end
-    
+
     %% METHODS UI
     % ==================================================================================================================================================
     methods (Static, Access = public)
         function this = getInstance()
             % Get the persistent instance of the class
             persistent unique_instance_core_ui__
-            
+
             if isempty(unique_instance_core_ui__)
                 this = Core_UI();
                 unique_instance_core_ui__ = this;
@@ -141,13 +141,13 @@ classdef Core_UI < Logos
             end
             this.init();
         end
-        
+
         function showTextHeader()
             % Display as a text the Header containing Breva ASCII title and version
             %
             % SYNTAX:
             %   Core_UI.showTextHeader();
-            
+
             log = Core.getLogger();
             if log.getColorMode()
                 %cprintf([241 160 38]/255,'\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    '); cprintf('text','v '); cprintf('text', Core.APP_VERSION); fprintf('\n');
@@ -168,18 +168,18 @@ classdef Core_UI < Logos
             log.simpleSeparator();
             fprintf('\n');
         end
-        
+
         function str_out = getTextHeader()
             % Export as a string the Header containing goGPS ASCII title and version
             %
             % SYNTAX:
             %   str_out = Core_UI.getTextHeader();
-            
+
             str_out = sprintf('\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    v %s\n', Core.APP_VERSION);
             str_out = sprintf('%s\n--------------------------------------------------------------------------\n',str_out);
-        end        
+        end
     end
-    
+
     %% METHODS FIGURE MODIFIER
     methods (Static, Access = public)
 
@@ -192,7 +192,7 @@ classdef Core_UI < Logos
             if nargin == 0 || isempty(fh_list)
                 fh_list = gcf;
             end
-            for fh = fh_list(:)'                
+            for fh = fh_list(:)'
                 addToolbarExplorationButtons(fh);
                 ax_list = findall(fh,'Type','Axes');
                 for ax = ax_list(:)'
@@ -388,18 +388,18 @@ classdef Core_UI < Logos
         end
 
         function addExportMenu(fig_handle)
-            % Add a menu Export to figure            
+            % Add a menu Export to figure
             %
             % SYNTAX
             %   Core_Utils.addExportMenu(fig_handle)
-            
+
             if nargin == 0 || isempty(fig_handle)
                 fig_handle = gcf;
             end
-            
+
             try
                 file_name = fullfile(Core.getState.getOutDir, 'Images', fig_handle.UserData.fig_name);
-                [~, file_name, file_ext] = fileparts(file_name);                
+                [~, file_name, file_ext] = fileparts(file_name);
             catch
                 file_name = '';
             end
@@ -409,7 +409,7 @@ classdef Core_UI < Logos
             else
                 m = uimenu(fig_handle, 'Label', 'Export');
             end
-            
+
             mitem = findall(m.Children, 'Type', 'uimenu', 'Label', 'as ...');
             if ~isempty(mitem)
                 % Item already present
@@ -418,7 +418,7 @@ classdef Core_UI < Logos
                 mitem = uimenu(m,'Label', 'as ...');
                 mitem.Callback = @exportAsAsk;
             end
-            
+
             mitem = findall(m.Children, 'Type', 'uimenu', 'Label', 'as ... (transparent bg)');
             if ~isempty(mitem)
                 % Item already present
@@ -427,7 +427,7 @@ classdef Core_UI < Logos
                 mitem = uimenu(m,'Label', 'as ... (transparent bg)');
                 mitem.Callback = @exportAsAskTransparent;
             end
-            
+
             % If exist a filename and the out dir is a valid path
             if ~isempty(file_name) && (exist(Core.getState.getOutDir, 'dir') == 7)
                 mitem = findall(m.Children, 'Type', 'uimenu', 'Label', ['as ' file_name '.png (light)']);
@@ -438,7 +438,7 @@ classdef Core_UI < Logos
                     mitem = uimenu(m,'Label', ['as ' file_name '.png (light)']);
                     mitem.Callback = @exportPNG;
                 end
-                
+
                 mitem = findall(m.Children, 'Type', 'uimenu', 'Label', ['as ' file_name '.pdf (light)']);
                 if ~isempty(mitem)
                     % Item already present
@@ -447,7 +447,7 @@ classdef Core_UI < Logos
                     mitem = uimenu(m,'Label', ['as ' file_name '.pdf (light)']);
                     mitem.Callback = @exportPDF;
                 end
-                
+
                 mitem = findall(m.Children, 'Type', 'uimenu', 'Label', ['as ' file_name '.fig (light)']);
                 if ~isempty(mitem)
                     % Item already present
@@ -457,7 +457,7 @@ classdef Core_UI < Logos
                     mitem.Callback = @exportFIG;
                 end
             end
-            
+
             function exportAs(fh, type, beautify_mode, flag_transparent)
                 if (nargin == 1) || isempty(type)
                     [file_name, path_name] = uiputfile({'*.png','PNG (*.png)'; ...
@@ -473,16 +473,16 @@ classdef Core_UI < Logos
                 else
                     file_name = fullfile(Core.getState.getOutDir, 'Images', fh.UserData.fig_name);
                 end
-                
+
                 if ~isempty(file_name)
                     if nargin < 3
                         beautify_mode = App_Settings.getInstance.getGUIModeExport;
                     end
-                    
+
                     if nargin < 4 || isempty(flag_transparent)
                         flag_transparent = true;
                     end
-                    
+
                     if ~isempty(file_name)
                         [file_dir, file_name, file_ext] = fileparts(file_name);
                         dir_ok = true;
@@ -507,7 +507,7 @@ classdef Core_UI < Logos
                                 file_name = [file_name 'exported_at_' GPS_Time.now.toString('yyyymmdd_HHMMSS')];
                             end
                             file_name = fullfile(file_dir, [file_name file_ext]);
-                            
+
                             Core_Utils.exportFig(fh, file_name, beautify_mode, flag_transparent);
                             if ~isempty(beautify_mode) && ~strcmp(beautify_mode, App_Settings.getInstance.getGUIMode)
                                 Core_UI.beautifyFig(fh, App_Settings.getInstance.getGUIMode);
@@ -516,28 +516,28 @@ classdef Core_UI < Logos
                     end
                 end
             end
-            
+
             function exportAsAsk(src, event)
                 exportAs(src.Parent.Parent, [], [], false);
             end
-            
+
             function exportAsAskTransparent(src, event)
                 exportAs(src.Parent.Parent, [], []);
             end
-            
+
             function exportFIG(src, event)
                 exportAs(src.Parent.Parent, '.fig');
             end
-            
+
             function exportPNG(src, event)
-                exportAs(src.Parent.Parent, '.png');                
+                exportAs(src.Parent.Parent, '.png');
             end
-            
+
             function exportPDF(src, event)
-                exportAs(src.Parent.Parent, '.pdf');                
+                exportAs(src.Parent.Parent, '.pdf');
             end
         end
-        
+
         function addSatMenu(fig_handle, go_id_list)
             % Insert the menu to set the satellites to view
             cc = Core.getConstellationCollector;
@@ -547,7 +547,7 @@ classdef Core_UI < Logos
             else
                 m = uimenu(fig_handle, 'Label', 'Satellite');
             end
-            
+
             mitem = findall(m.Children, 'Type', 'uimenu', 'Label', 'Check All');
             if ~isempty(mitem)
                 % Item already present
@@ -557,7 +557,7 @@ classdef Core_UI < Logos
                 mitem.UserData = go_id_list;
                 mitem.Callback = @updateSatVisibility;
             end
-            
+
             mitem = findall(m.Children, 'Type', 'uimenu', 'Label', 'Check None');
             if ~isempty(mitem)
                 % Item already present
@@ -567,7 +567,7 @@ classdef Core_UI < Logos
                 mitem.UserData = [];
                 mitem.Callback = @updateSatVisibility;
             end
-            
+
             for i = 1 : numel(go_id_list)
                 sat_name = cc.getSatName(go_id_list(i));
                 mitem = findall(m.Children, 'Type', 'uimenu', 'Label', sat_name);
@@ -580,7 +580,7 @@ classdef Core_UI < Logos
                     mitem.Callback = @updateSatVisibility;
                 end
             end
-            
+
             function updateSatVisibility(this, caller, event)
                 % Refresh the visibility of the lines
                 lh = [];
@@ -617,7 +617,7 @@ classdef Core_UI < Logos
                         value = iif(lh(1).Visible(2) == 'n', 'off', 'on'); % toggle visibility
                     end
                 end
-                
+
                 for i = 1 : numel(lh)
                     % all the lines
                     lh(i).Visible = value;
@@ -631,16 +631,16 @@ classdef Core_UI < Logos
 
         function addBeautifyMenu(fig_handle)
             % Add a menu Aspect to figure
-            % with 2 sub menu for changing figure aspect 
+            % with 2 sub menu for changing figure aspect
             % to Light or Dark Mode
             %
             % SYNTAX
             %   Core_Utils.addBeautifyMenu(fig_handle)
-            
+
             if nargin == 0 || isempty(fig_handle)
                 fig_handle = gcf;
             end
-            
+
             m = findall(fig_handle.Children, 'Type', 'uimenu', 'Label', 'Aspect');
             if ~isempty(m)
                 m = m(1);
@@ -656,7 +656,7 @@ classdef Core_UI < Logos
                 mitem.Accelerator = 'D';
                 mitem.Callback = @toDark;
             end
-            
+
             mitem = findall(m.Children, 'Type', 'uimenu', 'Label', '&Light mode');
             if ~isempty(mitem)
                 % Item already present
@@ -666,16 +666,16 @@ classdef Core_UI < Logos
                 mitem.Accelerator = 'L';
                 mitem.Callback = @toLight;
             end
-            
+
             function toDark(src, event)
                 Core_UI.beautifyFig(src.Parent.Parent, 'dark');
             end
-            
+
             function toLight(src, event)
                 Core_UI.beautifyFig(src.Parent.Parent, 'light');
             end
         end
-        
+
         function beautifyFig(fig_handle_list, color_mode, flag_no_labels)
             % Change font size / type colors of a figure
             %
@@ -971,10 +971,105 @@ classdef Core_UI < Logos
             end
         end
 
+        function beautifyFig2(fig_handle_list, color_mode, flag_no_labels)
+            % function to change font size / type colors of a figure
+            %
+            % INPUT:
+            %   fig_handle_list: figure handler(s) (e.g., gcf or array of figure handles)
+            %   color_mode: 'light' for classic Light mode, 'dark' for Dark mode
+            %   flag_no_labels: if true, it does not modify labels (optional)
+            %
+            % SYNTAX:
+            %   beautifyFig2(fig_handle_list, color_mode, flag_no_labels)
+
+            if nargin == 0 || isempty(fig_handle_list)
+                fig_handle_list = gcf;
+            end
+            if nargin < 2 || isempty(color_mode)
+                color_mode = App_Settings.getInstance.getGUIMode;
+            end
+
+            % Default font settings
+            FONT = 'Arial';
+            FONT_SIZE = 10; % Default font size
+            LINE_WIDTH = 1; % Default line width for axes and lines
+            AXIS_BOX = 'on'; % Default box for axes
+            TICK_DIR = 'out'; % Default tick direction
+
+            % Check for 'flag_no_labels' argument
+            if nargin < 3
+                flag_no_labels = false;
+            end
+
+            for fig_handle_list = fig_handle_list(:)'
+                if isempty(fig_handle_list)
+                    fig_handle_list = gcf;
+                end
+                if isempty(color_mode)
+                    color_mode = 'light'; % Default color mode
+                end
+
+                % Apply settings for each figure
+                applyFigureSettings(fig_handle_list, FONT, FONT_SIZE, LINE_WIDTH, AXIS_BOX, TICK_DIR, color_mode, flag_no_labels);
+            end
+
+
+            function applyFigureSettings(fig_handle, FONT, FONT_SIZE, LINE_WIDTH, AXIS_BOX, TICK_DIR, color_mode, flag_no_labels)
+                % Applies the styling settings to the given figure handle
+
+                % Set figure's default properties
+                set(fig_handle, 'Color', iif(strcmp(color_mode, 'dark'), [0.15, 0.15, 0.15], 'w'));
+
+                % Find and style all axes in the figure
+                ax_list = findall(fig_handle, 'type', 'axes');
+                for ax = ax_list(:)'
+                    set(ax, 'FontName', FONT, 'FontSize', FONT_SIZE, 'LineWidth', LINE_WIDTH, ...
+                        'Box', AXIS_BOX, 'TickDir', TICK_DIR, 'FontWeight', 'normal');
+
+                    % Adjust color scheme based on color_mode
+                    if strcmp(color_mode, 'dark')
+                        set(ax, 'Color', [0.2, 0.2, 0.2], 'XColor', 'w', 'YColor', 'w', 'ZColor', 'w');
+                    else % Light mode adjustments
+                        set(ax, 'Color', 'w', 'XColor', 'k', 'YColor', 'k', 'ZColor', 'k');
+                    end
+
+                    if ~flag_no_labels && isempty(regexp(ax.Title.String, '\\fontsize{.*}', 'once'))
+                        % Append a small font size line for spacing if not already using a specific font size
+                        ax.Title.String = sprintf('%s\\fontsize{%d}\n', ax.Title.String, 4);
+                    end
+                end
+
+                % Apply color mode adjustments to colorbar, legend, and m_map labels if required
+                adjustOtherUIElements(fig_handle, color_mode, FONT, FONT_SIZE);
+            end
+
+            function adjustOtherUIElements(fig_handle, color_mode, FONT, FONT_SIZE)
+                % Adjusts colorbars, legends, and m_map labels
+
+                % Adjust colorbar fonts and colors
+                cb_list = findall(fig_handle, 'Type', 'colorbar');
+                for cb = cb_list(:)'
+                    set(cb, 'FontName', FONT, 'FontSize', FONT_SIZE, 'Color', iif(strcmp(color_mode, 'dark'), 'w', 'k'));
+                end
+
+                % Adjust legend fonts and colors
+                lg_list = findall(fig_handle, 'Type', 'legend');
+                for lg = lg_list(:)'
+                    set(lg, 'FontName', FONT, 'FontSize', FONT_SIZE, 'TextColor', iif(strcmp(color_mode, 'dark'), 'w', 'k'));
+                end
+
+                % m_map specific label adjustments
+                m_map_labels = findall(fig_handle, '-regexp', 'Tag', 'm_grid_.*label');
+                for label = m_map_labels(:)'
+                    set(label, 'FontName', FONT, 'FontSize', FONT_SIZE, 'Color', iif(strcmp(color_mode, 'dark'), [0.8, 0.8, 0.8], 'k'));
+                end
+            end
+        end
+
         function resizeFig(fig_handle, xy_size)
             % Change size of a figure with standard values
             % (only if it is small)
-            % 
+            %
             % INPUT:
             %   fig_handle  figure handler (e.g. gcf)
             %
@@ -993,7 +1088,7 @@ classdef Core_UI < Logos
             else
                 xy_size = [1180 700];
             end
-            
+
             if ~strcmp(fig_handle.WindowStyle, 'docked') && flag_small_fig
                 if isprop(fig_handle,'InnerPosition')
                     fig_handle.InnerPosition([3, 4]) = xy_size;
@@ -1011,7 +1106,7 @@ classdef Core_UI < Logos
             fig_handle.Units = unit;
         end
     end
-    
+
     %% METHODS INIT
     % ==================================================================================================================================================
     methods
@@ -1019,7 +1114,7 @@ classdef Core_UI < Logos
             this.state = Core.getState();
             this.w_bar = Go_Wait_Bar.getInstance(100,'Init core GUI', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
         end
-        
+
         function openGUI(this, flag_wait)
             if (nargin < 1) || isempty(flag_wait)
                 flag_wait = false;
@@ -1027,15 +1122,15 @@ classdef Core_UI < Logos
             this.main = GUI_Edit_Settings.getInstance(flag_wait);
         end
     end
-    
+
     %% METHODS INSERT
     % ==================================================================================================================================================
     methods (Static)
-        
+
         function insertLogoGUI(container)
             % Logo
             logo_bg_color = Core_UI.LIGHT_GREY_BG;
-            
+
             logo_g_border0 = uix.Grid('Parent', container, ...
                 'Padding', 2, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
@@ -1045,7 +1140,7 @@ classdef Core_UI < Logos
             logo_g = uix.Grid('Parent', logo_g_border1, ...
                 'Padding', 2, ...
                 'BackgroundColor', logo_bg_color);
-            
+
             Core_UI.insertEmpty(logo_g);
             logo_ax = axes( 'Parent', logo_g);
             [logo, transparency] = Core_UI.getLogoOpenEdition();
@@ -1062,15 +1157,15 @@ classdef Core_UI < Logos
                 'FontName', 'verdana', ...
                 'FontSize', Core_UI.getFontSize(5), ...
                 'FontWeight', 'bold');
-            
+
             logo_g.Widths = 184;
             logo_g.Heights = [4 78];
         end
-        
+
         function insertLogoGUI_legacy(container)
             % Logo
             logo_bg_color = Core_UI.LIGHT_GREY_BG;
-            
+
             logo_g_border0 = uix.Grid('Parent', container, ...
                 'Padding', 2, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
@@ -1080,7 +1175,7 @@ classdef Core_UI < Logos
             logo_g = uix.Grid('Parent', logo_g_border1, ...
                 'Padding', 5, ...
                 'BackgroundColor', logo_bg_color);
-            
+
             logo_ax = axes( 'Parent', logo_g);
             [logo, transparency] = Core_UI.getLogo();
             logo(repmat(sum(logo,3) == 0,1,1,3)) = 0;
@@ -1089,7 +1184,7 @@ classdef Core_UI < Logos
             logo_ax.XTickLabel = [];
             logo_ax.YTickLabel = [];
             axis off;
-            
+
             % Title and description
             descr_bv = uix.VBox('Parent', logo_g, ...
                 'BackgroundColor', logo_bg_color);
@@ -1122,20 +1217,20 @@ classdef Core_UI < Logos
                 'FontWeight', 'bold');
             uicontrol('Parent', descr_bv, 'Style', 'Text', 'BackgroundColor', logo_bg_color);
             descr_bv.Heights = [-3.5 -2 -1.3 -0.5];
-            
+
             logo_g.Widths = [64 -1];
             logo_g.Heights = 64;
         end
-        
+
         % Single element insert ----------------------------------------------------------------
-        
+
         function flag_handle = insertFlag(container, properties)
             % insert a flag element
             %
             % SYNTAX
             %   flag_handle = insertFlag(container)
             flag_handle = axes( 'Parent', container);
-            
+
             if nargin == 2
                 flag_handle.UserData = properties;
                 Core_UI.checkFlag(flag_handle)
@@ -1143,9 +1238,9 @@ classdef Core_UI < Logos
                 Core_UI.setFlagGrey(flag_handle);
             end
             flag_handle.XTickLabel = [];
-            flag_handle.YTickLabel = [];                    
+            flag_handle.YTickLabel = [];
             axis(flag_handle, 'off');
-        end            
+        end
 
         function [chxbox_handle, editable_handle] = insertSelectorCC(parent, title, but_tag, callback_flag, property_name, callback_edit, color_bg)
             box_handle = uix.Grid('Parent', parent, ...
@@ -1168,7 +1263,7 @@ classdef Core_UI < Logos
             box_handle.Widths = [100 40];
             box_handle.Heights = Core_UI.LINE_HEIGHT;
         end
-        
+
         function chxbox_handle = insertCheckBoxCC(parent, title, but_tag, callback, color)
             chxbox_handle = uicontrol('Parent', parent,...
                 'Style', 'checkbox',...
@@ -1178,15 +1273,15 @@ classdef Core_UI < Logos
                 'Callback', callback ...
                 );
         end
-        
+
         function chxbox_handle = insertCheckBoxLight(container, title, state_field, callback)
             chxbox_handle = Core_UI.insertCheckBox(container, title, state_field, callback, Core_UI.LIGHT_GREY_BG);
         end
-        
+
         function chxbox_handle = insertCheckBoxDark(container, title, state_field, callback)
             chxbox_handle = Core_UI.insertCheckBox(container, title, state_field, callback, Core_UI.DARK_GREY_BG);
         end
-        
+
         function chxbox_handle = insertCheckBox(container, title, state_field, callback, color)
             chxbox_handle = uicontrol('Parent', container,...
                 'Style', 'checkbox',...
@@ -1197,16 +1292,16 @@ classdef Core_UI < Logos
                 'Callback', callback ...
                 );
         end
-        
-       
-        
+
+
+
         function insertEmpty(container, color)
             if nargin == 1
                 color = Core_UI.LIGHT_GREY_BG;
             end
             uicontrol('Parent', container, 'Style', 'Text', 'BackgroundColor', color)
         end
-        
+
         function txt = insertText(parent, title, font_size, bg_color, color, alignment)
             if nargin < 4 || isempty(bg_color)
                 bg_color = Core_UI.DARK_GREY_BG;
@@ -1225,7 +1320,7 @@ classdef Core_UI < Logos
                 'FontSize', Core_UI.getFontSize(font_size), ...
                 'BackgroundColor', bg_color);
         end
-        
+
         function panel_handle = insertPanel(container, title, color)
             panel_handle = uix.Panel('Parent', container, ...
                 'Title', title, ...
@@ -1234,15 +1329,15 @@ classdef Core_UI < Logos
                 'Padding', 5, ...
                 'BackgroundColor', color);
         end
-        
+
         function panel_handle = insertPanelLight(container, title)
             panel_handle = Core_UI.insertPanel(container, title, Core_UI.LIGHT_GREY_BG);
         end
-        
+
         function panel_handle = insertPanelLight2(container, title)
             panel_handle = Core_UI.insertPanel(container, title, Core_UI.LIGHT_GREY_BG_NOT_SO_LIGHT);
         end
-        
+
         function insertHBarDark(container)
             bar_v = uix.VBox('Parent', container, ...
                 'Padding', 0, ...
@@ -1253,7 +1348,7 @@ classdef Core_UI < Logos
             Core_UI.insertEmpty(bar_v, Core_UI.DARK_GREY_BG);
             bar_v.Heights = [-1 1 -1];
         end
-        
+
         function insertHBarLight(container)
             bar_v = uix.VBox('Parent', container, ...
                 'Padding', 0, ...
@@ -1264,7 +1359,7 @@ classdef Core_UI < Logos
             Core_UI.insertEmpty(bar_v, Core_UI.LIGHT_GREY_BG);
             bar_v.Heights = [-1 2 -1];
         end
-        
+
         function insertVBar(container, color_bg, color)
             bar_h = uix.HBox('Parent', container, ...
                 'Padding', 0, ...
@@ -1275,29 +1370,29 @@ classdef Core_UI < Logos
             Core_UI.insertEmpty(bar_h, color_bg);
             bar_h.Widths = [-1 1 -1];
         end
-            
+
         function insertVBarDark(container)
             Core_UI.insertVBar(container, Core_UI.DARK_GREY_BG, Core_UI.LIGHT_GREY_BG);
         end
-        
+
         function insertVBarLight(container)
             Core_UI.insertVBar(container, Core_UI.LIGHT_GREY_BG, Core_UI.DARK_GREY_BG);
         end
-        
+
         function date = insertDateSpinner(container, date_in, callback)
             % Initialize JIDE's usage within Matlab
             com.mathworks.mwswing.MJUtilities.initJIDE;
-            
+
             % Display a DateChooserPanel
             date = com.jidesoft.combobox.DateSpinnerComboBox;
-            
+
             %% DEPRECATE!!!
             warning off
             [h_panel, h_container] = javacomponent(date,[10,10,140,20], container);
             warning on
-            
+
             set(h_panel, 'ItemStateChangedCallback', callback);
-            
+
             date.setBackground(java.awt.Color(Core_UI.LIGHT_GREY_BG(1), Core_UI.LIGHT_GREY_BG(2), Core_UI.LIGHT_GREY_BG(3)));
             date.setDisabledBackground(java.awt.Color(Core_UI.LIGHT_GREY_BG(1),Core_UI.LIGHT_GREY_BG(2),Core_UI.LIGHT_GREY_BG(3)));
             date.setShowWeekNumbers(false);     % Java syntax
@@ -1305,7 +1400,7 @@ classdef Core_UI < Logos
             date.setFormat(dateFormat);
             date.setDate(java.util.Date(date_in))
         end
-        
+
         function date_hour = insertDateSpinnerHour(container, time, call_back)
             date_hour = uix.HBox('Parent', container, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
@@ -1344,7 +1439,7 @@ classdef Core_UI < Logos
                 'FontSize', Core_UI.getFontSize(9), ...
                 'Callback', call_back);
         end
-        
+
         function [box_handle, pop_up_handle] = insertPopUp(parent, description, possible_values, property_name, callback, widths, color_bg, color_txt)
             if nargin < 6 || isempty(widths)
                 widths  = [-1 -1];
@@ -1372,21 +1467,21 @@ classdef Core_UI < Logos
                 'Callback', callback);
             box_handle.Widths = widths;
         end
-        
+
         function [box_handle, pop_up_handle] = insertPopUpLight(parent, description, possible_values, property_name, callback, widths)
             if nargin < 6
                 widths  = [-1 -1];
             end
             [box_handle, pop_up_handle] = Core_UI.insertPopUp(parent, description, possible_values, property_name, callback, widths,Core_UI.LIGHT_GREY_BG, Core_UI.BLACK);
         end
-        
+
         function [box_handle, pop_up_handle] = insertPopUpDark(parent, description, possible_values, property_name, callback, widths)
             if nargin < 6
                 widths  = [-1 -1];
             end
             [box_handle, pop_up_handle] = Core_UI.insertPopUp(parent, description, possible_values, property_name, callback, widths, Core_UI.DARK_GREY_BG, Core_UI.WHITE);
         end
-        
+
         function [box_handle, editable_handle, flag_handle] = insertFileBox(parent, description, property_name, callback, widths)
             if nargin < 5
                 widths  = [25 -1 -1 25];
@@ -1418,7 +1513,7 @@ classdef Core_UI < Logos
                 'Callback', @Core_UI.onSearchFileBox)
             box_handle.Widths = widths;
         end
-        
+
         function [box_handle, editable_handle, flag_handle] = insertDirBox(parent, description, property_name, callback, widths)
             if nargin < 5
                 widths  = [25 -1 -1 25];
@@ -1451,7 +1546,7 @@ classdef Core_UI < Logos
             box_handle.Widths = widths;
             box_handle.Heights = 23;
         end
-        
+
         function [box_handle, editable_handle, flag_handle] = insertDirBoxDark(parent, description, property_name, callback, widths)
             if nargin < 5
                 widths  = [25 -1 -1 25];
@@ -1484,7 +1579,7 @@ classdef Core_UI < Logos
             box_handle.Widths = widths;
             box_handle.Heights = 23;
         end
-        
+
         function [box_handle, editable_handle_dir, editable_handle_file, flag_handle] = insertDirFileBox(parent, description, property_name_dir, property_name_file, callback, widths)
             if nargin < 6
                 widths  = [25 -1 -3 5 -1 25];
@@ -1522,10 +1617,10 @@ classdef Core_UI < Logos
                 'FontSize', Core_UI.getFontSize(7), ...
                 'String', '...',...
                 'Callback', @Core_UI.onSearchDirFileBox)
-                                 
+
             box_handle.Widths = widths;
         end
-                
+
         function [box_handle, editable_handle_dir, editable_handle_file] = insertDirFileBoxObsML(parent, description, property_name_dir, property_name_file, callback, widths)
             if nargin < 6
                 widths  = {[-1 -1 25], [-1 -1 25]};
@@ -1539,7 +1634,7 @@ classdef Core_UI < Logos
             box_bot = uix.HBox('Parent', box_handle, ...
                 'Padding', 0, ...
                 'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-            
+
             uicontrol('Parent', box_top, ...
                 'Style', 'Text', ...
                 'String', [description 's directory'], ...
@@ -1559,7 +1654,7 @@ classdef Core_UI < Logos
                 'FontSize', Core_UI.getFontSize(7), ...
                 'String', '...',...
                 'Callback', @Core_UI.onSearchDirBoxMLStationObs)
-            
+
             uicontrol('Parent', box_bot, ...
                 'Style', 'Text', ...
                 'String', [description ' files'], ...
@@ -1580,12 +1675,12 @@ classdef Core_UI < Logos
                 'FontSize', Core_UI.getFontSize(7), ...
                 'String', '...',...
                 'Callback', @Core_UI.onSearchDirFileBoxML)
-            
+
             box_top.Widths = widths{1};
             box_bot.Widths = widths{1};
             box_handle.Heights = [23 -1];
         end
-        
+
         function [box_handle, editable_handle_dir, editable_handle_file] = insertDirFileBoxMetML(parent, description, property_name_dir, property_name_file, callback, widths, color_bg)
             if nargin < 6
                 widths  = {[-1 -1 25], [-1 -1 25]};
@@ -1599,7 +1694,7 @@ classdef Core_UI < Logos
             box_bot = uix.HBox('Parent', box_handle, ...
                 'Padding', 0, ...
                 'BackgroundColor', color_bg);
-            
+
             uicontrol('Parent', box_top, ...
                 'Style', 'Text', ...
                 'String', [description ' directory'], ...
@@ -1619,7 +1714,7 @@ classdef Core_UI < Logos
                 'FontSize', Core_UI.getFontSize(7), ...
                 'String', '...',...
                 'Callback', @Core_UI.onSearchDirBoxMLStationMet)
-            
+
             uicontrol('Parent', box_bot, ...
                 'Style', 'Text', ...
                 'String', [description ' files'], ...
@@ -1640,12 +1735,12 @@ classdef Core_UI < Logos
                 'FontSize', Core_UI.getFontSize(7), ...
                 'String', '...',...
                 'Callback', @Core_UI.onSearchDirFileBoxML)
-            
+
             box_top.Widths = widths{1};
             box_bot.Widths = widths{2};
             box_handle.Heights = [23 -1];
         end
-        
+
         function [box_handle, editable_handle] = insertFileBoxML(parent, description, property_name, callback, widths)
             if nargin < 5
                 widths  = [-1 -1 25];
@@ -1676,7 +1771,7 @@ classdef Core_UI < Logos
             box_handle.Widths = widths;
             box_handle.Heights = -1;
         end
-        
+
         function [box_handle, editable_handle] = insertEditBox(parent, text_left, property_name, text_right, callback, widths, color_bg, color_txt)
             if nargin < 6 || isempty(widths)
                 if nargin < 4 || isempty(text_right)
@@ -1716,7 +1811,7 @@ classdef Core_UI < Logos
             box_handle.Widths = widths;
             box_handle.Heights = 23;
         end
-        
+
         function [box_handle, editable_handle] = insertEditBoxLight(parent, text_left, property_name, text_right, callback, widths)
             if nargin < 6
                 if nargin < 4 || isempty(text_right)
@@ -1727,7 +1822,7 @@ classdef Core_UI < Logos
             end
             [box_handle, editable_handle] = Core_UI.insertEditBox(parent, text_left, property_name, text_right, callback, widths,Core_UI.LIGHT_GREY_BG, Core_UI.BLACK);
         end
-        
+
         function [box_handle, editable_handle] = insertEditBoxDark(parent, text_left, property_name, text_right, callback, widths)
             if nargin < 6
                 if nargin < 4 || isempty(text_right)
@@ -1738,7 +1833,7 @@ classdef Core_UI < Logos
             end
             [box_handle, editable_handle] = Core_UI.insertEditBox(parent, text_left, property_name, text_right, callback, widths,Core_UI.DARK_GREY_BG, Core_UI.WHITE);
         end
-        
+
         function [box_handle] = insertEditBoxArray(parent,num_boxes, text_left, property_name, text_right, callback, widths, color_bg)
             if nargin < 7 || isempty(widths)
                 if nargin < 4 || isempty(text_right)
@@ -1768,7 +1863,7 @@ classdef Core_UI < Logos
                     'Callback', callback);
                   Core_UI.insertEmpty(box_handle, color_bg);
             end
-          
+
             uicontrol('Parent', box_handle, ...
                 'Style', 'Text', ...
                 'String', text_right, ...
@@ -1779,7 +1874,7 @@ classdef Core_UI < Logos
             box_handle.Widths = [widths(1) repmat(widths(2:3), 1, num_boxes) widths(4)];
             box_handle.Heights = 23;
         end
-        
+
         function [j_edit_box, h_log_panel] = insertLog(parent)
             % Insert a log editbox
             %
@@ -1800,7 +1895,7 @@ classdef Core_UI < Logos
             j_edit_box = handle(jScrollPanel.getView,'CallbackProperties');
         end
     end
-    
+
     %% METHODS ELEMENT MODIFIER
     % ==================================================================================================================================================
     methods (Static)
@@ -1809,11 +1904,11 @@ classdef Core_UI < Logos
             %
             % SYNTAX
             %   Core_UI.checkFlag(flag_handle_list)
-            
+
             fnp = File_Name_Processor;
-            
+
             if ~iscell(flag_handle_list)
-                flag_handle_list = {flag_handle_list};            
+                flag_handle_list = {flag_handle_list};
             end
             for f = 1 : numel(flag_handle_list)
                 flag_handle = flag_handle_list{f};
@@ -1827,7 +1922,7 @@ classdef Core_UI < Logos
                             full_file = fullfile(fnp.getFullDirPath(state.(properties{1})), state.(properties{2}));
                         else
                             full_file = File_Name_Processor.getFullDirPath(state.(properties{1}));
-                        end                        
+                        end
                     catch
                         % Properties are not a field of state
                         full_file = '';
@@ -1871,9 +1966,9 @@ classdef Core_UI < Logos
                         end
                     end
                 end
-            end                        
+            end
         end
-        
+
         function setFlagRed(flag_handle)
             % Change flag color to red
             %
@@ -1881,15 +1976,15 @@ classdef Core_UI < Logos
             %   COre_UI.setFlagRed(flag_handle)
             save_properties = flag_handle.UserData;
             hold(flag_handle, 'off')
-            plot(flag_handle, 0, 0, '.', 'MarkerSize', 45, 'Color', max(0, Core_UI.RED - 0.5)); 
+            plot(flag_handle, 0, 0, '.', 'MarkerSize', 45, 'Color', max(0, Core_UI.RED - 0.5));
             hold(flag_handle, 'on')
             plot(flag_handle, 0, 0, '.', 'MarkerSize', 33, 'Color', min(1, Core_UI.RED + 0.3));
             flag_handle.XTickLabel = [];
-            flag_handle.YTickLabel = [];                    
+            flag_handle.YTickLabel = [];
             axis(flag_handle, 'off');
-            flag_handle.UserData = save_properties;            
+            flag_handle.UserData = save_properties;
         end
-        
+
         function setFlagOrange(flag_handle)
             % Change flag color to orange
             %
@@ -1897,15 +1992,15 @@ classdef Core_UI < Logos
             %   COre_UI.setFlagOrange(flag_handle)
             save_properties = flag_handle.UserData;
             hold(flag_handle, 'off')
-            plot(flag_handle, 0, 0, '.', 'MarkerSize', 45, 'Color', max(0, Core_UI.ORANGE - 0.5)); 
+            plot(flag_handle, 0, 0, '.', 'MarkerSize', 45, 'Color', max(0, Core_UI.ORANGE - 0.5));
             hold(flag_handle, 'on')
             plot(flag_handle, 0, 0, '.', 'MarkerSize', 33, 'Color', min(1, Core_UI.ORANGE + 0.1));
             flag_handle.XTickLabel = [];
-            flag_handle.YTickLabel = [];                    
+            flag_handle.YTickLabel = [];
             axis(flag_handle, 'off');
-            flag_handle.UserData = save_properties;            
+            flag_handle.UserData = save_properties;
         end
-        
+
         function setFlagGreen(flag_handle)
             % Change flag color to green
             %
@@ -1913,15 +2008,15 @@ classdef Core_UI < Logos
             %   COre_UI.setFlagGreen(flag_handle)
             save_properties = flag_handle.UserData;
             hold(flag_handle, 'off')
-            plot(flag_handle, 0, 0, '.', 'MarkerSize', 45, 'Color', max(0, Core_UI.GREEN - 0.5)); 
+            plot(flag_handle, 0, 0, '.', 'MarkerSize', 45, 'Color', max(0, Core_UI.GREEN - 0.5));
             hold(flag_handle, 'on')
             plot(flag_handle, 0, 0, '.', 'MarkerSize', 33, 'Color', min(1, Core_UI.GREEN + 0.3));
             flag_handle.XTickLabel = [];
-            flag_handle.YTickLabel = [];                    
+            flag_handle.YTickLabel = [];
             axis(flag_handle, 'off');
-            flag_handle.UserData = save_properties;            
+            flag_handle.UserData = save_properties;
         end
-        
+
         function setFlagGrey(flag_handle)
             % Change flag color to grey
             %
@@ -1929,19 +2024,19 @@ classdef Core_UI < Logos
             %   COre_UI.setFlagGrey(flag_handle)
             save_properties = flag_handle.UserData;
             hold(flag_handle, 'off')
-            plot(flag_handle, 0, 0, '.', 'MarkerSize', 45, 'Color', max(0, Core_UI.GREY - 0.5)); 
+            plot(flag_handle, 0, 0, '.', 'MarkerSize', 45, 'Color', max(0, Core_UI.GREY - 0.5));
             hold(flag_handle, 'on')
             plot(flag_handle, 0, 0, '.', 'MarkerSize', 33, 'Color', Core_UI.GREY);
             flag_handle.XTickLabel = [];
-            flag_handle.YTickLabel = [];                    
+            flag_handle.YTickLabel = [];
             axis(flag_handle, 'off');
-            flag_handle.UserData = save_properties;            
+            flag_handle.UserData = save_properties;
         end
 
         function disableElement(el)
             Core_UI.enableElement(el, false)
         end
-        
+
         function enableElement(el, status)
             if nargin == 1
                 status = true;
@@ -1964,13 +2059,18 @@ classdef Core_UI < Logos
                 end
             end
         end
-        
+
         function guiAddMessage(j_edit_box, text, severity)
+            if nargin < 3,  severity='none';  end
+            Core_UI.guiAddJMessage(j_edit_box, text, severity)
+        end
+
+        function guiAddJMessage(j_edit_box, text, severity)
             % Log messages in a Log element
             %
             % SYNTAX
             %   Core_UI.guiAddMessage(jEditbox, text, severity)
-            
+
             % Ensure we have an HTML-ready editbox
             HTMLclassname = 'javax.swing.text.html.HTMLEditorKit';
             if ~isa(j_edit_box.getEditorKit,HTMLclassname)
@@ -1980,19 +2080,19 @@ classdef Core_UI < Logos
             if nargin < 3,  severity='none';  end
             switch lower(severity(1))
                 %case 'm',  icon = 'greenarrowicon.gif'; color='black';
-                %case 'w',  icon = 'warning.gif';        color='orange'; text = ['WARNING: ', text];                
+                %case 'w',  icon = 'warning.gif';        color='orange'; text = ['WARNING: ', text];
                 %case 'e',  icon = 'demoicon.gif';       color='red';    text = ['ERROR: ', text];
                 case 'm',  icon = 'info32b.png';          color='#222222';
-                case 'w',  icon = 'alert-yellow32b.png';  color='orange'; text = ['WARNING: ', text];                
+                case 'w',  icon = 'alert-yellow32b.png';  color='orange'; text = ['WARNING: ', text];
                 case 'e',  icon = 'error32b.png';         color='red';    text = ['ERROR: ', text];
                 case 'v',  icon = 'ok32b.png';            color='#222222';
                 case 'x',  icon = 'ko32b.png';            color='#222222';
                 case '-',  icon = 'off32b.png';           color='#222222';
                 otherwise, icon = 'empty32b.png';         color='gray';
             end
-                   
+
             msg_txt = ['<font color=', color, ' face="Helvetica, Arial, sans-serif">', text, '</font>'];
-            
+
             %icon = fullfile(matlabroot,'toolbox/matlab/icons',icon);
             if isdeployed
                 if exist(fullfile(Core.getInstallDir, '../icons', icon), 'file')
@@ -2007,7 +2107,7 @@ classdef Core_UI < Logos
             end
             icon_txt =['<img src="file:///', icon, '" height=20 width=16 style="height: 20px; width: 16px;"/>'];
             new_text = ['<table style="width:100%;"><tr><td style="width:16px;vertical-align:top">' icon_txt '</td><td>' msg_txt '</td></tr></table>'];
-            
+
             % Place the HTML message segment at the bottom of the editbox
             doc = j_edit_box.getDocument();
             j_edit_box.getEditorKit().read(java.io.StringReader(new_text), doc, doc.getLength());
@@ -2016,19 +2116,19 @@ classdef Core_UI < Logos
             end_pos = j_edit_box.getDocument.getLength;
             j_edit_box.setCaretPosition(end_pos); % end of content
         end
-        
+
         function guiAddHTML(j_edit_box, html_txt)
             % Log messages in a Log element
             %
             % SYNTAX
             %   Core_UI.guiAddMessage(jEditbox, text, severity)
-            
+
             % Ensure we have an HTML-ready editbox
             HTMLclassname = 'javax.swing.text.html.HTMLEditorKit';
             if ~isa(j_edit_box.getEditorKit,HTMLclassname)
                 j_edit_box.setContentType('text/html');
             end
-                        
+
             % Place the HTML message segment at the bottom of the editbox
             doc = j_edit_box.getDocument();
             j_edit_box.getEditorKit().read(java.io.StringReader(html_txt), doc, doc.getLength());
@@ -2037,24 +2137,24 @@ classdef Core_UI < Logos
             end_pos = j_edit_box.getDocument.getLength;
             j_edit_box.setCaretPosition(end_pos); % end of content
         end
-        
+
         function guiClearLog(j_edit_box, html_txt)
             % Empty the logging Window
             %
             % SYNTAX
             %   Core_UI.guiClearLog(jEditbox, text, severity)
-            
+
             % Ensure we have an HTML-ready editbox
             HTMLclassname = 'javax.swing.text.html.HTMLEditorKit';
             if ~isa(j_edit_box.getEditorKit,HTMLclassname)
                 j_edit_box.setContentType('text/html');
             end
-                        
+
             % Place the HTML message segment at the bottom of the editbox
             j_edit_box.setText('');% end of content
         end
     end
-    
+
     %% METHODS EVENTS
     % ==================================================================================================================================================
     methods (Static, Access = public)
@@ -2071,7 +2171,7 @@ classdef Core_UI < Logos
                 callbackCell(caller.Parent.Children(4));
             end
         end
-        
+
         function onSearchDirFileBoxML(caller, event)
             % [file, path] = uigetfile({'*.*',  'All Files (*.*)'}, this.state.getHomeDir);
             [file, path] = uigetfile([caller.Parent.Parent.Children(2).Children(2).String filesep '*.*'], 'MultiSelect', 'on');
@@ -2090,7 +2190,7 @@ classdef Core_UI < Logos
                 callbackCell(caller.Parent.Parent.Children(2).Children(2));
             end
         end
-        
+
         function onSearchFileBox(caller, event)
             state = Core.getCurrentSettings();
             [file, path] = uigetfile([state.getHomeDir filesep '*.*']);
@@ -2101,7 +2201,7 @@ classdef Core_UI < Logos
                 callbackCell(caller.Parent.Children(2));
             end
         end
-        
+
         function onSearchDirBox(caller, event)
             dir_path = uigetdir(caller.Parent.Children(2).String);
             if dir_path ~= 0
@@ -2111,11 +2211,11 @@ classdef Core_UI < Logos
                 callbackCell(caller.Parent.Children(2));
             end
         end
-        
+
         function onSearchDirBoxMLStationObs(caller, event)
             dir_path = uigetdir(caller.Parent.Children(2).String);
             station_list = Core_Utils.getStationList(dir_path,'oO');
-            
+
             if dir_path ~= 0
                 caller.Parent.Children(2).String = dir_path;
                 % trigger the edit of the field
@@ -2129,14 +2229,14 @@ classdef Core_UI < Logos
                 end
             end
         end
-        
+
         function onGetRecursiveMarkers(caller, event)
             dir_box = caller.Parent.Parent.Children(end).Children(end).Children(2);
             list_box = caller.Parent.Parent.Children(end).Children(1).Children(2);
-            
+
             dir_path = uigetdir(dir_box.String);
             station_list = Core_Utils.getStationList(dir_path, 'oO', true);
-            
+
             if dir_path ~= 0
                 dir_box.String = dir_path;
                 % trigger the edit of the field
@@ -2150,11 +2250,11 @@ classdef Core_UI < Logos
                 end
             end
         end
-        
+
         function onSearchDirBoxMLStationMet(caller, event)
             dir_path = uigetdir(caller.Parent.Children(2).String);
             station_list = Core_Utils.getStationList(dir_path,'mM');
-            
+
             if dir_path ~= 0
                 caller.Parent.Children(2).String = dir_path;
                 % trigger the edit of the field
@@ -2167,16 +2267,16 @@ classdef Core_UI < Logos
                     callbackCell(caller.Parent.Parent.Children(1).Children(2));
                 end
             end
-        end        
+        end
     end
-    
+
     %% METHODS getters
     % ==================================================================================================================================================
     methods
         function ok_go = isGo(this)
             ok_go = this.main.isGo();
         end
-    end    
+    end
     %% METHODS (static) getters
     % ==================================================================================================================================================
     methods (Static)
@@ -2187,7 +2287,7 @@ classdef Core_UI < Logos
             end
             hide_fig = ui.hide_fig;
         end
-                
+
         function os_size = getSizeConversion()
             if isunix()
                 if ismac()
@@ -2199,11 +2299,11 @@ classdef Core_UI < Logos
                 os_size = Core_UI.FONT_SIZE_CONVERSION_WIN;
             end
         end
-        
+
         function font_o = getFontSize(font_i)
             font_o = round(font_i * Core_UI.getSizeConversion());
         end
-        
+
         function color = getColor(color_id, color_num)
             % get a color taken from COLOR ORDER CONSTANT
             %
@@ -2220,17 +2320,17 @@ classdef Core_UI < Logos
                 end
             end
         end
-        
+
         function logo_ax = insertLogo(container, location)
             % Insert a new axis containing goGPS Logo
             %
-            % SYNTAX 
-            %   logo_ax = Mesonet.insertLogo(container)  
-            
+            % SYNTAX
+            %   logo_ax = Mesonet.insertLogo(container)
+
             if nargin < 1 || isempty(container)
                 container = gcf;
             end
-            
+
             if (nargin < 2) || isempty(location)
                 location = 'SouthEast';
             end
@@ -2242,45 +2342,45 @@ classdef Core_UI < Logos
             image(logo_ax, logo, 'AlphaData', transparency);
             logo_ax.XTickLabel = [];
             logo_ax.YTickLabel = [];
-            
+
             switch location
                 case 'NorthEast'
                     logo_ax.Units = 'pixels';
-                    logo_ax.Position([3 4]) = [size(logo,2) size(logo,1)];            
+                    logo_ax.Position([3 4]) = [size(logo,2) size(logo,1)];
                     cu = container.Units;
                     container.Units = 'pixels';
                     logo_ax.Position(1) = container.Position(3) - logo_ax.Position(3) - 10;
                     logo_ax.Position(2) = container.Position(4) - logo_ax.Position(4) - 10;
-                    logo_ax.Units = 'normalized';            
+                    logo_ax.Units = 'normalized';
                     container.Units = cu;
                 case 'NorthWest'
                     logo_ax.Units = 'pixels';
-                    logo_ax.Position([3 4]) = [size(logo,2) size(logo,1)];            
+                    logo_ax.Position([3 4]) = [size(logo,2) size(logo,1)];
                     cu = container.Units;
                     container.Units = 'pixels';
                     logo_ax.Position(1) = 10;
                     logo_ax.Position(2) = container.Position(4) - logo_ax.Position(4) - 10;
-                    logo_ax.Units = 'normalized';            
+                    logo_ax.Units = 'normalized';
                     container.Units = cu;
                 case 'SouthEast'
                     logo_ax.Units = 'pixels';
-                    logo_ax.Position([3 4]) = [size(logo,2) size(logo,1)];            
+                    logo_ax.Position([3 4]) = [size(logo,2) size(logo,1)];
                     logo_ax.Position(2) = 10;
                     cu = container.Units;
                     container.Units = 'pixels';
                     logo_ax.Position(1) = container.Position(3) - logo_ax.Position(3) - 10;
-                    logo_ax.Units = 'normalized';            
+                    logo_ax.Units = 'normalized';
                     container.Units = cu;
                 case 'SouthWest'
                     logo_ax.Units = 'pixels';
-                    logo_ax.Position([3 4]) = [size(logo,2) size(logo,1)];            
+                    logo_ax.Position([3 4]) = [size(logo,2) size(logo,1)];
                     logo_ax.Position(2) = 10;
                     cu = container.Units;
                     container.Units = 'pixels';
                     logo_ax.Position(1) = 10;
-                    logo_ax.Units = 'normalized';            
+                    logo_ax.Units = 'normalized';
                     container.Units = cu;
-            end            
+            end
             axis off;
         end
     end

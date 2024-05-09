@@ -1,4 +1,4 @@
-%%%% comaprison file 
+%%%% comaprison file
 project_path = '../../remote_data/project/EPN_test_set/station/';
 %goGPS([project_path '/config/config.ini'],false);
 getResults();
@@ -17,12 +17,12 @@ for r = 1 : max(size(rec))
         t1 = res.time.getMatlabTime();
         [ztd] = rec(r).out.getZtd();
         t2 = rec(r).out.getTime().getMatlabTime();
-        
+
         idx_el = t1 < min(t2) | t1 > max(t2);
         t1(idx_el) = [];
         res.TROTOT(idx_el) = [];
-        
-        
+
+
         ztd_diff_t = timeSeriesComparison(t1,res.TROTOT/1000,t2,ztd,mode);
         ztd_diff = [ztd_diff; ztd_diff_t];
         if isfield(res,'TGNTOT')
@@ -37,7 +37,7 @@ for r = 1 : max(size(rec))
         figure
         plot(t1,res.TROTOT/1000)
         title(['ZTD ' sta_code]);
-        hold on; plot(t2,ztd,'.')        
+        hold on; plot(t2,ztd,'.')
         figure
         plot(t1,res.TGNTOT/1000)
         title(['TGN ' sta_code]);
