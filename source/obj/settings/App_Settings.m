@@ -50,7 +50,8 @@ classdef App_Settings < Settings_Interface
         flag_export_transparent = App_Settings.FLAG_EXPORT_TRANSPARENT;
 
         flag_deployed_slaves = false;
-        bin_path = '../bin/${ARC}/';
+        %bin_path = '../bin/${ARC}/';
+        bin_path = '${APP_EXE}/../bin/${ARC}/';
     end
 
     properties (SetAccess = public, GetAccess = public)
@@ -357,7 +358,8 @@ classdef App_Settings < Settings_Interface
             %
             % SYNTAX
             %   bin_dir = this.getBinDir()
-            out = strrep(this.bin_path, '${ARC}',computer('arch'));
+            out = strrep(strrep(this.bin_path, '${ARC}',computer('arch')), '${APP_EXE}', Core.getInstallDir(true));
+            % out = strrep(this.bin_path, '${ARC}',computer('arch'));
         end
 
         function setBinDir(this, bin_path)

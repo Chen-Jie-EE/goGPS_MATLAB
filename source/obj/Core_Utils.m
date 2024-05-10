@@ -3009,7 +3009,7 @@ classdef Core_Utils < handle
             % read credentials
             credentials_path = Core.getFilePath('credentials');
             if exist(credentials_path, 'file') == 0
-                Core.getLogger.addError('The "credentials.txt" file is missing.\nIt will be created as empty from "credentials.example.txt" in Breva folder');
+                Core.getLogger.addError('The "credentials.txt" file is missing.\nIt will be created as empty from "credentials.example.txt" in goGPS folder');
                 try
                     credentials_default_path = [Core.getInstallDir(true) filesep 'credentials.example.txt'];
                     copyfile(credentials_default_path, credentials_path);
@@ -4106,7 +4106,11 @@ classdef Core_Utils < handle
             rm = Remote_Resource_Manager.getInstance;
             state = Core.getCurrentSettings();
             if ispc()
-                aria2c_path = '.\utility\thirdParty\aria2-extra\aria2_win\aria2c.exe';
+                if isdeployed
+                    aria2c_path = fullfile(Core.getInstallDir(true),'aria2_win','aria2c.exe');
+                else
+                    aria2c_path = '.\utility\thirdParty\aria2-extra\aria2_win\aria2c.exe';
+                end
             elseif ismac()
                 aria2c_path = '/usr/local/bin/aria2c';
                 if ~exist(aria2c_path, 'file')
@@ -4273,11 +4277,11 @@ classdef Core_Utils < handle
                                 if (status == 0)
                                     status = true;
                                 elseif (status > 1)
-                                    this.log.addError(sprintf('Please decompress the %s file before trying to use it in Breva!!!\nError 7za: %s', [ffp{i} fel{i}], result));
+                                    log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!\nError 7za: %s', [ffp{i} fel{i}], result));
                                 end
                                 delete([ffp{i} fel{i}]);
                             catch
-                                this.log.addError(sprintf('Please decompress the %s file before trying to use it in Breva!!!', [ffp{i} fel{i}]));
+                                log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', [ffp{i} fel{i}]));
                                 status = false;
                             end
                         end
@@ -4423,7 +4427,7 @@ classdef Core_Utils < handle
                             delete(full_file_path);
                         end
                     catch
-                        this.log.addError(sprintf('Please decompress the %s file before trying to use it in Breva!!!', full_file_path));
+                        this.log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', full_file_path));
                         ok_status = false;
                     end
                 end
@@ -5707,7 +5711,11 @@ classdef Core_Utils < handle
                     dtm_path = local_dtm_path;
                 else
                     if ispc()
-                        aria2c_path = '.\utility\thirdParty\aria2-extra\aria2_win\aria2c.exe';
+                        if isdeployed
+                            aria2c_path = fullfile(Core.getInstallDir(true),'aria2_win','aria2c.exe');
+                        else
+                            aria2c_path = '.\utility\thirdParty\aria2-extra\aria2_win\aria2c.exe';
+                        end
                     elseif ismac()
                         aria2c_path = '/usr/local/bin/aria2c';
                         if ~exist(aria2c_path, 'file')

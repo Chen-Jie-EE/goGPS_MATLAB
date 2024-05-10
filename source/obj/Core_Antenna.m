@@ -94,7 +94,7 @@ classdef Core_Antenna < handle
                     this.importAntex(file_name{f});
                 end
 
-                log.addMessage(sprintf('Loading antenna file "%s"', atx_file_name));go5G
+                log.addMessage(sprintf('Loading antenna file "%s"', atx_file_name));
                 % Load UI defined file
 
                 if ~exist(atx_file_name, 'file')

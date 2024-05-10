@@ -959,7 +959,7 @@ classdef Core < handle
                 %this.log.setColorMode(c_mode);
                 this.initAntennaManager(this.state.getAtxFile);
             catch ex
-                Core_UI.printEx(ex);
+                Core_Utils.printEx(ex);
             end
 
         end

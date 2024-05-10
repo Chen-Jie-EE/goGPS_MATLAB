@@ -236,7 +236,7 @@ classdef Parallel_Manager < Com_Interface
                 if use_deployed
                     slaves_folder = app_settings.getBinDir;
                     if (isunix && ~exist(fullfile(slaves_folder, 'run_startSlave.sh'), 'file')) || ...
-                       (ispc && ~exist(fullfile(slaves_folder, 'startSlave.vbs'), 'file'))
+                       (ispc && ~exist(fullfile(slaves_folder, 'startSlave.exe'), 'file'))
                         Core.getLogger.addWarning(sprintf('Slave exec not found at "%s", please select the directory containing the binaries', fullfile(slaves_folder)));
                         slaves_folder = uigetdir(slaves_folder, 'Select the directory containing bin files');
                         if slaves_folder ~= 0
@@ -262,12 +262,12 @@ classdef Parallel_Manager < Com_Interface
                     end
                 elseif ispc
                     % iswindow
-                    if ~exist(fullfile(slaves_folder, 'startSlave.vbs'), 'file')
-                        Core.getLogger.addWarning(sprintf('Slave exec not found at "%s"', fullfile(slaves_folder, 'startSlave.vbs')));
+                    if ~exist(fullfile(slaves_folder, 'startSlave.exe'), 'file')
+                        Core.getLogger.addWarning(sprintf('Slave exec not found at "%s"', fullfile(slaves_folder, 'startSlave.exe')));
                         par_ok = false;
                     else
                         mat_exe = Core.getRuntimeDir;
-                        run_cmd = sprintf('start /b %s "%s"', fullfile(slaves_folder, 'startSlave.vbs'), com_dir);
+                        run_cmd = sprintf('start /b %s "%s"', fullfile(slaves_folder, 'startSlave.exe'), com_dir);
                     end
                 end
             end
